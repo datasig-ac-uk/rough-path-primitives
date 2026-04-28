@@ -8,6 +8,10 @@
 #include <rpp/gpu/strategies.hpp>
 #include <rpp/operations.hpp>
 
+#include <rpp/gpu/ops/block/vector_set_zero.hpp>
+#include <rpp/gpu/ops/block/ft_inplace_mul.hpp>
+#include <rpp/gpu/ops/block/tensor_add_identity.hpp>
+
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>

@@ -1,6 +1,7 @@
 #ifndef RPP_OPERATIONS_HPP
 #define RPP_OPERATIONS_HPP
 
+#include <algorithm>
 #include <cstddef>
 
 #include <rpp/utility.hpp>
@@ -52,6 +53,24 @@ public:
 
     template <typename VectorOut, typename VectorArg>
     void operator()(Context const& ctx, VectorOut& out, VectorArg const& arg) const noexcept;
+};
+
+template <typename Strategy>
+class VectorInplaceAdd {
+    using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
+
+public:
+    template <typename LaunchConfig, typename Basis>
+    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
+        ignore_unused(config, basis);
+        return 0;
+    }
+
+    template <typename VectorLhs, typename VectorRhs>
+    void operator()(Context const& ctx, VectorLhs& lhs, VectorRhs const& rhs, Accum alpha=Accum{1}) const noexcept;
+
+
 };
 
 
@@ -348,6 +367,7 @@ public:
 
             inplace_mul(ctx, out, arg.truncate(1, max_degree), divisor);
 
+            ctx.sync();
             add_identity(ctx, out);
         }
     }
@@ -367,7 +387,6 @@ class FTFMExp {
     InplaceFMA123 inplace_fma123;
     Assign assign;
 public:
-    constexpr static Accum one { 1 };
 
     template <typename LaunchConfig, typename Basis>
     static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {

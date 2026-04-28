@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <utility>
 #include <algorithm>
+#include <type_traits>
 
 #include <rpp/config.h>
 
@@ -128,7 +129,7 @@ struct TensorBasis : detail::GradedBasis<Degree_, Index_> {
         rhs_idx = 0;
         for (; degree >= 0; --degree) {
             bool bit;
-            if constexpr (std::is_integral_v<std::remove_cvref_t<BitMask>>) {
+            if constexpr (std::is_integral_v<std::remove_cv_t<std::remove_reference_t<BitMask>>>) {
                 bit = ((bitmask >> degree) & BitMask{1}) != 0;
             } else {
                 bit = static_cast<bool>(bitmask[degree]);

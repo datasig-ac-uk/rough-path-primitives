@@ -46,12 +46,16 @@ class DenseVectorView {
 public:
     using value_type = typename Traits::value_type;
     using reference = typename Traits::reference;
-    using const_reference = std::add_lvalue_reference_t<std::add_const_t<value_type>>;
+    using iterator = It_;
+    using Scalar = value_type;
 
     using Index = typename Traits::difference_type;
     using Basis = Basis_;
     using Degree = typename Basis::Degree;
     using Index_ = typename Basis::Index;
+
+    using Fragment = detail::VectorFragment<It_>;
+
 
 private:
     It_ data_;
@@ -70,9 +74,16 @@ public:
         : data_(data), min_degree_(min_deg), max_degree_(max_degree), basis_(basis) {
     }
 
-
     RPP_HOST_DEVICE RPP_NODISCARD constexpr Basis const &basis() const noexcept { return basis_; }
-    RPP_HOST_DEVICE RPP_NODISCARD constexpr It_ data() const noexcept { return data_; }
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr iterator data() const noexcept { return data_; }
+
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr iterator begin() const noexcept {
+        return data_ + basis_.start_of_degree(min_degree_);
+    }
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr iterator end() const noexcept {
+        return data_ + basis_.end_of_degree(max_degree_);
+    }
+
 
     RPP_HOST_DEVICE RPP_NODISCARD constexpr Degree min_degree() const noexcept { return min_degree_; }
     RPP_HOST_DEVICE RPP_NODISCARD constexpr Degree max_degree() const noexcept { return max_degree_; }
@@ -94,6 +105,13 @@ public:
     RPP_HOST_DEVICE RPP_NODISCARD
     constexpr bool has_degree(Degree degree) const noexcept {
         return min_degree_ <= degree && degree <= max_degree_;
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Fragment degree_view(Degree degree) const noexcept {
+        const auto begin = basis_.start_of_degree(degree);
+        const auto end = basis_.end_of_degree(degree);
+        return { data() + begin, end - begin };
     }
 };
 

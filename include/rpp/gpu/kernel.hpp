@@ -5,6 +5,7 @@
 #include <rpp/gpu/ops/block/vector_set_constant.hpp>
 #include <rpp/gpu/ops/block/vector_set_zero.hpp>
 #include <rpp/gpu/ops/block/vector_assign.hpp>
+#include <rpp/gpu/ops/block/vector_inplace_add.hpp>
 #include <rpp/gpu/ops/block/tensor_add_identity.hpp>
 #include <rpp/gpu/ops/block/tensor_set_identity.hpp>
 #include <rpp/gpu/ops/block/tensor_antipode.hpp>

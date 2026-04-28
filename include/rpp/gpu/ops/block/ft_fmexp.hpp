@@ -8,6 +8,10 @@
 #include <rpp/gpu/strategies.hpp>
 #include <rpp/operations.hpp>
 
+
+#include <rpp/gpu/ops/block/vector_assign.hpp>
+#include <rpp/gpu/ops/block/ft_inplace_fma.hpp>
+
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>

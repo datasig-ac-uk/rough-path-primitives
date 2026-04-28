@@ -1,0 +1,87 @@
+#ifndef RPP_CPU_OPS_SINGLE_THREAD_FT_FMA_HPP
+#define RPP_CPU_OPS_SINGLE_THREAD_FT_FMA_HPP
+
+#include <cstddef>
+
+#include <rpp/cpu/strategies.hpp>
+#include <rpp/operations.hpp>
+#include <rpp/utility.hpp>
+
+
+namespace rpp::ops {
+template<typename Accum_, typename Architecture>
+class FTFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture> > {
+    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+    using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
+
+    using Index = typename Strategy::Index;
+    using Degree = typename Strategy::Degree;
+
+public:
+    template<typename LaunchConfig, typename Basis>
+    static constexpr std::size_t scratch_space_size(LaunchConfig const &config, Basis const &basis) noexcept {
+        ignore_unused(config, basis);
+        return 0;
+    }
+
+    template<typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
+    void operator()(
+        Context const &ctx,
+        TensorOut &out,
+        TensorA const &a,
+        TensorB const &b,
+        TensorC const &c,
+        Accum alpha = Accum{1},
+        Accum beta = Accum{1}
+    ) const noexcept {
+        auto out_min_degree = std::max(Degree{1}, out.min_degree());
+
+        for (Degree out_degree = out.max_degree(); out_degree >= out_min_degree; --
+             out_degree) {
+            auto const lhs_deg_max = std::min(b.max_degree(),
+                                              out_degree - c.min_degree());
+            auto const lhs_deg_min = std::max(b.min_degree(),
+                                              out_degree - c.max_degree());
+
+            auto out_frag = out.degree_view(out_degree);
+            if (a.has_degree(out_degree)) {
+                const auto a_frag = a.degree_view(out_degree);
+                for (Index i = 0; i < out_frag.size(); ++i) {
+                    out_frag[i] = alpha * a_frag[i];
+                }
+            } else {
+                for (Index i = 0; i < out_frag.size(); ++i) {
+                    out_frag[i] = Accum{0};
+                }
+            }
+
+            for (Degree lhs_degree = lhs_deg_max; lhs_degree >= lhs_deg_min; --
+                 lhs_degree) {
+                auto const rhs_degree = out_degree - lhs_degree;
+
+                auto lhs_frag = b.degree_view(lhs_degree);
+                auto rhs_frag = c.degree_view(rhs_degree);
+
+                for (Index i = 0; i < lhs_frag.size(); ++i) {
+                    for (Index j = 0; j < rhs_frag.size(); ++j) {
+                        out_frag[i * rhs_frag.size() + j] +=
+                                beta * lhs_frag[i] * rhs_frag[j];
+                    }
+                }
+            }
+        }
+
+        if (out.min_degree() == 0 && b.min_degree() == 0 && c.min_degree() == 0) {
+            if (a.min_degree() == 0) {
+                out[0] = static_cast<typename TensorOut::value_type>(alpha * Accum{a[0]});
+            } else {
+                out[0] = typename TensorOut::value_type{0};
+            }
+            out[0] = static_cast<typename TensorOut::value_type>(Accum{out[0]} + beta * Accum{b[0]} * Accum{c[0]});
+        }
+    }
+};
+} // namespace rpp::ops
+
+#endif // RPP_CPU_OPS_SINGLE_THREAD_FT_FMA_HPP
