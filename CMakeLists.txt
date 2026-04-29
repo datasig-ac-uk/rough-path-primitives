@@ -49,6 +49,7 @@ add_library(RPP INTERFACE
         include/rpp/cpu/ops/single_thread/st_mul.hpp
         include/rpp/cpu/ops/single_thread/tensor_add_identity.hpp
         include/rpp/cpu/ops/single_thread/tensor_antipode.hpp
+        include/rpp/cpu/ops/single_thread/tensor_pairing.hpp
         include/rpp/cpu/ops/single_thread/tensor_reflect.hpp
         include/rpp/cpu/ops/single_thread/tensor_set_identity.hpp
         include/rpp/cpu/ops/single_thread/vector_assign.hpp
@@ -142,4 +143,9 @@ if (RPP_ENABLE_CUDA)
         ${RPP_GPU_SOURCES}
     )
     set_source_files_properties(${RPP_GPU_SOURCES} PROPERTIES LANGUAGE CUDA)
+endif()
+
+if (RPP_ENABLE_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
 endif()

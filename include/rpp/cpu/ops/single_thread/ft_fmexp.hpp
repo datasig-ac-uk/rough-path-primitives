@@ -4,12 +4,14 @@
 #include <cstddef>
 
 #include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/ops/single_thread/detail/batch_wrapper.hpp>
+#include <rpp/dense/batch.hpp>
 #include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
 
 #include <rpp/cpu/ops/single_thread/vector_inplace_add.hpp>
 #include <rpp/cpu/ops/single_thread/vector_assign.hpp>
-#include <rpp/cpu/ops/single_thread/ft_inplace_fma.hpp>
+#include <rpp/cpu/ops/single_thread/ft_inplace_mul.hpp>
 
 namespace rpp::ops {
 
@@ -36,17 +38,14 @@ public:
     template <typename TensorOut, typename TensorMultiplier, typename TensorExponent>
     void operator()(Context const& ctx, TensorOut& out, TensorMultiplier const& multiplier, TensorExponent const& exponent) const noexcept {
         auto const& basis = out.basis();
-        constexpr Accum one { 1 };
+        const Accum one { 1 };
 
         assign(ctx, out, multiplier);
 
         for (Degree d=basis.depth; d > 0; --d) {
-            const auto max_degree = basis.depth - d + 1;
             const Accum divisor = one / d;
 
-            auto trunc_out = out.truncate(0, max_degree);
-            const auto trunc_exponent = exponent.truncate(1, max_degree);
-            inplace_mul(ctx, trunc_out, trunc_exponent, divisor);
+            inplace_mul(ctx, out, exponent.truncate(1, basis.depth), divisor);
 
             inplace_add(ctx, out, multiplier);
         }
@@ -56,5 +55,34 @@ public:
 };
 
 } // namespace rpp::ops
+
+namespace rpp::cpu::single_thread {
+
+template <typename BatchOut, typename BatchMultiplier, typename BatchExponent, typename Basis, typename Accum_, typename Architecture>
+void ft_fmexp_kernel(
+    const BatchOut batch_out,
+    const BatchMultiplier batch_multiplier,
+    const BatchExponent batch_exponent,
+    const Basis basis,
+    const strategies::SingleThreadStrategy<Accum_, Architecture> strategy,
+    typename Architecture::Index n_tensors
+) {
+    using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
+    using Op = ops::FTFMExp<Strategy>;
+
+    detail::apply_batch<Op>(
+        basis,
+        strategy,
+        n_tensors,
+        [&](Op const& op, typename Strategy::Context const& ctx, typename Strategy::Index tensor_idx) {
+            auto out = batch_out.view(tensor_idx, basis);
+            auto multiplier = batch_multiplier.view(tensor_idx, basis);
+            auto exponent = batch_exponent.view(tensor_idx, basis);
+            op(ctx, out, multiplier, exponent);
+        }
+    );
+}
+
+} // namespace rpp::cpu::single_thread
 
 #endif // RPP_CPU_OPS_SINGLE_THREAD_FT_FMEXP_HPP

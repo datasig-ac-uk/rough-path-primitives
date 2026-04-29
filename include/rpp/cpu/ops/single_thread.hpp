@@ -7,6 +7,7 @@
 #include <rpp/cpu/ops/single_thread/vector_inplace_add.hpp>
 #include <rpp/cpu/ops/single_thread/tensor_add_identity.hpp>
 #include <rpp/cpu/ops/single_thread/tensor_set_identity.hpp>
+#include <rpp/cpu/ops/single_thread/tensor_pairing.hpp>
 #include <rpp/cpu/ops/single_thread/tensor_antipode.hpp>
 #include <rpp/cpu/ops/single_thread/tensor_reflect.hpp>
 #include <rpp/cpu/ops/single_thread/ft_adj_lmul.hpp>

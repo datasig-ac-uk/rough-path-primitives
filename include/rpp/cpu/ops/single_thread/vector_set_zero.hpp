@@ -5,6 +5,8 @@
 #include <cstddef>
 
 #include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/ops/single_thread/detail/batch_wrapper.hpp>
+#include <rpp/dense/batch.hpp>
 #include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
 
@@ -30,5 +32,30 @@ public:
 };
 
 } // namespace rpp::ops
+
+namespace rpp::cpu::single_thread {
+
+template <typename BatchVector, typename Basis, typename Accum_, typename Architecture>
+void vector_set_zero_kernel(
+    const BatchVector batch_vec,
+    const Basis basis,
+    const strategies::SingleThreadStrategy<Accum_, Architecture> strategy,
+    typename Architecture::Index n_tensors
+) {
+    using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
+    using Op = ops::VectorSetZero<Strategy>;
+
+    detail::apply_batch<Op>(
+        basis,
+        strategy,
+        n_tensors,
+        [&](Op const& op, typename Strategy::Context const& ctx, typename Strategy::Index tensor_idx) {
+            auto vec = batch_vec.view(tensor_idx, basis);
+            op(ctx, vec);
+        }
+    );
+}
+
+} // namespace rpp::cpu::single_thread
 
 #endif // RPP_CPU_OPS_SINGLE_THREAD_VECTOR_SET_ZERO_HPP

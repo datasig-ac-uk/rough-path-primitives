@@ -6,6 +6,8 @@
 #include <cstddef>
 
 #include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/ops/single_thread/detail/batch_wrapper.hpp>
+#include <rpp/dense/batch.hpp>
 #include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
 
@@ -105,5 +107,38 @@ public:
 };
 
 } // namespace rpp::ops
+
+namespace rpp::cpu::single_thread {
+
+template <typename BatchOut, typename BatchA, typename BatchB, typename BatchC, typename Basis, typename Accum_, typename Architecture>
+void st_fma_kernel(
+    const BatchOut batch_out,
+    const BatchA batch_a,
+    const BatchB batch_b,
+    const BatchC batch_c,
+    const Basis basis,
+    const strategies::SingleThreadStrategy<Accum_, Architecture> strategy,
+    typename Architecture::Index n_tensors,
+    Accum_ alpha = Accum_{1},
+    Accum_ beta = Accum_{1}
+) {
+    using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
+    using Op = ops::STFma<Strategy>;
+
+    detail::apply_batch<Op>(
+        basis,
+        strategy,
+        n_tensors,
+        [&](Op const& op, typename Strategy::Context const& ctx, typename Strategy::Index tensor_idx) {
+            auto out = batch_out.view(tensor_idx, basis);
+            auto a = batch_a.view(tensor_idx, basis);
+            auto b = batch_b.view(tensor_idx, basis);
+            auto c = batch_c.view(tensor_idx, basis);
+            op(ctx, out, a, b, c, alpha, beta);
+        }
+    );
+}
+
+} // namespace rpp::cpu::single_thread
 
 #endif // RPP_CPU_OPS_SINGLE_THREAD_ST_FMA_HPP

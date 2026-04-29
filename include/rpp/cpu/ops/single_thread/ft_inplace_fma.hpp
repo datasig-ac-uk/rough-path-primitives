@@ -4,6 +4,8 @@
 #include <cstddef>
 
 #include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/ops/single_thread/detail/batch_wrapper.hpp>
+#include <rpp/dense/batch.hpp>
 #include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
 
@@ -67,6 +69,8 @@ public:
         Accum alpha = Accum{1},
         Accum beta = Accum{1}
     ) const noexcept {
+        ignore_unused(ctx);
+
         auto a_min_degree = std::max(Degree{1}, a.min_degree());
 
         for (Degree a_degree = a.max_degree(); a_degree >= a_min_degree; --
@@ -92,8 +96,6 @@ public:
 
                 for (Index i = 0; i < b_frag.size(); ++i) {
                     for (Index j = 0; j < c_frag.size(); ++j) {
-                        const Accum a_val { a_frag[i*c_frag.size()+j] };
-
                         a_frag[i * c_frag.size() + j] +=
                             beta * b_frag[i] * c_frag[j];
                     }
@@ -101,13 +103,47 @@ public:
                  }
              }
 
-        if (a.min_degree() == 0 && b.min_degree() == 0 && c.min_degree() == 0) {
-            a[0] += op(b[0] * c[0]);
+        if (a.min_degree() == 0) {
+            a[0] = alpha * a[0];
+            if (b.min_degree() == 0 && c.min_degree() == 0) {
+                a[0] += beta * b[0] * c[0];
+            }
         }
     }
 
 };
 
 } // namespace rpp::ops
+
+namespace rpp::cpu::single_thread {
+
+template <ops::InplaceFMAType FMAType, typename BatchA, typename BatchB, typename BatchC, typename Basis, typename Accum_, typename Architecture>
+void ft_inplace_fma_kernel(
+    const BatchA batch_a,
+    const BatchB batch_b,
+    const BatchC batch_c,
+    const Basis basis,
+    const strategies::SingleThreadStrategy<Accum_, Architecture> strategy,
+    typename Architecture::Index n_tensors,
+    Accum_ alpha = Accum_{1},
+    Accum_ beta = Accum_{1}
+) {
+    using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
+    using Op = ops::FTInplaceFma<Strategy, FMAType>;
+
+    detail::apply_batch<Op>(
+        basis,
+        strategy,
+        n_tensors,
+        [&](Op const& op, typename Strategy::Context const& ctx, typename Strategy::Index tensor_idx) {
+            auto a = batch_a.view(tensor_idx, basis);
+            auto b = batch_b.view(tensor_idx, basis);
+            auto c = batch_c.view(tensor_idx, basis);
+            op(ctx, a, b, c, alpha, beta);
+        }
+    );
+}
+
+} // namespace rpp::cpu::single_thread
 
 #endif // RPP_CPU_OPS_SINGLE_THREAD_FT_INPLACE_FMA_HPP

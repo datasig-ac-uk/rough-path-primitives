@@ -110,6 +110,22 @@ public:
 
 
 
+template <typename Strategy>
+class TensorPairing {
+public:
+    using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
+
+    template <typename LaunchConfig, typename Basis>
+    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
+        ignore_unused(config, basis);
+        return 0;
+    }
+
+    template <typename Scalar, typename TensorFunc, typename TensorArg>
+    void operator()(Context const& ctx, Scalar& result, TensorFunc const& functional, TensorArg const& arg) const noexcept;
+
+};
 
 
 /*****************************************************************************
@@ -212,7 +228,7 @@ public:
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorOut& out, TensorLhs const& lhs, TensorRhs& rhs, Accum beta=Accum{1}) const noexcept {
-        fma(ctx, out, lhs. rhs, Accum{0}, beta);
+        fma(ctx, out, lhs, rhs, Accum{0}, beta);
     }
 
 };
@@ -355,17 +371,16 @@ public:
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
         auto const& basis = out.basis();
-        constexpr Accum one { 1 };
+        const Accum one { 1 };
 
         set_identity(ctx, out);
 
         for (Degree d = basis.depth; d > 0; --d) {
-            const auto max_degree = basis.depth - d + 1;
             const Accum divisor = one / d;
 
             ctx.sync();
 
-            inplace_mul(ctx, out, arg.truncate(1, max_degree), divisor);
+            inplace_mul(ctx, out, arg.truncate(1, basis.depth), divisor);
 
             ctx.sync();
             add_identity(ctx, out);
@@ -398,7 +413,7 @@ public:
     template <typename TensorOut, typename TensorMultiplier, typename TensorExponent>
     void operator()(Context const& ctx, TensorOut& out, TensorMultiplier const& multiplier, TensorExponent const& exponent) const noexcept {
         auto const& basis = out.basis();
-        constexpr Accum one { 1 };
+        const Accum one { 1 };
 
         assign(ctx, out, multiplier);
 
@@ -442,7 +457,7 @@ public:
     template <typename TensorOut, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
         auto const& basis = out.basis();
-        constexpr Accum one { 1 };
+        const Accum one { 1 };
 
         set_zero(ctx, out);
 
@@ -453,7 +468,7 @@ public:
 
             ctx.sync();
 
-            inplace_mul(ctx, out, arg.truncate(1, d), val);
+            inplace_mul(ctx, out, arg.truncate(1, basis.depth));
         }
     }
 };

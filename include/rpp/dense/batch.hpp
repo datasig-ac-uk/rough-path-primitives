@@ -30,19 +30,29 @@ public:
     }
 
     RPP_HOST_DEVICE constexpr decltype(auto) min_degree() const noexcept {
-        std::get<2>(data_);
+        return std::get<2>(data_);
     }
 
     RPP_HOST_DEVICE constexpr decltype(auto) max_degree() const noexcept {
-        std::get<3>(data_);
+        return std::get<3>(data_);
+    }
+
+    template<template<typename, typename> class ViewT, typename Index, typename Basis>
+    RPP_HOST_DEVICE constexpr auto view_as(Index index, Basis const &basis) const noexcept {
+        using View = ViewT<It_, Basis>;
+        using Degree = typename View::Degree;
+        return View(data() + index * stride(), basis, static_cast<Degree>(min_degree()),
+                    static_cast<Degree>(max_degree()));
     }
 
     template<template<typename, typename> class ViewT, typename Index, typename Basis>
     RPP_HOST_DEVICE constexpr auto view(Index index, Basis const &basis) const noexcept {
-        using View = ViewT<It_, Basis>;
-        using Degree = typename View::Degree;
-        return View(data() + index * basis.stride(), basis, static_cast<Degree>(min_degree()),
-                    static_cast<Degree>(max_degree()));
+        return view_as<ViewT>(index, basis);
+    }
+
+    template<typename Index, typename Basis>
+    RPP_HOST_DEVICE constexpr auto view(Index index, Basis const &basis) const noexcept {
+        return view_as<DenseVectorView>(index, basis);
     }
 };
 
@@ -56,7 +66,7 @@ public:
 
     template <typename Index, typename Basis>
     RPP_HOST_DEVICE constexpr auto view(Index index, Basis const &basis) const noexcept {
-        return this->template view<DenseTensorView>(index, basis);
+        return this->template view_as<DenseTensorView>(index, basis);
     }
 };
 
