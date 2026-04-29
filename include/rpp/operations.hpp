@@ -4,10 +4,17 @@
 #include <algorithm>
 #include <cstddef>
 
+#include <rpp/sparse/compressed_matrix.hpp>
 #include <rpp/utility.hpp>
 
 namespace rpp::ops {
 
+namespace detail {
+
+template <typename...>
+inline constexpr bool unsupported_primary_operation = false;
+
+} // namespace detail
 
 /*****************************************************************************
  *                           Vector Operations                               *
@@ -17,42 +24,60 @@ template <typename Strategy>
 class VectorSetConstant {
     using Context = typename Strategy::Context;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename Vector, typename Value>
-    void operator()(Context const& ctx, Vector& vec, Value const& value) const noexcept;
+    void operator()(Context const& ctx, Vector& vec, Value const& value) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, Vector, Value>,
+            "rpp::ops::VectorSetConstant has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
 class VectorSetZero {
     using Context = typename Strategy::Context;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename Vector>
-    void operator()(Context const& ctx, Vector& vec) const noexcept;
+    void operator()(Context const& ctx, Vector& vec) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, Vector>,
+            "rpp::ops::VectorSetZero has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
 class VectorAssign {
     using Context = typename Strategy::Context;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename VectorOut, typename VectorArg>
-    void operator()(Context const& ctx, VectorOut& out, VectorArg const& arg) const noexcept;
+    void operator()(Context const& ctx, VectorOut& out, VectorArg const& arg) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, VectorOut, VectorArg>,
+            "rpp::ops::VectorAssign has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
@@ -61,16 +86,65 @@ class VectorInplaceAdd {
     using Accum = typename Strategy::Accum;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename VectorLhs, typename VectorRhs>
-    void operator()(Context const& ctx, VectorLhs& lhs, VectorRhs const& rhs, Accum alpha=Accum{1}) const noexcept;
+    void operator()(Context const& ctx, VectorLhs& lhs, VectorRhs const& rhs, Accum alpha=Accum{1}) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, VectorLhs, VectorRhs, Accum>,
+            "rpp::ops::VectorInplaceAdd has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 
 
+};
+
+template <typename Strategy>
+class SparseMatrixVectorProduct {
+    using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
+
+public:
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
+        return 0;
+    }
+
+    template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
+    void operator()(
+        Context const& ctx,
+        VectorOut& out,
+        sparse::CSRMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
+        VectorArg const& arg,
+        Accum alpha = Accum{1}
+    ) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, VectorOut, DataIter, IndexIter, OffsetsIter, VectorArg, Accum>,
+            "rpp::ops::SparseMatrixVectorProduct CSR overload has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
+
+    template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
+    void operator()(
+        Context const& ctx,
+        VectorOut& out,
+        sparse::CSCMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
+        VectorArg const& arg,
+        Accum alpha = Accum{1}
+    ) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, VectorOut, DataIter, IndexIter, OffsetsIter, VectorArg, Accum>,
+            "rpp::ops::SparseMatrixVectorProduct CSC overload has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 
@@ -83,14 +157,20 @@ class TensorAddIdentity {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename Tensor>
-    void operator()(Context const& ctx, Tensor& tensor, Accum scalar=Accum{1}) const noexcept;
+    void operator()(Context const& ctx, Tensor& tensor, Accum scalar=Accum{1}) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, Tensor, Accum>,
+            "rpp::ops::TensorAddIdentity has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
@@ -98,14 +178,20 @@ class TensorSetIdentity {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename Tensor>
-    void operator()(Context const& ctx, Tensor& tensor, Accum scalar=Accum{1}) const noexcept;
+    void operator()(Context const& ctx, Tensor& tensor, Accum scalar=Accum{1}) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, Tensor, Accum>,
+            "rpp::ops::TensorSetIdentity has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 
@@ -116,14 +202,20 @@ public:
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename Scalar, typename TensorFunc, typename TensorArg>
-    void operator()(Context const& ctx, Scalar& result, TensorFunc const& functional, TensorArg const& arg) const noexcept;
+    void operator()(Context const& ctx, Scalar& result, TensorFunc const& functional, TensorArg const& arg) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, Scalar, TensorFunc, TensorArg>,
+            "rpp::ops::TensorPairing has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 
 };
 
@@ -137,28 +229,40 @@ template <typename Strategy>
 class TensorAntipode {
     using Context = typename Strategy::Context;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorOut, typename TensorArg>
-    void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept;
+    void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorArg>,
+            "rpp::ops::TensorAntipode has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
 class TensorReflect {
     using Context = typename Strategy::Context;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorOut, typename TensorArg>
-    void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept;
+    void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorArg>,
+            "rpp::ops::TensorReflect has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 
@@ -175,14 +279,20 @@ class FTInplaceFma {
 
         using Accum = typename Strategy::Accum;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorA, typename TensorB, typename TensorC>
-    void operator()(Context const& ctx, TensorA& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept;
+    void operator()(Context const& ctx, TensorA& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorA, TensorB, TensorC, Accum>,
+            "rpp::ops::FTInplaceFma has no implementation for this Strategy/FMA type. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
@@ -198,14 +308,20 @@ class FTFma {
 
         using Accum = typename Strategy::Accum;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
-    void operator()(Context const& ctx, TensorOut& out, TensorA const& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept;
+    void operator()(Context const& ctx, TensorOut& out, TensorA const& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorA, TensorB, TensorC, Accum>,
+            "rpp::ops::FTFma has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 
 };
 
@@ -220,9 +336,9 @@ class FTMul {
     FMA fma;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        return FMA::scratch_space_size(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        return FMA::scratch_space_size(strategy, basis);
     }
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>
@@ -238,42 +354,60 @@ class FTInplaceMul {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorLhs, typename TensorRhs>
-    void operator()(Context const& ctx, TensorLhs& lhs, TensorRhs const& rhs, Accum beta=Accum{1}) const noexcept;
+    void operator()(Context const& ctx, TensorLhs& lhs, TensorRhs const& rhs, Accum beta=Accum{1}) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorLhs, TensorRhs, Accum>,
+            "rpp::ops::FTInplaceMul has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
 class FTAdjLMul {
     using Context = typename Strategy::Context;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>
-    void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept;
+    void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorOp, TensorArg>,
+            "rpp::ops::FTAdjLMul has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
 class FTAdjRMul {
     using Context = typename Strategy::Context;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>
-    void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept;
+    void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorOp, TensorArg>,
+            "rpp::ops::FTAdjRMul has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 
@@ -281,28 +415,40 @@ template <typename Strategy> class STFma {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
-    void operator()(Context const& ctx, TensorOut& out, TensorA const& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept;
+    void operator()(Context const& ctx, TensorOut& out, TensorA const& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorA, TensorB, TensorC, Accum>,
+            "rpp::ops::STFma has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy> class STInplaceFma {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorA, typename TensorB, typename TensorC>
-    void operator()(Context const& ctx, TensorA& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept;
+    void operator()(Context const& ctx, TensorA& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorA, TensorB, TensorC, Accum>,
+            "rpp::ops::STInplaceFma has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 template <typename Strategy>
@@ -313,9 +459,9 @@ class STMul {
     using InplaceFMA = STInplaceFma<Strategy>;
     InplaceFMA fma;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        return InplaceFMA::scratch_space_size(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        return InplaceFMA::scratch_space_size(strategy, basis);
     }
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>
@@ -330,14 +476,20 @@ template <typename Strategy>
 class STAdjMul {
     using Context = typename Strategy::Context;
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>
-    void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept;
+    void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorOp, TensorArg>,
+            "rpp::ops::STAdjMul has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
 };
 
 
@@ -360,11 +512,11 @@ class FTExp {
     AddIdentity add_identity;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        return std::max(InplaceMul::scratch_space_size(config, basis),
-            std::max(SetIdentity::scratch_space_size(config, basis),
-                        AddIdentity::scratch_space_size(config, basis)));
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        return std::max(InplaceMul::scratch_space_size(strategy, basis),
+            std::max(SetIdentity::scratch_space_size(strategy, basis),
+                        AddIdentity::scratch_space_size(strategy, basis)));
     }
 
     template <typename TensorOut, typename TensorArg>
@@ -403,11 +555,11 @@ class FTFMExp {
     Assign assign;
 public:
 
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
         return std::max(
-            InplaceFMA123 ::scratch_space_size(config, basis),
-            Assign::scratch_space_size(config, basis));
+            InplaceFMA123 ::scratch_space_size(strategy, basis),
+            Assign::scratch_space_size(strategy, basis));
     }
 
     template <typename TensorOut, typename TensorMultiplier, typename TensorExponent>
@@ -444,12 +596,12 @@ class FTLog {
     AddIdentity add_identity;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
         return std::max(
-            SetZero::scratch_space_size(config, basis),
-            std::max(SetZero::scratch_space_size(config, basis),
-                AddIdentity::scratch_space_size(config, basis))
+            SetZero::scratch_space_size(strategy, basis),
+            std::max(SetZero::scratch_space_size(strategy, basis),
+                AddIdentity::scratch_space_size(strategy, basis))
             );
 
     }

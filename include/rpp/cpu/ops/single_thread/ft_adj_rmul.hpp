@@ -29,9 +29,9 @@ class FTAdjRMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     AdjLMul adj_lmul;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr std::size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config);
+    template <typename Basis>
+    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy);
         return 3 * align_up(basis.size() * sizeof(Accum), std::size_t{64});
     }
 

@@ -20,9 +20,9 @@ class VectorInplaceAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architectur
     using Index = typename Strategy::Index;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr std::size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 

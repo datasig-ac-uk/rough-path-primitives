@@ -20,6 +20,7 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         ft_inplace_fma_tests.cpp
         ft_inplace_mul_tests.cpp
         ft_mul_tests.cpp
+        sparse_matrix_vector_product_tests.cpp
         st_adj_mul_tests.cpp
         st_fma_tests.cpp
         st_inplace_fma_tests.cpp

@@ -28,9 +28,9 @@ class FTFMExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     Assign assign;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        return std::max(InplaceFMA123::scratch_space_size(config, basis), Assign::scratch_space_size(config, basis));
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        return std::max(InplaceFMA123::scratch_space_size(strategy, basis), Assign::scratch_space_size(strategy, basis));
     }
 
     template <typename TensorOut, typename TensorMultiplier, typename TensorExponent>

@@ -30,11 +30,11 @@ class FTLog<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     AddIdentity add_identity;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        return std::max(SetZero::scratch_space_size(config, basis),
-                        std::max(InplaceMul::scratch_space_size(config, basis),
-                                 AddIdentity::scratch_space_size(config, basis)));
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        return std::max(SetZero::scratch_space_size(strategy, basis),
+                        std::max(InplaceMul::scratch_space_size(strategy, basis),
+                                 AddIdentity::scratch_space_size(strategy, basis)));
     }
 
     template <typename TensorOut, typename TensorArg>

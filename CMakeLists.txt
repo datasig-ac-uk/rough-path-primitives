@@ -26,6 +26,7 @@ add_library(RPP INTERFACE
         include/rpp/config/target.h
         include/rpp/dense/batch.hpp
         include/rpp/dense/views.hpp
+        include/rpp/sparse/compressed_matrix.hpp
         include/rpp/architecture.hpp
         include/rpp/basis.hpp
         include/rpp/config.h

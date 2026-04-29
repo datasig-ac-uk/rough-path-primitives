@@ -5,6 +5,7 @@
 #include <rpp/cpu/ops/single_thread/vector_set_zero.hpp>
 #include <rpp/cpu/ops/single_thread/vector_assign.hpp>
 #include <rpp/cpu/ops/single_thread/vector_inplace_add.hpp>
+#include <rpp/cpu/ops/single_thread/sparse_matrix_vector_product.hpp>
 #include <rpp/cpu/ops/single_thread/tensor_add_identity.hpp>
 #include <rpp/cpu/ops/single_thread/tensor_set_identity.hpp>
 #include <rpp/cpu/ops/single_thread/tensor_pairing.hpp>

@@ -25,9 +25,9 @@ class STAdjMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> 
     SetZero set_zero;
 
 public:
-    template <typename LaunchConfig, typename Basis>
-    static constexpr size_t scratch_space_size(LaunchConfig const& config, Basis const& basis) noexcept {
-        ignore_unused(config, basis);
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
         return 0;
     }
 

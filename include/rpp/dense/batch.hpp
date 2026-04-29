@@ -56,6 +56,11 @@ public:
     }
 };
 
+template <typename It, typename Stride, typename MinDegree, typename MaxDegree>
+RPP_HOST_DEVICE
+constexpr auto make_vector_batch(It it, Stride stride, MinDegree min, MaxDegree max) noexcept {
+    return VectorBatch<It, Stride, MinDegree, MaxDegree>{it, stride, min, max};
+}
 
 template <typename It_, typename Stride, typename MinDegree, typename MaxDegree>
 class TensorBatch : public VectorBatch<It_, Stride, MinDegree, MaxDegree> {
@@ -73,16 +78,31 @@ public:
 
 template <typename It, typename Stride, typename MinDegree, typename MaxDegree>
 RPP_HOST_DEVICE
-constexpr auto make_vector_batch(It it, Stride stride, MinDegree min, MaxDegree max) noexcept {
-    return VectorBatch<It, Stride, MinDegree, MaxDegree>{it, stride, min, max};
-}
-
-template <typename It, typename Stride, typename MinDegree, typename MaxDegree>
-RPP_HOST_DEVICE
 constexpr auto make_tensor_batch(It it, Stride stride, MinDegree min, MaxDegree max) noexcept {
     return TensorBatch<It, Stride, MinDegree, MaxDegree>{it, stride, min, max};
 }
 
+
+
+
+template <typename It_, typename Stride, typename MinDegree, typename MaxDegree>
+class LieBatch : public VectorBatch<It_, Stride, MinDegree, MaxDegree> {
+    using Base = VectorBatch<It_, Stride, MinDegree, MaxDegree>;
+public:
+
+    using Base::Base;
+
+    template <typename Index, typename Basis>
+    RPP_HOST_DEVICE constexpr auto view(Index index, Basis const &basis) const noexcept {
+        return this->template view_as<DenseLieView>(index, basis);
+    }
+};
+
+template <typename It, typename Stride, typename MinDegree, typename MaxDegree>
+RPP_HOST_DEVICE
+constexpr auto make_lie_batch(It it, Stride stride, MinDegree min, MaxDegree max) noexcept {
+    return LieBatch<It, Stride, MinDegree, MaxDegree>{it, stride, min, max};
+}
 
 } // namespace rpp::dense
 

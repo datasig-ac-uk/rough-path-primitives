@@ -75,7 +75,7 @@ protected:
         using AdjMul = rpp::ops::FTAdjRMul<Strategy>;
 
         std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
-        auto const scratch_bytes = AdjMul::scratch_space_size(0, basis);
+        auto const scratch_bytes = AdjMul::scratch_space_size(Strategy{}, basis);
         std::vector<Scalar> scratch((scratch_bytes + sizeof(Scalar) - 1) / sizeof(Scalar));
 
         TensorView<Scalar*> out_view(out.data(), basis);
