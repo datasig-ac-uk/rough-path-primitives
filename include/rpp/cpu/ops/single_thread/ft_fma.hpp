@@ -72,13 +72,17 @@ public:
             }
         }
 
-        if (out.min_degree() == 0 && b.min_degree() == 0 && c.min_degree() == 0) {
+        if (out.min_degree() == 0) {
+            Accum val { 0 };
             if (a.min_degree() == 0) {
-                out[0] = static_cast<typename TensorOut::value_type>(alpha * Accum{a[0]});
-            } else {
-                out[0] = typename TensorOut::value_type{0};
+                val += alpha * Accum{a[0]};
             }
-            out[0] = static_cast<typename TensorOut::value_type>(Accum{out[0]} + beta * Accum{b[0]} * Accum{c[0]});
+            if (b.min_degree() == 0 && c.min_degree() == 0) {
+                const Accum b_val {b[0]};
+                const Accum c_val {c[0]};
+                val += beta * b_val * c_val;
+            }
+            out[0] = val;
         }
     }
 };
