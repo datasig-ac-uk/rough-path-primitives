@@ -18,6 +18,18 @@ RPP_HOST_DEVICE constexpr bool is_pow_2(I val) noexcept {
     return (val > 0) && (val & (val - 1)) == I{0};
 }
 
+template <typename I, typename E>
+RPP_HOST_DEVICE constexpr I const_power(I base, E exp) noexcept {
+    I result = 1;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result *= base;
+        }
+        result *= result;
+        exp /= 2;
+    }
+    return result;
+}
 
 template <typename T, typename S>
 RPP_HOST_DEVICE

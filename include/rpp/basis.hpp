@@ -8,6 +8,7 @@
 #include <type_traits>
 
 #include <rpp/config.h>
+#include <rpp/utility.hpp>
 
 
 namespace rpp {
@@ -78,7 +79,20 @@ struct GradedBasis {
     }
 
 };
-} // namespace internal
+
+
+struct StandardLieBasisOrder {
+
+    template <typename Left, typename Right>
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr bool operator()(Left const& left, Right const& right) const noexcept {
+        auto& [a, b] = left;
+        auto& [c, d] = right;
+        return a < c || (a == c && b < d);
+    }
+};
+
+} // namespace detail
 
 
 template <typename Degree_, typename Index_>
@@ -157,8 +171,8 @@ struct TensorBasis : detail::GradedBasis<Degree_, Index_> {
 
 };
 
-template <typename Degree_, typename Index_>
-struct LieBasis : detail::GradedBasis<Degree_, Index_> {
+template <typename Degree_, typename Index_, typename Ordering=detail::StandardLieBasisOrder>
+struct LieBasis : detail::GradedBasis<Degree_, Index_>, Ordering {
     using Base = detail::GradedBasis<Degree_, Index_>;
     using Degree = typename Base::Degree;
     using Index = typename Base::Index;
@@ -189,11 +203,76 @@ struct LieBasis : detail::GradedBasis<Degree_, Index_> {
 
     RPP_HOST_DEVICE RPP_NODISCARD
     constexpr Index true_size() const noexcept { return Base::size(); }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr auto operator[](Index idx) const noexcept {
+        return std::tie(data[2*idx], data[2*idx + 1]);
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Index key_to_idx(Index key) const noexcept { return key - 1; }
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Index idx_to_key(Index idx) const noexcept { return idx + 1; }
+
+
+    template <typename CmpLeft, typename CmpRight>
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr bool compare(CmpLeft const& left, CmpRight const& right) const noexcept {
+        return static_cast<Ordering const&>(*this)(left, right);
+    }
+
+    constexpr Index find_bracket(Index left, Index right, Degree degree_hint=0) const noexcept {
+        auto pos = degree_hint != 0 ? this->start_of_degree(degree_hint) : Index(0);
+        const auto end = degree_hint != 0 ? this->end_of_degree(degree_hint) : this->size();
+        auto diff = degree_hint  - pos;
+        auto needle = std::tie(left, right);
+
+        while (diff > 0) {
+            auto half = diff / 2;
+            auto test_pos = pos + half;
+            auto test = (*this)[test_pos];
+
+            if (test == needle) {
+                return test_pos;
+            }
+
+            if (compare(test, needle)) {
+                pos = test_pos + 1;
+                diff -= half + 1;
+            } else {
+                diff = half;
+            }
+        }
+
+        if (pos < end && (*this)[pos] == needle) {
+            return pos;
+        }
+
+        return 0;
+    }
 };
 
 
 using StandardTensorBasis = TensorBasis<std::int32_t, std::ptrdiff_t>;
 using StandardLieBasis = LieBasis<std::int32_t, std::ptrdiff_t>;
+
+
+
+template <typename Index, typename Width, typename Degree>
+RPP_HOST_DEVICE RPP_NODISCARD
+constexpr Index tensor_dimension(Width width, Degree degree) noexcept {
+    Index result { 1 };
+    for (Degree d = 0; d < degree; ++d) {
+        result = Index{1} + static_cast<Index>(width) * result;
+    }
+    return result;
+}
+
+template <typename Index, typename Width, typename Degree>
+constexpr Index tensor_degree_size(Width width, Degree degree) noexcept {
+    return const_power(static_cast<Index>(width), degree);
+}
+
 } // namespace rpp
 
 
