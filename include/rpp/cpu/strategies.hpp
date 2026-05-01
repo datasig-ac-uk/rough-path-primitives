@@ -31,10 +31,12 @@ public:
         : scratch_ptr_(scratch_ptr)
     {}
 
+    RPP_HOST_DEVICE
     static void sync() noexcept {}
 
 
     template <typename Element>
+    RPP_HOST_DEVICE
     RPP_NODISCARD Element* scratch_space() const noexcept {
         return reinterpret_cast<Element*>(scratch_ptr_);
     }

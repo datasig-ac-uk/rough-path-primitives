@@ -23,17 +23,23 @@ RPP_HOST_DEVICE constexpr auto ft_multiply_loop_with_degree(
     using Accum = typename Context::Accum;
     ignore_unused(ctx);
 
+    const auto rhs_min_deg = std::max<Degree>(0, std::max<Degree>(degree - b.max_degree(), c.min_degree()));
+    const auto rhs_max_deg = std::min<Degree>(degree, std::min<Degree>(degree - b.min_degree(), c.max_degree()));
+
+    if (rhs_min_deg > rhs_max_deg) {
+        return Accum{0};
+    }
+
     Accum acc{0};
-    if (c.min_degree() == 0 && b.max_degree() >= degree) {
+    if (rhs_min_deg == 0) {
         acc += Accum{b[elt_idx]} * Accum{c[0]};
     }
 
-    const auto rhs_min_deg = std::max(1, std::max<Degree>(degree - b.max_degree(), c.min_degree()));
-    const auto rhs_max_deg = std::min<Degree>(degree - b.min_degree(), c.max_degree());
-
-    auto splitter = basis.size_of_degree(rhs_min_deg);
+    const auto middle_min_deg = std::max<Degree>(rhs_min_deg, 1);
+    const auto middle_max_deg = std::min<Degree>(degree - 1, rhs_max_deg);
+    auto splitter = basis.size_of_degree(middle_min_deg);
     const Index idx = elt_idx - basis.degree_begin[degree];
-    for (Index rhs_deg = std::max(rhs_min_deg, 1); rhs_deg <= std::min(degree - 1, rhs_max_deg); ++rhs_deg) {
+    for (Degree rhs_deg = middle_min_deg; rhs_deg <= middle_max_deg; ++rhs_deg) {
         const auto lhs_deg = degree - rhs_deg;
         const auto lhs_idx = idx / splitter;
         const auto rhs_idx = idx % splitter;
@@ -44,7 +50,7 @@ RPP_HOST_DEVICE constexpr auto ft_multiply_loop_with_degree(
         splitter *= basis.width;
     }
 
-    if (rhs_max_deg == degree) {
+    if (degree > 0 && rhs_max_deg == degree) {
         acc += Accum{b[0]} * Accum{c[elt_idx]};
     }
 

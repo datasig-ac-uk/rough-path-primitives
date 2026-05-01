@@ -77,7 +77,9 @@ RPP_KERNEL void ft_inplace_mul_kernel(
 
     ops::FTInplaceMul<Strategy> op;
 
-    op(ctx, batch_lhs.view(my_index, basis), batch_rhs.view(my_index, basis), beta);
+    auto lhs = batch_lhs.view(my_index, basis);
+    auto rhs = batch_rhs.view(my_index, basis);
+    op(ctx, lhs, rhs, beta);
 }
 
 } // namespace rpp::gpu::block

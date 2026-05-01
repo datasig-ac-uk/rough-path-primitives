@@ -90,7 +90,10 @@ RPP_KERNEL void ft_adj_rmul_kernel(
 
     ops::FTAdjRMul<Strategy> op;
 
-    op(ctx, batch_out.view(my_index, basis), batch_op.view(my_index, basis), batch_arg.view(my_index, basis));
+    auto out = batch_out.view(my_index, basis);
+    auto op_tensor = batch_op.view(my_index, basis);
+    auto arg = batch_arg.view(my_index, basis);
+    op(ctx, out, op_tensor, arg);
 }
 
 } // namespace rpp::gpu::block

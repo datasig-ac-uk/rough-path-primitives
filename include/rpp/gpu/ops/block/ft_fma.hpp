@@ -76,12 +76,16 @@ RPP_KERNEL void ft_fma_kernel(
 
     ops::FTFma<Strategy> op;
 
+    auto out = batch_out.view(my_index, basis);
+    auto a = batch_a.view(my_index, basis);
+    auto b = batch_b.view(my_index, basis);
+    auto c = batch_c.view(my_index, basis);
     op(
         ctx,
-        batch_out.view(my_index, basis),
-        batch_a.view(my_index, basis),
-        batch_b.view(my_index, basis),
-        batch_c.view(my_index, basis),
+        out,
+        a,
+        b,
+        c,
         alpha,
         beta
     );

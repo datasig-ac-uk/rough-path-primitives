@@ -63,7 +63,7 @@ public:
 
                     basis.pack_masked_index(
                         letters,
-                        static_cast<Degree>(arg_degree - 1),
+                        arg_degree,
                         mask,
                         op_degree,
                         op_idx,

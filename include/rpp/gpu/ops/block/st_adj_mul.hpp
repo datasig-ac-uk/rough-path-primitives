@@ -39,22 +39,32 @@ public:
         set_zero(ctx, out);
         ctx.sync();
 
-        for (Index elt_idx = ctx.thread_rank(); elt_idx < arg.size(); elt_idx += ctx.num_threads()) {
+        const auto arg_begin = basis.start_of_degree(arg.min_degree());
+        const auto arg_end = basis.end_of_degree(arg.max_degree());
+        for (Index elt_idx = arg_begin + ctx.thread_rank(); elt_idx < arg_end; elt_idx += ctx.num_threads()) {
             const auto elt_degree = basis.degree(elt_idx);
             Letter letters[Strategy::Architecture::max_depth];
-            basis.unpack_index_to_letters(letters, elt_degree, elt_idx);
+            basis.unpack_index_to_letters(letters, elt_degree, elt_idx - basis.start_of_degree(elt_degree));
             const Accum arg_val{arg[elt_idx]};
 
-            for (Bitmask mask{0}; mask < Bitmask{1 << elt_degree}; ++mask) {
+            for (Bitmask mask{0}; mask < (Bitmask{1} << elt_degree); ++mask) {
                 Index op_idx;
                 Index out_idx;
                 Degree op_deg;
                 Degree out_deg;
-                basis.pack_masked_index(letters, elt_degree, mask, op_deg, op_idx, out_deg, out_idx);
+                basis.pack_masked_index(
+                    letters,
+                    elt_degree,
+                    mask,
+                    op_deg,
+                    op_idx,
+                    out_deg,
+                    out_idx
+                );
                 op_idx += basis.start_of_degree(op_deg);
                 out_idx += basis.start_of_degree(out_deg);
 
-                if (op.has_degree(op_deg)) {
+                if (out.has_degree(out_deg) && op.has_degree(op_deg)) {
                     atomicAdd(out.data() + out_idx, static_cast<Scalar>(arg_val * Accum{op[op_idx]}));
                 }
             }
@@ -85,7 +95,10 @@ RPP_KERNEL void st_adj_mul_kernel(
 
     ops::STAdjMul<Strategy> op;
 
-    op(ctx, batch_out.view(my_index, basis), batch_op.view(my_index, basis), batch_arg.view(my_index, basis));
+    auto out = batch_out.view(my_index, basis);
+    auto op_tensor = batch_op.view(my_index, basis);
+    auto arg = batch_arg.view(my_index, basis);
+    op(ctx, out, op_tensor, arg);
 }
 
 } // namespace rpp::gpu::block

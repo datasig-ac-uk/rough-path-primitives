@@ -614,13 +614,14 @@ public:
         set_zero(ctx, out);
 
         for (Degree d=basis.depth; d > 0; --d) {
+            const auto max_depth = basis.depth - d + 1;
             const Accum val = (d % 2 == 0 ? -one : one) / d;
 
             add_identity(ctx, out, val);
 
             ctx.sync();
-
-            inplace_mul(ctx, out, arg.truncate(1, basis.depth));
+            auto out_trunc = out.truncate(0, max_depth);
+            inplace_mul(ctx, out_trunc, arg.truncate(1, max_depth));
         }
     }
 };

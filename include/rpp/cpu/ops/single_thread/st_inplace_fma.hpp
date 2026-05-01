@@ -43,7 +43,7 @@ class STInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> 
             Index rhs_idx{0};
             basis.pack_masked_index(
                 letters,
-                static_cast<Degree>(degree - 1),
+                degree,
                 mask,
                 lhs_degree,
                 lhs_idx,

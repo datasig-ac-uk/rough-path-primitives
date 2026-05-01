@@ -8,6 +8,10 @@
 #include <rpp/gpu/strategies.hpp>
 #include <rpp/operations.hpp>
 
+#include <rpp/gpu/ops/block/ft_inplace_mul.hpp>
+#include <rpp/gpu/ops/block/tensor_add_identity.hpp>
+#include <rpp/gpu/ops/block/tensor_set_identity.hpp>
+
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
@@ -71,7 +75,9 @@ RPP_KERNEL void ft_exp_kernel(
 
     ops::FTExp<Strategy> op;
 
-    op(ctx, batch_out.view(my_index, basis), batch_arg.view(my_index, basis));
+    auto out = batch_out.view(my_index, basis);
+    auto arg = batch_arg.view(my_index, basis);
+    op(ctx, out, arg);
 }
 
 } // namespace rpp::gpu::block

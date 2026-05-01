@@ -71,7 +71,10 @@ RPP_KERNEL void ft_fmexp_kernel(
 
     ops::FTFMExp<Strategy> op;
 
-    op(ctx, batch_out.view(my_index, basis), batch_multiplier.view(my_index, basis), batch_exponent.view(my_index, basis));
+    auto out = batch_out.view(my_index, basis);
+    auto multiplier = batch_multiplier.view(my_index, basis);
+    auto exponent = batch_exponent.view(my_index, basis);
+    op(ctx, out, multiplier, exponent);
 }
 
 } // namespace rpp::gpu::block

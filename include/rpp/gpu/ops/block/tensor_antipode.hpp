@@ -51,7 +51,9 @@ RPP_KERNEL void tensor_antipode_kernel(
 
     ops::TensorAntipode<Strategy> op;
 
-    op(ctx, batch_out.view(my_index, basis), batch_arg.view(my_index, basis));
+    auto out = batch_out.view(my_index, basis);
+    auto arg = batch_arg.view(my_index, basis);
+    op(ctx, out, arg);
 }
 
 } // namespace rpp::gpu::block

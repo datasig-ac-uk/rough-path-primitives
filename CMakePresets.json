@@ -22,7 +22,8 @@
       },
       "cacheVariables": {
         "CMAKE_CUDA_COMPILER": "/usr/local/cuda/bin/nvcc",
-        "CUDAToolkit_ROOT": "/usr/local/cuda"
+        "CUDAToolkit_ROOT": "/usr/local/cuda",
+        "CMAKE_CUDA_ARCHITECTURES": "native"
       },
       "environment": {
         "CUDA_PATH": "/usr/local/cuda",

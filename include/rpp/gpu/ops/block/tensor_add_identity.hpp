@@ -52,7 +52,8 @@ RPP_KERNEL void tensor_add_identity_kernel(
 
     ops::TensorAddIdentity<Strategy> op;
 
-    op(ctx, batch_tensor.view(my_index, basis), scalar);
+    auto tensor = batch_tensor.view(my_index, basis);
+    op(ctx, tensor, scalar);
 }
 
 } // namespace rpp::gpu::block

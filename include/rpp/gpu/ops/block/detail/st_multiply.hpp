@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_OPS_BLOCK_DETAIL_ST_MULTIPLY_HPP
 #define RPP_GPU_OPS_BLOCK_DETAIL_ST_MULTIPLY_HPP
 
+#include <algorithm>
+
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
@@ -25,15 +27,27 @@ RPP_DEVICE auto st_multiply_loop_with_degree(
     ignore_unused(ctx);
 
     Letter letters[Strategy::Architecture::max_depth];
-    basis.unpack_index_to_letters(letters, elt_degree, elt_idx);
+    const auto relative_idx = elt_idx - basis.start_of_degree(elt_degree);
+    basis.unpack_index_to_letters(letters, elt_degree, relative_idx);
+
+    const auto right_min_deg = std::max<Degree>(0, std::max<Degree>(elt_degree - lhs.max_degree(), rhs.min_degree()));
+    const auto right_max_deg = std::min<Degree>(elt_degree, std::min<Degree>(elt_degree - lhs.min_degree(), rhs.max_degree()));
 
     Accum acc{0};
-    for (Bitmask mask{0}; mask < Bitmask{1 << elt_degree}; ++mask) {
+    for (Bitmask mask{0}; mask < (Bitmask{1} << elt_degree); ++mask) {
         Index left_idx;
         Index right_idx;
         Degree left_deg;
         Degree right_deg;
-        basis.pack_masked_index(letters, elt_degree, mask, left_deg, left_idx, right_deg, right_idx);
+        basis.pack_masked_index(
+            letters,
+            elt_degree,
+            mask,
+            left_deg,
+            left_idx,
+            right_deg,
+            right_idx
+        );
         left_idx += basis.start_of_degree(left_deg);
         right_idx += basis.start_of_degree(right_deg);
 
