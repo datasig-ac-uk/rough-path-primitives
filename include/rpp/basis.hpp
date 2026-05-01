@@ -233,7 +233,6 @@ struct LieBasis : detail::GradedBasis<Degree_, Index_>, Ordering {
             if (deg > this->depth) { return 0; }
         }
 
-
         auto pos = this->start_of_degree(deg);
         const auto end = this->end_of_degree(deg);
         auto diff = end - pos;
