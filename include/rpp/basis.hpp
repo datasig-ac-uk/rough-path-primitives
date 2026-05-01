@@ -142,14 +142,8 @@ struct TensorBasis : detail::GradedBasis<Degree_, Index_> {
         rhs_deg = 0;
         lhs_idx = 0;
         rhs_idx = 0;
-        for (; degree >= 0; --degree) {
-            bool bit;
-            if constexpr (std::is_integral_v<std::remove_cv_t<std::remove_reference_t<BitMask>>>) {
-                bit = ((bitmask >> degree) & BitMask{1}) != 0;
-            } else {
-                bit = static_cast<bool>(bitmask[degree]);
-            }
-            if (bit) {
+        while (--degree >= 0) {
+            if (((bitmask >> degree) & BitMask{1}) != 0) {
                 ++lhs_deg;
                 lhs_idx = lhs_idx * this->width + letters[degree];
             } else {
