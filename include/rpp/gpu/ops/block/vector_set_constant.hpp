@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_OPS_BLOCK_VECTOR_SET_CONSTANT_HPP
 #define RPP_GPU_OPS_BLOCK_VECTOR_SET_CONSTANT_HPP
 
+#include <algorithm>
+
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
 #include <rpp/operations.hpp>
@@ -42,11 +44,11 @@ public:
             size -= count_to_align;
 
             for (Index i=ctx.thread_rank(); i<size; i += ctx.num_threads()) {
-                data[i] = 0;
+                data[i] = value;
             }
         } else {
             for (Index i = ctx.thread_rank(); i < size; i += ctx.num_threads()) {
-                data[i] = static_cast<Scalar>(value);
+                data[i] = value;
             }
         }
 
@@ -75,7 +77,8 @@ RPP_KERNEL void vector_set_constant_kernel(
 
     ops::VectorSetConstant<Strategy> op;
 
-    op(ctx, batch_vec.view(my_index, basis), value);
+    auto vec = batch_vec.view(my_index, basis);
+    op(ctx, vec, value);
 }
 
 } // namespace rpp::gpu::block

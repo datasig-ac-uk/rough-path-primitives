@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_OPS_BLOCK_VECTOR_ASSIGN_HPP
 #define RPP_GPU_OPS_BLOCK_VECTOR_ASSIGN_HPP
 
+#include <algorithm>
+
 #include <cuda/std/__ranges/data.h>
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
@@ -79,7 +81,9 @@ RPP_KERNEL void vector_assign_kernel(
 
     ops::VectorAssign<Strategy> op;
 
-    op(ctx, batch_out.view(my_index, basis), batch_arg.view(my_index, basis));
+    auto out = batch_out.view(my_index, basis);
+    auto arg = batch_arg.view(my_index, basis);
+    op(ctx, out, arg);
 }
 
 } // namespace rpp::gpu::block

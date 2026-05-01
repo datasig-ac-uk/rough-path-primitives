@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_OPS_BLOCK_VECTOR_SET_ZERO_HPP
 #define RPP_GPU_OPS_BLOCK_VECTOR_SET_ZERO_HPP
 
+#include <algorithm>
+
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
 #include <rpp/operations.hpp>
@@ -77,7 +79,8 @@ RPP_KERNEL void vector_set_zero_kernel(
 
     ops::VectorSetZero<Strategy> op;
 
-    op(ctx, batch_vec.view(my_index, basis));
+    auto vec = batch_vec.view(my_index, basis);
+    op(ctx, vec);
 }
 
 } // namespace rpp::gpu::block
