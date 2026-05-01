@@ -223,8 +223,19 @@ struct LieBasis : detail::GradedBasis<Degree_, Index_>, Ordering {
     }
 
     constexpr Index find_bracket(Index left, Index right, Degree degree_hint=0) const noexcept {
-        auto pos = degree_hint != 0 ? this->start_of_degree(degree_hint) : Index(1);
-        const auto end = degree_hint != 0 ? this->end_of_degree(degree_hint) : this->true_size();
+
+        auto deg = degree_hint;
+        if (deg == 0) {
+            auto left_deg = degree(left);
+            auto right_deg = degree(right);
+            deg = left_deg + right_deg;
+
+            if (deg > this->depth) { return 0; }
+        }
+
+
+        auto pos = this->start_of_degree(deg);
+        const auto end = this->end_of_degree(deg);
         auto diff = end - pos;
         auto needle = std::tie(left, right);
 
