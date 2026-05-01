@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <tuple>
 #include <utility>
 
 #include <rpp/config.h>
@@ -33,7 +34,7 @@ public:
 
     HallBasis(Degree width, Degree depth)
         : width_(width), depth_(depth) {
-        degree_begin_ = {0, 0, width};
+        degree_begin_ = {0, 1};
         data_.reserve(2*(1+width_));
         data_.emplace_back(0);
         data_.emplace_back(0);
@@ -43,12 +44,13 @@ public:
                 data_.emplace_back(0);
                 data_.emplace_back(letter);
             }
+            degree_begin_.emplace_back(static_cast<Index>(1 + width_));
             grow();
         }
     }
 
     constexpr LieBasis<Degree, Index> to_lie_basis() const noexcept {
-        return {width_, depth_, degree_begin_.data(), data_.data() };
+        return LieBasis<Degree, Index>{width_, depth_, degree_begin_.data(), data_.data() };
     }
 
     constexpr auto operator[](Index index) const noexcept {
@@ -74,7 +76,7 @@ void HallBasis<Architecture>::grow() {
             const auto rend = degree_begin_[right_degree+1];
 
             for (auto left_idx=lbegin; left_idx<lend; ++left_idx) {
-                for (auto right_idx=std::min(left_idx+1, rbegin); right_idx<rend; ++right_idx) {
+                for (auto right_idx=std::max(left_idx+1, rbegin); right_idx<rend; ++right_idx) {
                     if (data_[2*right_idx] <= left_idx) {
                         emplace_back(left_idx, right_idx);
                         ++size;

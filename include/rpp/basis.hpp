@@ -6,6 +6,7 @@
 #include <utility>
 #include <algorithm>
 #include <type_traits>
+#include <tuple>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -189,9 +190,9 @@ struct LieBasis : detail::GradedBasis<Degree_, Index_>, Ordering {
 
     RPP_HOST_DEVICE RPP_NODISCARD
     constexpr LieBasis truncate(Degree new_depth) const noexcept {
-        return {
+        return LieBasis{
             this->width, std::min(this->depth, new_depth),
-            this->degree_begin
+            this->degree_begin, this->data
         };
     }
 
@@ -222,9 +223,9 @@ struct LieBasis : detail::GradedBasis<Degree_, Index_>, Ordering {
     }
 
     constexpr Index find_bracket(Index left, Index right, Degree degree_hint=0) const noexcept {
-        auto pos = degree_hint != 0 ? this->start_of_degree(degree_hint) : Index(0);
-        const auto end = degree_hint != 0 ? this->end_of_degree(degree_hint) : this->size();
-        auto diff = degree_hint  - pos;
+        auto pos = degree_hint != 0 ? this->start_of_degree(degree_hint) : Index(1);
+        const auto end = degree_hint != 0 ? this->end_of_degree(degree_hint) : this->true_size();
+        auto diff = end - pos;
         auto needle = std::tie(left, right);
 
         while (diff > 0) {

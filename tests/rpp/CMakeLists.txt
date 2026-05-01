@@ -1,3 +1,4 @@
+add_subdirectory(basis)
 add_subdirectory(cpu)
 add_subdirectory(dense)
 

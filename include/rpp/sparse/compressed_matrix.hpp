@@ -5,6 +5,7 @@
 #include <iterator>
 #include <vector>
 #include <algorithm>
+#include <memory>
 
 #include <rpp/config.h>
 

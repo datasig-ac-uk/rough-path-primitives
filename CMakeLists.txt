@@ -23,6 +23,7 @@ include(GNUInstallDirs)
 
 add_library(RPP INTERFACE
         include/rpp/basis/hall_basis.hpp
+        include/rpp/basis/lie_multiplication.hpp
         include/rpp/config/compiler.h
         include/rpp/config/target.h
         include/rpp/dense/batch.hpp
