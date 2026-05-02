@@ -180,7 +180,17 @@ private:
     difference_type outer_dim_;
     difference_type inner_dim_;
 
+protected:
+
+    constexpr auto data() const noexcept { return data_.data(); }
+    constexpr auto indices() const noexcept { return indices_.data(); }
+    constexpr auto offsets() const noexcept { return offsets_.data(); }
+    constexpr auto nnz() const noexcept { return nnz_; }
+    constexpr auto outer_dim() const noexcept { return outer_dim_; }
+    constexpr auto inner_dim() const noexcept { return inner_dim_; }
+
 public:
+
     constexpr OwnedCompressedMatrix(
         DataContainer &&data, IndexContainer &&indices, OffsetContainer &&offsets,
         difference_type nnz, difference_type outer_dim, difference_type inner_dim
@@ -190,7 +200,7 @@ public:
     }
 
     constexpr explicit operator CompressedMatrix<Scalar const *, Index const *, Offset const *, Format>() const noexcept {
-        return {data_.data(), indices_.data(), offsets_.data(), nnz_, outer_dim_, inner_dim_};
+        return { data(), indices(), offsets(), nnz(), outer_dim(), inner_dim() };
     }
 };
 
@@ -210,6 +220,15 @@ class OwnedCompressedMatrix<std::unique_ptr<Scalar_[], DataDeleter>, std::unique
     std::ptrdiff_t outer_dim_;
     std::ptrdiff_t inner_dim_;
 
+protected:
+
+    constexpr auto data() const noexcept { return data_.get(); }
+    constexpr auto indices() const noexcept { return indices_.get(); }
+    constexpr auto offsets() const noexcept { return offsets_.get(); }
+    constexpr auto nnz() const noexcept { return nnz_; }
+    constexpr auto outer_dim() const noexcept { return outer_dim_; }
+    constexpr auto inner_dim() const noexcept { return inner_dim_; }
+
 public:
     using Scalar = Scalar_;
     using Index = Index_;
@@ -228,12 +247,39 @@ public:
     }
 
     constexpr explicit operator CompressedMatrix<Scalar const *, Index const *, Offset const *, Format>() const noexcept {
-        return { data_.get(), indices_.get(), offsets_.get(), nnz_, outer_dim_, inner_dim_ };
+        return { data(), indices(), offsets(), nnz(), outer_dim(), inner_dim() };
     }
 
 };
 
 
+
+template <typename DataIter, typename IndexIter, typename OffsetIter, CompressedFormat Format>
+class GradedSparseMatrix : public CompressedMatrix<DataIter, IndexIter, OffsetIter, Format> {
+    using Base = CompressedMatrix<DataIter, IndexIter, OffsetIter, Format>;
+public:
+    using Base::Base;
+};
+
+template <typename DataContainer, typename IndexContainer, typename OffsetContainer, CompressedFormat Format>
+class OwnedGradedSparseMatrix : public OwnedCompressedMatrix<DataContainer, IndexContainer, OffsetContainer, Format> {
+    using Base = OwnedCompressedMatrix<DataContainer, IndexContainer, OffsetContainer, Format>;
+
+    using GradedSparseMatrix = GradedSparseMatrix<DataContainer, IndexContainer, OffsetContainer, Format>;
+protected:
+    using Base::data;
+    using Base::indices;
+    using Base::offsets;
+    using Base::nnz;
+    using Base::outer_dim;
+    using Base::inner_dim;
+public:
+    using Base::Base;
+
+    explicit operator GradedSparseMatrix() const noexcept {
+        return { data(), indices(), offsets(), nnz(), outer_dim(), inner_dim() };
+    }
+};
 
 
 template <typename DataContainer, typename IndexContainer, typename OffsetContainer>

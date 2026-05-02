@@ -13,7 +13,6 @@ if (NOT benchmark_FOUND)
             GIT_TAG v1.9.4
             GIT_SHALLOW TRUE
             FIND_PACKAGE_ARGS CONFIG
-            EXCLUDE_FROM_ALL
     )
     FetchContent_MakeAvailable(benchmark)
 endif()
