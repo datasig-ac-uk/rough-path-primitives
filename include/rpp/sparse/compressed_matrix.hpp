@@ -16,6 +16,14 @@ enum class CompressedFormat {
     CSR
 };
 
+namespace detail {
+template<CompressedFormat F>
+inline constexpr auto swapped_format = CompressedFormat::CSR;
+
+template<>
+inline constexpr auto swapped_format<CompressedFormat::CSR> = CompressedFormat::CSC;
+}
+
 template<typename DataIter, typename IndexIter, typename OffsetsIter, CompressedFormat Format>
 class CompressedMatrix {
     using DataTraits = std::iterator_traits<DataIter>;
@@ -76,11 +84,28 @@ public:
     }
 
     RPP_HOST_DEVICE
-    constexpr auto num_non_zero() const noexcept { return nnz_; }
+    constexpr auto nnz() const noexcept { return nnz_; }
 
+
+    /**
+     * Get the outer dimension of the matrix.
+     *
+     * When the matrix is a CSC matrix this is the number of columns.
+     * When the matrix is a CSR matrix this is the number of rows.
+     *
+     * @return integer outer dimension
+     */
     RPP_HOST_DEVICE
     constexpr auto outer_dim() const noexcept { return outer_dim_; }
 
+    /**
+     * Get the inner dimension of the matrix.
+     *
+     * When the matrix is a CSC matrix this is the number of rows.
+     * When the matrix is a CSR matrix this is the number of columns.
+     *
+     * @return integer inner dimension
+     */
     RPP_HOST_DEVICE
     constexpr auto inner_dim() const noexcept { return inner_dim_; }
 
@@ -180,17 +205,7 @@ private:
     difference_type outer_dim_;
     difference_type inner_dim_;
 
-protected:
-
-    constexpr auto data() const noexcept { return data_.data(); }
-    constexpr auto indices() const noexcept { return indices_.data(); }
-    constexpr auto offsets() const noexcept { return offsets_.data(); }
-    constexpr auto nnz() const noexcept { return nnz_; }
-    constexpr auto outer_dim() const noexcept { return outer_dim_; }
-    constexpr auto inner_dim() const noexcept { return inner_dim_; }
-
 public:
-
     constexpr OwnedCompressedMatrix(
         DataContainer &&data, IndexContainer &&indices, OffsetContainer &&offsets,
         difference_type nnz, difference_type outer_dim, difference_type inner_dim
@@ -199,8 +214,16 @@ public:
           nnz_(nnz), outer_dim_(outer_dim), inner_dim_(inner_dim) {
     }
 
-    constexpr explicit operator CompressedMatrix<Scalar const *, Index const *, Offset const *, Format>() const noexcept {
-        return { data(), indices(), offsets(), nnz(), outer_dim(), inner_dim() };
+    constexpr auto data() const noexcept { return data_.data(); }
+    constexpr auto indices() const noexcept { return indices_.data(); }
+    constexpr auto offsets() const noexcept { return offsets_.data(); }
+    constexpr auto nnz() const noexcept { return nnz_; }
+    constexpr auto outer_dim() const noexcept { return outer_dim_; }
+    constexpr auto inner_dim() const noexcept { return inner_dim_; }
+
+    constexpr explicit operator CompressedMatrix<Scalar const *, Index const *, Offset const *,
+        Format>() const noexcept {
+        return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
     }
 };
 
@@ -220,15 +243,6 @@ class OwnedCompressedMatrix<std::unique_ptr<Scalar_[], DataDeleter>, std::unique
     std::ptrdiff_t outer_dim_;
     std::ptrdiff_t inner_dim_;
 
-protected:
-
-    constexpr auto data() const noexcept { return data_.get(); }
-    constexpr auto indices() const noexcept { return indices_.get(); }
-    constexpr auto offsets() const noexcept { return offsets_.get(); }
-    constexpr auto nnz() const noexcept { return nnz_; }
-    constexpr auto outer_dim() const noexcept { return outer_dim_; }
-    constexpr auto inner_dim() const noexcept { return inner_dim_; }
-
 public:
     using Scalar = Scalar_;
     using Index = Index_;
@@ -246,47 +260,62 @@ public:
                  nnz_(nnz), outer_dim_(outer_dim), inner_dim_(inner_dim) {
     }
 
-    constexpr explicit operator CompressedMatrix<Scalar const *, Index const *, Offset const *, Format>() const noexcept {
-        return { data(), indices(), offsets(), nnz(), outer_dim(), inner_dim() };
-    }
 
+    constexpr auto data() const noexcept { return data_.get(); }
+    constexpr auto indices() const noexcept { return indices_.get(); }
+    constexpr auto offsets() const noexcept { return offsets_.get(); }
+    constexpr auto nnz() const noexcept { return nnz_; }
+    constexpr auto outer_dim() const noexcept { return outer_dim_; }
+    constexpr auto inner_dim() const noexcept { return inner_dim_; }
+
+    constexpr explicit operator CompressedMatrix<Scalar const *, Index const *, Offset const *,
+        Format>() const noexcept {
+        return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
+    }
 };
 
 
-
-template <typename DataIter, typename IndexIter, typename OffsetIter, CompressedFormat Format>
-class GradedSparseMatrix : public CompressedMatrix<DataIter, IndexIter, OffsetIter, Format> {
+template<typename DataIter, typename IndexIter, typename OffsetIter, CompressedFormat Format>
+class GradedCompressedMatrix : public CompressedMatrix<DataIter, IndexIter, OffsetIter, Format> {
     using Base = CompressedMatrix<DataIter, IndexIter, OffsetIter, Format>;
+
 public:
     using Base::Base;
 };
 
-template <typename DataContainer, typename IndexContainer, typename OffsetContainer, CompressedFormat Format>
-class OwnedGradedSparseMatrix : public OwnedCompressedMatrix<DataContainer, IndexContainer, OffsetContainer, Format> {
+template<typename DataContainer, typename IndexContainer, typename OffsetContainer, CompressedFormat Format>
+class OwnedGradedCompressedMatrix : public OwnedCompressedMatrix<DataContainer, IndexContainer, OffsetContainer,
+            Format> {
     using Base = OwnedCompressedMatrix<DataContainer, IndexContainer, OffsetContainer, Format>;
 
-    using GradedSparseMatrix = GradedSparseMatrix<DataContainer, IndexContainer, OffsetContainer, Format>;
-protected:
+    using GradedMatrix = ::rpp::sparse::GradedCompressedMatrix<
+        typename Base::Scalar const*,
+        typename Base::Index const*,
+        typename Base::Offset const*,
+        Format
+    >;
+
+public:
+    using Base::Base;
+
     using Base::data;
     using Base::indices;
     using Base::offsets;
     using Base::nnz;
     using Base::outer_dim;
     using Base::inner_dim;
-public:
-    using Base::Base;
 
-    explicit operator GradedSparseMatrix() const noexcept {
-        return { data(), indices(), offsets(), nnz(), outer_dim(), inner_dim() };
+    explicit operator GradedMatrix() const noexcept {
+        return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
     }
 };
 
 
-template <typename DataContainer, typename IndexContainer, typename OffsetContainer>
+template<typename DataContainer, typename IndexContainer, typename OffsetContainer>
 class CompressedMatrixBuilder {
-    DataContainer& data_;
-    IndexContainer& indices_;
-    OffsetContainer& offsets_;
+    DataContainer &data_;
+    IndexContainer &indices_;
+    OffsetContainer &offsets_;
     using difference_type = typename DataContainer::difference_type;
 
     using data_iterator = typename DataContainer::iterator;
@@ -307,10 +336,10 @@ public:
 private:
     std::vector<MatrixFrame> frames_;
 
-    MatrixFrame& current_frame() noexcept { return frames_.back(); }
+    MatrixFrame &current_frame() noexcept { return frames_.back(); }
 
     auto get_or_insert(Index index) noexcept {
-        auto& frame = current_frame();
+        auto &frame = current_frame();
 
         auto idx_it = std::lower_bound(frame.index, indices_.end(), index);
         const auto offset = static_cast<difference_type>(idx_it - frame.index);
@@ -325,17 +354,15 @@ private:
         return std::make_pair(data_it, idx_it);
     }
 
-
 public:
-
     RPP_HOST
-    constexpr CompressedMatrixBuilder(DataContainer& data, IndexContainer& indices, OffsetContainer& offsets)
+    constexpr CompressedMatrixBuilder(DataContainer &data, IndexContainer &indices, OffsetContainer &offsets)
         : data_(data), indices_(indices), offsets_(offsets) {
         offsets_.push_back(0);
     }
 
     RPP_HOST
-    MatrixFrame const& operator[](difference_type index) const noexcept {
+    MatrixFrame const &operator[](difference_type index) const noexcept {
         return frames_[index];
     }
 
@@ -346,15 +373,110 @@ public:
     }
 
     RPP_HOST RPP_NODISCARD
-    Scalar& get_scalar(Index index) noexcept {
+    Scalar &get_scalar(Index index) noexcept {
         auto [data_it, _] = get_or_insert(index);
         return *data_it;
     }
-
 };
 
 
+namespace detail {
+template<typename DataOut, typename IndexOut, typename OffsetsOut, typename Matrix>
+void rearrange_data(DataOut data, IndexOut indices, OffsetsOut offsets, Matrix const &matrix) noexcept {
+    using OffsetOutTraits = std::iterator_traits<OffsetsOut>;
 
+    const auto outer_dim = matrix.outer_dim();
+    using OuterDim = std::remove_cv_t<decltype(outer_dim)>;
+
+    const auto inner_dim = matrix.inner_dim();
+    using InnerDim = std::remove_cv_t<decltype(inner_dim)>;
+
+    const auto offsets_in = matrix.offsets();
+    const auto indices_in = matrix.indices();
+
+    for (OuterDim i = 0; i < outer_dim; ++i) {
+        const auto begin = offsets_in[i];
+        const auto end = offsets_in[i + 1];
+        for (auto j = begin; j < end; ++j) {
+            auto idx = indices_in[j];
+            ++offsets[idx];
+        }
+    }
+
+    typename OffsetOutTraits::value_type sum{0};
+    for (InnerDim i = 0; i < inner_dim; ++i) {
+        auto val = offsets[i];
+        offsets[i] = sum;
+        sum += val;
+    }
+    offsets[inner_dim] = sum;
+
+    const auto data_in = matrix.data();
+
+    std::vector write_locs(offsets, offsets + inner_dim);
+
+    for (OuterDim i = 0; i < outer_dim; ++i) {
+        const auto begin = offsets_in[i];
+        const auto end = offsets_in[i + 1];
+
+        for (auto j = begin; j < end; ++j) {
+            const auto inner_index = indices_in[j];
+            const auto dest = write_locs[inner_index]++;
+
+            indices[dest] = i;
+            data[dest] = data_in[j];
+        }
+    }
+}
+}
+
+
+template<typename DataIt, typename IndexIt, typename OffsetIt, CompressedFormat Format>
+auto swap_format(CompressedMatrix<DataIt, IndexIt, OffsetIt, Format> const &matrix) noexcept {
+    using DataTraits = std::iterator_traits<DataIt>;
+    using IndexTraits = std::iterator_traits<IndexIt>;
+    using OffsetTraits = std::iterator_traits<OffsetIt>;
+
+    using DataVec = std::vector<typename DataTraits::value_type>;
+    using IndexVec = std::vector<typename IndexTraits::value_type>;
+    using OffsetVec = std::vector<typename OffsetTraits::value_type>;
+
+    using MatrixOut = OwnedCompressedMatrix<DataVec, IndexVec, OffsetVec, detail::swapped_format<Format> >;
+
+    DataVec data(matrix.nnz(), typename DataTraits::value_type{});
+    IndexVec indices(matrix.nnz(), 0);
+    OffsetVec offsets(matrix.inner_dim() + 1, 0);
+
+    detail::rearrange_data(data.begin(), indices.begin(), offsets.begin(), matrix);
+
+    return MatrixOut{
+        std::move(data), std::move(indices), std::move(offsets), matrix.nnz(), matrix.inner_dim(), matrix.outer_dim()
+    };
+}
+
+
+template<typename DataIt, typename IndexIt, typename OffsetIt, CompressedFormat Format>
+auto swap_format(GradedCompressedMatrix<DataIt, IndexIt, OffsetIt, Format> const &matrix) noexcept {
+    using DataTraits = std::iterator_traits<DataIt>;
+    using IndexTraits = std::iterator_traits<IndexIt>;
+    using OffsetTraits = std::iterator_traits<OffsetIt>;
+
+    using DataVec = std::vector<typename DataTraits::value_type>;
+    using IndexVec = std::vector<typename IndexTraits::value_type>;
+    using OffsetVec = std::vector<typename OffsetTraits::value_type>;
+
+    using MatrixOut = OwnedGradedCompressedMatrix<DataVec, IndexVec, OffsetVec, detail::swapped_format<Format> >;
+
+    DataVec data(matrix.nnz(), typename DataTraits::value_type{});
+    IndexVec indices(matrix.nnz(), 0);
+    OffsetVec offsets(matrix.inner_dim() + 1, 0);
+
+    detail::rearrange_data(data.begin(), indices.begin(), offsets.begin(), matrix);
+
+    return MatrixOut{
+        std::move(data), std::move(indices), std::move(offsets), matrix.nnz(), matrix.inner_dim(), matrix.outer_dim()
+    };
+}
 } // namespace rpp::sparse
 
 #endif //INCLUDE_RPP_SPARSE_COMPRESSED_MATRIX_HPP
