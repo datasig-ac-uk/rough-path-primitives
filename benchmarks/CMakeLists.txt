@@ -18,3 +18,7 @@ if (NOT benchmark_FOUND)
 endif()
 
 add_subdirectory(cpu)
+
+if (RPP_ENABLE_CUDA)
+    add_subdirectory(gpu)
+endif()

@@ -221,8 +221,7 @@ public:
     constexpr auto outer_dim() const noexcept { return outer_dim_; }
     constexpr auto inner_dim() const noexcept { return inner_dim_; }
 
-    constexpr explicit operator CompressedMatrix<Scalar const *, Index const *, Offset const *,
-        Format>() const noexcept {
+    constexpr explicit operator CompressedMatrix<DataPointer, IndexPointer, OffsetPointer, Format>() const noexcept {
         return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
     }
 };
@@ -231,13 +230,13 @@ template<typename Scalar_, typename DataDeleter, typename Index_, typename Index
     OffsetDeleter, CompressedFormat Format>
 class OwnedCompressedMatrix<std::unique_ptr<Scalar_[], DataDeleter>, std::unique_ptr<Index_[], IndexDeleter>,
             std::unique_ptr<Offset_[], OffsetDeleter>, Format> {
-    using DataPointer = std::unique_ptr<Scalar_[], DataDeleter>;
-    using IndexPointer = std::unique_ptr<Index_[], IndexDeleter>;
-    using OffsetPointer = std::unique_ptr<Offset_[], OffsetDeleter>;
+    using OwnedDataPointer = std::unique_ptr<Scalar_[], DataDeleter>;
+    using OwnedIndexPointer = std::unique_ptr<Index_[], IndexDeleter>;
+    using OwnedOffsetPointer = std::unique_ptr<Offset_[], OffsetDeleter>;
 
-    DataPointer data_;
-    IndexPointer indices_;
-    OffsetPointer offsets_;
+    OwnedDataPointer data_;
+    OwnedIndexPointer indices_;
+    OwnedOffsetPointer offsets_;
 
     std::ptrdiff_t nnz_;
     std::ptrdiff_t outer_dim_;
@@ -248,11 +247,14 @@ public:
     using Index = Index_;
     using Offset = Offset_;
     using difference_type = std::ptrdiff_t;
+    using DataPointer = Scalar const*;
+    using IndexPointer = Index const*;
+    using OffsetPointer = Offset const*;
 
     constexpr OwnedCompressedMatrix(
-        DataPointer &&data,
-        IndexPointer &&indices,
-        OffsetPointer &&offsets,
+        OwnedDataPointer &&data,
+        OwnedIndexPointer &&indices,
+        OwnedOffsetPointer &&offsets,
         difference_type nnz,
         difference_type outer_dim,
         difference_type inner_dim
@@ -289,9 +291,9 @@ class OwnedGradedCompressedMatrix : public OwnedCompressedMatrix<DataContainer, 
     using Base = OwnedCompressedMatrix<DataContainer, IndexContainer, OffsetContainer, Format>;
 
     using GradedMatrix = ::rpp::sparse::GradedCompressedMatrix<
-        typename Base::Scalar const*,
-        typename Base::Index const*,
-        typename Base::Offset const*,
+        typename Base::DataPointer,
+        typename Base::IndexPointer,
+        typename Base::OffsetPointer,
         Format
     >;
 

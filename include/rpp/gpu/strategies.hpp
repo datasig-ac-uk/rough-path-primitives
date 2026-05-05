@@ -54,18 +54,21 @@ public:
         return blockDim.x / Strategy::warp_size;
     }
 
+    RPP_DEVICE static void sync_warp() noexcept {
+        return __syncwarp();
+    }
+
     RPP_DEVICE static void sync() noexcept {
         __syncthreads();
     }
 
     template <typename SharedMemory>
-    RPP_DEVICE SharedMemory& shared_memory() noexcept {
-        return *reinterpret_cast<SharedMemory*>(smem_ptr_);
-    }
-
-    template <typename SharedMemory>
-    RPP_DEVICE SharedMemory& shared_memory() const noexcept {
-        return *reinterpret_cast<SharedMemory*>(smem_ptr_);
+    RPP_DEVICE constexpr decltype(auto) shared_memory() const noexcept {
+        if constexpr (std::is_pointer_v<SharedMemory>) {
+            return reinterpret_cast<SharedMemory>(smem_ptr_);
+        } else {
+            return *reinterpret_cast<SharedMemory*>(smem_ptr_);
+        }
     }
 
     template <typename Fn>
@@ -157,6 +160,9 @@ public:
         return threadIdx.x / Strategy::warp_size;
     }
 
+    RPP_DEVICE static unsigned num_warps() noexcept {
+        return blockDim.x / Strategy::warp_size;
+    }
 
 
     template <typename SharedMemory>
@@ -193,7 +199,6 @@ struct BlockStrategy {
     using BlockReduceArray = Accum[max_warp_count];
 
     unsigned block_size;
-
 
     RPP_HOST_DEVICE
     static constexpr Index objects_per_block() noexcept {

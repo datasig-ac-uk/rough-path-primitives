@@ -146,27 +146,83 @@ struct SparseCase {
     std::vector<Scalar> values;
     std::vector<Index> indices;
     std::vector<Index> offsets;
+    std::vector<Scalar> csc_values;
+    std::vector<Index> csc_indices;
+    std::vector<Index> csc_offsets;
 
     explicit SparseCase(Degree width, Degree depth)
         : tensors(width, depth)
     {
         const auto size = tensors.basis.size();
         offsets.reserve(static_cast<std::size_t>(size + 1));
-        values.reserve(static_cast<std::size_t>(3 * size));
-        indices.reserve(static_cast<std::size_t>(3 * size));
+        values.reserve(static_cast<std::size_t>(5 * size));
+        indices.reserve(static_cast<std::size_t>(5 * size));
 
         for (Index row = 0; row < size; ++row) {
             offsets.push_back(static_cast<Index>(values.size()));
-            for (Index delta = -1; delta <= 1; ++delta) {
-                const auto col = row + delta;
-                if (col >= 0 && col < size) {
-                    values.push_back(value_for(static_cast<std::size_t>(row + col), 5));
-                    indices.push_back(col);
-                }
+            for (const auto col : columns_for(row, size)) {
+                values.push_back(value_for(static_cast<std::size_t>(row) * 131 + static_cast<std::size_t>(col), 5));
+                indices.push_back(col);
             }
         }
         offsets.push_back(static_cast<Index>(values.size()));
+
+        build_csc();
     }
+
+private:
+    [[nodiscard]] static std::vector<Index> columns_for(Index row, Index size)
+    {
+        std::vector<Index> cols;
+        auto add_col = [&](Index col) {
+            if (col >= 0 && col < size) {
+                cols.push_back(col);
+            }
+        };
+
+        for (Index delta = -2; delta <= 2; ++delta) {
+            add_col(row + delta);
+        }
+
+        std::sort(cols.begin(), cols.end());
+        cols.erase(std::unique(cols.begin(), cols.end()), cols.end());
+        return cols;
+    }
+
+    void build_csc()
+    {
+        const auto size = tensors.basis.size();
+        csc_values.assign(values.size(), Scalar{});
+        csc_indices.assign(indices.size(), Index{0});
+        csc_offsets.assign(static_cast<std::size_t>(size + 1), Index{0});
+
+        for (Index row = 0; row < size; ++row) {
+            for (auto entry = offsets[static_cast<std::size_t>(row)];
+                 entry < offsets[static_cast<std::size_t>(row + 1)];
+                 ++entry) {
+                ++csc_offsets[static_cast<std::size_t>(indices[static_cast<std::size_t>(entry)] + 1)];
+            }
+        }
+
+        for (Index col = 0; col < size; ++col) {
+            csc_offsets[static_cast<std::size_t>(col + 1)] += csc_offsets[static_cast<std::size_t>(col)];
+        }
+
+        auto write_locs = csc_offsets;
+        for (Index row = 0; row < size; ++row) {
+            for (auto entry = offsets[static_cast<std::size_t>(row)];
+                 entry < offsets[static_cast<std::size_t>(row + 1)];
+                 ++entry) {
+                const auto col = indices[static_cast<std::size_t>(entry)];
+                const auto dest = write_locs[static_cast<std::size_t>(col)]++;
+                csc_values[static_cast<std::size_t>(dest)] = values[static_cast<std::size_t>(entry)];
+                csc_indices[static_cast<std::size_t>(dest)] = row;
+            }
+        }
+    }
+
+public:
+    [[nodiscard]] std::size_t nnz() const noexcept { return values.size(); }
 
     [[nodiscard]] auto csr() const
     {
@@ -183,10 +239,10 @@ struct SparseCase {
     [[nodiscard]] auto csc() const
     {
         return sparse::make_csc_matrix(
-            values.data(),
-            indices.data(),
-            offsets.data(),
-            values.size(),
+            csc_values.data(),
+            csc_indices.data(),
+            csc_offsets.data(),
+            csc_values.size(),
             tensors.basis.size(),
             tensors.basis.size()
         );

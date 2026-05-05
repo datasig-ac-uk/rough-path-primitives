@@ -50,6 +50,8 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/cpu/strategies.hpp
         include/rpp/cpu/ops/single_thread.hpp
         include/rpp/cpu/ops/single_thread/detail/antipode.hpp
+        include/rpp/cpu/ops/single_thread/detail/batch_wrapper.hpp
+        include/rpp/cpu/ops/single_thread/detail/ft_multiply.hpp
         include/rpp/cpu/ops/single_thread/ft_adj_lmul.hpp
         include/rpp/cpu/ops/single_thread/ft_adj_rmul.hpp
         include/rpp/cpu/ops/single_thread/ft_exp.hpp
@@ -59,6 +61,7 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/cpu/ops/single_thread/ft_inplace_mul.hpp
         include/rpp/cpu/ops/single_thread/ft_log.hpp
         include/rpp/cpu/ops/single_thread/ft_mul.hpp
+        include/rpp/cpu/ops/single_thread/sparse_matrix_vector_product.hpp
         include/rpp/cpu/ops/single_thread/st_adj_mul.hpp
         include/rpp/cpu/ops/single_thread/st_fma.hpp
         include/rpp/cpu/ops/single_thread/st_inplace_fma.hpp
