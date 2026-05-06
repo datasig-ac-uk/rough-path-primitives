@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cstddef>
 
-#include <rpp/sparse/compressed_matrix.hpp>
+#include <rpp/sparse/matrix.hpp>
 #include <rpp/utility.hpp>
 
 namespace rpp::ops {
@@ -100,14 +100,17 @@ public:
             "Use an operation specialization for the selected strategy and include its header."
         );
     }
-
-
 };
 
-template <typename Strategy>
+
+
+template <typename Strategy, sparse::MatrixFormat Format>
 class SparseMatrixVectorProduct {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
+
+    template <typename... Args>
+    using MatrixView = typename sparse::MatrixView<Format, Args...>::type;
 
 public:
     template <typename Basis>
@@ -120,31 +123,17 @@ public:
     void operator()(
         Context const& ctx,
         VectorOut& out,
-        sparse::CSRMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
+        MatrixView<DataIter, IndexIter, OffsetsIter> const& matrix,
         VectorArg const& arg,
         Accum alpha = Accum{1}
     ) const noexcept {
         static_assert(
             detail::unsupported_primary_operation<Strategy, Context, VectorOut, DataIter, IndexIter, OffsetsIter, VectorArg, Accum>,
-            "rpp::ops::SparseMatrixVectorProduct CSR overload has no implementation for this Strategy. "
+            "rpp::ops::SparseMatrixVectorProduct has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
     }
 
-    template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
-    void operator()(
-        Context const& ctx,
-        VectorOut& out,
-        sparse::CSCMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
-        VectorArg const& arg,
-        Accum alpha = Accum{1}
-    ) const noexcept {
-        static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, VectorOut, DataIter, IndexIter, OffsetsIter, VectorArg, Accum>,
-            "rpp::ops::SparseMatrixVectorProduct CSC overload has no implementation for this Strategy. "
-            "Use an operation specialization for the selected strategy and include its header."
-        );
-    }
 };
 
 
@@ -489,6 +478,99 @@ public:
             "rpp::ops::STAdjMul has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
+    }
+};
+
+enum class L2TImplementationType {
+    CommutatorExpansion,
+    CSRSparseMatrix,
+    CSCSparseMatrix,
+};
+
+template <typename Strategy, L2TImplementationType Implementation>
+class LieToTensor {
+    using Context = typename Strategy::Context;
+    static_assert((Implementation == L2TImplementationType::CSRSparseMatrix
+        || Implementation == L2TImplementationType::CSCSparseMatrix),
+        "Commutator expansion does not have a default implementation");
+
+    static constexpr auto matrix_format = (Implementation == L2TImplementationType::CSRSparseMatrix)
+        ? sparse::MatrixFormat::CSR : sparse::MatrixFormat::CSC;
+
+    template <typename... Args>
+    using Matrix = sparse::GradedMatrixView<matrix_format, Args...>;
+
+    using Impl = SparseMatrixVectorProduct<Strategy, matrix_format>;
+
+    Impl impl;
+
+
+public:
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        return Impl::scratch_space_size(strategy, basis);
+    }
+
+    template <typename TensorOut, typename LieIn, typename... MatrixArgs>
+    RPP_HOST_DEVICE
+    void operator()(Context const& ctx, TensorOut& out, LieIn const& arg, Matrix<MatrixArgs...> const& matrix) const noexcept {
+        impl(ctx, out, matrix, arg);
+    }
+};
+
+template <typename Strategy>
+class LieToTensor<Strategy, L2TImplementationType::CommutatorExpansion> {
+    using Context = typename Strategy::Context;
+public:
+
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
+        return 0;
+    }
+
+    template <typename TensorOut, typename LieIn>
+    RPP_HOST_DEVICE
+    void operator()(Context const& ctx, TensorOut& out, LieIn const& arg) const noexcept {
+        static_assert(
+            detail::unsupported_primary_operation<Strategy, Context, TensorOut, LieIn>,
+            "rpp::ops::LieToTensor has no implementation for this Strategy. "
+            "Use an operation specialization for the selected strategy and include its header."
+        );
+    }
+
+};
+
+
+enum class T2LImplementationType {
+    CSRSparseMatrix,
+    CSCSparseMatrix,
+};
+
+template <typename Strategy, T2LImplementationType Implementation>
+class TensorToLie {
+    using Context = typename Strategy::Context;
+
+    static constexpr auto matrix_format = (Implementation == T2LImplementationType::CSRSparseMatrix)
+        ? sparse::MatrixFormat::CSR : sparse::MatrixFormat::CSC;
+
+    template <typename... Args>
+    using Matrix = sparse::GradedMatrixView<matrix_format, Args...>;
+
+    using Impl = SparseMatrixVectorProduct<Strategy, matrix_format>;
+
+    Impl impl;
+
+public:
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        return Impl::scratch_space_size(strategy, basis);
+    }
+
+    template <typename LieOut, typename TensorIn, typename... MatrixArgs>
+    RPP_HOST_DEVICE
+    void operator()(Context const& ctx, LieOut& out, TensorIn const& arg, Matrix<MatrixArgs...> const& matrix) const noexcept {
+        impl(ctx, out, matrix, arg);
     }
 };
 
