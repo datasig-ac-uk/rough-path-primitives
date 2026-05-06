@@ -6,7 +6,7 @@
 #include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
 #include <rpp/dense/batch.hpp>
-#include <rpp/sparse/compressed_matrix.hpp>
+#include <rpp/sparse/matrix.hpp>
 
 #include <rpp/cpu/strategies.hpp>
 
@@ -15,16 +15,23 @@
 
 namespace rpp::ops {
 
-template <typename Accum_, typename Architecture>
-class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
-    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+template <typename Accum_, typename Architecture_>
+class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>, sparse::MatrixFormat::CSR> {
+    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
-
     VectorSetZero<Strategy> set_zero;
+
+    template <typename D, typename I, typename O>
+    using Matrix = sparse::MatrixView<sparse::MatrixFormat::CSR, D, I, O>;
+
+    template <typename D, typename I, typename O>
+    using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
+
 public:
+
     template <typename Basis>
     static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
         ignore_unused(strategy, basis);
@@ -32,13 +39,13 @@ public:
     }
 
     template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
-    void operator()(
-        Context const& ctx,
-        VectorOut& out,
-        sparse::CSRMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
-        VectorArg const& arg,
-        Accum alpha = Accum{1}
-    ) const noexcept {
+       void operator()(
+           Context const& ctx,
+           VectorOut& out,
+           Matrix<DataIter, IndexIter, OffsetsIter> const& matrix,
+           VectorArg const& arg,
+           Accum alpha = Accum{1}
+       ) const noexcept {
         using Scalar = typename VectorOut::value_type;
         ignore_unused(ctx);
 
@@ -59,13 +66,50 @@ public:
     }
 
     template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
-    void operator()(
-        Context const& ctx,
-        VectorOut& out,
-        sparse::CSCMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
-        VectorArg const& arg,
-        Accum alpha = Accum{1}
-    ) const noexcept {
+       void operator()(
+           Context const& ctx,
+           VectorOut& out,
+           GradedMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
+           VectorArg const& arg,
+           Accum alpha = Accum{1}
+       ) const noexcept {
+        return operator()(ctx, out, static_cast<Matrix<DataIter, IndexIter, OffsetsIter> const&>(matrix), arg, alpha);
+    }
+};
+
+
+template <typename Accum_, typename Architecture_>
+class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>, sparse::MatrixFormat::CSC> {
+    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>;
+    using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
+    using Index = typename Strategy::Index;
+
+    VectorSetZero<Strategy> set_zero;
+
+    template <typename D, typename I, typename O>
+    using Matrix = sparse::MatrixView<sparse::MatrixFormat::CSC, D, I, O>;
+
+    template <typename D, typename I, typename O>
+    using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSC, D, I, O>;
+
+public:
+
+    template <typename Basis>
+    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+        ignore_unused(strategy, basis);
+        return 0;
+    }
+
+    template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
+       void operator()(
+           Context const& ctx,
+           VectorOut& out,
+           Matrix<DataIter, IndexIter, OffsetsIter> const& matrix,
+           VectorArg const& arg,
+           Accum alpha = Accum{1}
+       ) const noexcept {
+
         using Scalar = typename VectorOut::value_type;
         ignore_unused(ctx);
 
@@ -86,13 +130,25 @@ public:
             }
         }
     }
+
+    template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
+       void operator()(
+           Context const& ctx,
+           VectorOut& out,
+           GradedMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
+           VectorArg const& arg,
+           Accum alpha = Accum{1}
+       ) const noexcept {
+        return operator()(ctx, out, static_cast<Matrix<DataIter, IndexIter, OffsetsIter> const&>(matrix), arg, alpha);
+    }
 };
+
 
 } // namespace rpp::ops
 
 namespace rpp::cpu::single_thread {
 
-template <typename BatchOut, typename Matrix, typename BatchArg, typename OutBasis, typename ArgBasis, typename Accum_, typename Architecture>
+template <sparse::MatrixFormat Format, typename BatchOut, typename Matrix, typename BatchArg, typename OutBasis, typename ArgBasis, typename Accum_, typename Architecture>
 void sparse_matrix_vector_product_kernel(
     const BatchOut batch_out,
     const Matrix matrix,
@@ -104,7 +160,7 @@ void sparse_matrix_vector_product_kernel(
     Accum_ alpha = Accum_{1}
 ) {
     using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
-    using Op = ops::SparseMatrixVectorProduct<Strategy>;
+    using Op = ops::SparseMatrixVectorProduct<Strategy, Format>;
 
     detail::apply_batch<Op>(
         out_basis,
