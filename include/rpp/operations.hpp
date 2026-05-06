@@ -33,7 +33,7 @@ public:
     template <typename Vector, typename Value>
     void operator()(Context const& ctx, Vector& vec, Value const& value) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, Vector, Value>,
+            static_assert_fail<Strategy, Context, Vector, Value>,
             "rpp::ops::VectorSetConstant has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -53,7 +53,7 @@ public:
     template <typename Vector>
     void operator()(Context const& ctx, Vector& vec) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, Vector>,
+            static_assert_fail<Strategy, Context, Vector>,
             "rpp::ops::VectorSetZero has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -73,7 +73,7 @@ public:
     template <typename VectorOut, typename VectorArg>
     void operator()(Context const& ctx, VectorOut& out, VectorArg const& arg) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, VectorOut, VectorArg>,
+            static_assert_fail<Strategy, Context, VectorOut, VectorArg>,
             "rpp::ops::VectorAssign has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -95,7 +95,7 @@ public:
     template <typename VectorLhs, typename VectorRhs>
     void operator()(Context const& ctx, VectorLhs& lhs, VectorRhs const& rhs, Accum alpha=Accum{1}) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, VectorLhs, VectorRhs, Accum>,
+            static_assert_fail<Strategy, Context, VectorLhs, VectorRhs, Accum>,
             "rpp::ops::VectorInplaceAdd has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -128,7 +128,7 @@ public:
         Accum alpha = Accum{1}
     ) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, VectorOut, DataIter, IndexIter, OffsetsIter, VectorArg, Accum>,
+            static_assert_fail<Strategy, Context, VectorOut, DataIter, IndexIter, OffsetsIter, VectorArg, Accum>,
             "rpp::ops::SparseMatrixVectorProduct has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -155,7 +155,7 @@ public:
     template <typename Tensor>
     void operator()(Context const& ctx, Tensor& tensor, Accum scalar=Accum{1}) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, Tensor, Accum>,
+            static_assert_fail<Strategy, Context, Tensor, Accum>,
             "rpp::ops::TensorAddIdentity has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -176,7 +176,7 @@ public:
     template <typename Tensor>
     void operator()(Context const& ctx, Tensor& tensor, Accum scalar=Accum{1}) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, Tensor, Accum>,
+            static_assert_fail<Strategy, Context, Tensor, Accum>,
             "rpp::ops::TensorSetIdentity has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -200,7 +200,7 @@ public:
     template <typename Scalar, typename TensorFunc, typename TensorArg>
     void operator()(Context const& ctx, Scalar& result, TensorFunc const& functional, TensorArg const& arg) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, Scalar, TensorFunc, TensorArg>,
+            static_assert_fail<Strategy, Context, Scalar, TensorFunc, TensorArg>,
             "rpp::ops::TensorPairing has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -227,7 +227,7 @@ public:
     template <typename TensorOut, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorArg>,
+            static_assert_fail<Strategy, Context, TensorOut, TensorArg>,
             "rpp::ops::TensorAntipode has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -247,7 +247,7 @@ public:
     template <typename TensorOut, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorArg>,
+            static_assert_fail<Strategy, Context, TensorOut, TensorArg>,
             "rpp::ops::TensorReflect has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -277,7 +277,7 @@ public:
     template <typename TensorA, typename TensorB, typename TensorC>
     void operator()(Context const& ctx, TensorA& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorA, TensorB, TensorC, Accum>,
+            static_assert_fail<Strategy, Context, TensorA, TensorB, TensorC, Accum>,
             "rpp::ops::FTInplaceFma has no implementation for this Strategy/FMA type. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -306,7 +306,7 @@ public:
     template <typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
     void operator()(Context const& ctx, TensorOut& out, TensorA const& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorA, TensorB, TensorC, Accum>,
+            static_assert_fail<Strategy, Context, TensorOut, TensorA, TensorB, TensorC, Accum>,
             "rpp::ops::FTFma has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -317,8 +317,7 @@ public:
 template <typename Strategy>
 class FTMul {
     using Context = typename Strategy::Context;
-
-        using Accum = typename Strategy::Accum;
+    using Accum = typename Strategy::Accum;
 
     using FMA = FTInplaceFma231<Strategy>;
 
@@ -352,7 +351,7 @@ public:
     template <typename TensorLhs, typename TensorRhs>
     void operator()(Context const& ctx, TensorLhs& lhs, TensorRhs const& rhs, Accum beta=Accum{1}) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorLhs, TensorRhs, Accum>,
+            static_assert_fail<Strategy, Context, TensorLhs, TensorRhs, Accum>,
             "rpp::ops::FTInplaceMul has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -372,7 +371,7 @@ public:
     template <typename TensorOut, typename TensorOp, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorOp, TensorArg>,
+            static_assert_fail<Strategy, Context, TensorOut, TensorOp, TensorArg>,
             "rpp::ops::FTAdjLMul has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -392,7 +391,7 @@ public:
     template <typename TensorOut, typename TensorOp, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorOp, TensorArg>,
+            static_assert_fail<Strategy, Context, TensorOut, TensorOp, TensorArg>,
             "rpp::ops::FTAdjRMul has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -413,7 +412,7 @@ public:
     template <typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
     void operator()(Context const& ctx, TensorOut& out, TensorA const& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorA, TensorB, TensorC, Accum>,
+            static_assert_fail<Strategy, Context, TensorOut, TensorA, TensorB, TensorC, Accum>,
             "rpp::ops::STFma has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -433,7 +432,7 @@ public:
     template <typename TensorA, typename TensorB, typename TensorC>
     void operator()(Context const& ctx, TensorA& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorA, TensorB, TensorC, Accum>,
+            static_assert_fail<Strategy, Context, TensorA, TensorB, TensorC, Accum>,
             "rpp::ops::STInplaceFma has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -459,8 +458,6 @@ public:
     }
 };
 
-
-
 template <typename Strategy>
 class STAdjMul {
     using Context = typename Strategy::Context;
@@ -474,7 +471,7 @@ public:
     template <typename TensorOut, typename TensorOp, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorOut, TensorOp, TensorArg>,
+            static_assert_fail<Strategy, Context, TensorOut, TensorOp, TensorArg>,
             "rpp::ops::STAdjMul has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );
@@ -533,7 +530,7 @@ public:
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorOut& out, LieIn const& arg) const noexcept {
         static_assert(
-            detail::unsupported_primary_operation<Strategy, Context, TensorOut, LieIn>,
+            static_assert_fail<Strategy, Context, TensorOut, LieIn>,
             "rpp::ops::LieToTensor has no implementation for this Strategy. "
             "Use an operation specialization for the selected strategy and include its header."
         );

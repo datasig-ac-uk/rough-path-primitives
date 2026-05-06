@@ -148,7 +148,7 @@ public:
 
 namespace rpp::cpu::single_thread {
 
-template <sparse::MatrixFormat Format, typename BatchOut, typename Matrix, typename BatchArg, typename OutBasis, typename ArgBasis, typename Accum_, typename Architecture>
+template <typename BatchOut, typename Matrix, typename BatchArg, typename OutBasis, typename ArgBasis, typename Accum_, typename Architecture>
 void sparse_matrix_vector_product_kernel(
     const BatchOut batch_out,
     const Matrix matrix,
@@ -160,7 +160,7 @@ void sparse_matrix_vector_product_kernel(
     Accum_ alpha = Accum_{1}
 ) {
     using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
-    using Op = ops::SparseMatrixVectorProduct<Strategy, Format>;
+    using Op = ops::SparseMatrixVectorProduct<Strategy, sparse::matrix_format_v<Matrix>>;
 
     detail::apply_batch<Op>(
         out_basis,

@@ -8,6 +8,8 @@
 
 namespace rpp {
 
+template <typename... Args>
+inline constexpr bool static_assert_fail = false;
 
 template <typename... Args>
 RPP_HOST_DEVICE
