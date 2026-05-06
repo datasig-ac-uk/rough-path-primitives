@@ -1,9 +1,10 @@
 #ifndef INCLUDE_RPP_SPARSE_MATRIX_HPP
 #define INCLUDE_RPP_SPARSE_MATRIX_HPP
 
-#include <rpp/sparse/compressed_matrix.hpp>
 
-#include "rpp/utility.hpp"
+#include <rpp/utility.hpp>
+
+#include <rpp/sparse/detail/compressed_matrix.hpp>
 
 namespace rpp::sparse {
 enum class MatrixFormat {
@@ -11,10 +12,15 @@ enum class MatrixFormat {
     CSC,
 };
 
+
+inline constexpr auto CSRMatrix = MatrixFormat::CSR;
+inline constexpr auto CSCMatrix = MatrixFormat::CSC;
+
+
 namespace detail {
+
 template<MatrixFormat Format>
 struct SparseMatrixTypeImpl;
-
 
 template<>
 struct SparseMatrixTypeImpl<MatrixFormat::CSR> {

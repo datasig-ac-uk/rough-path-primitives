@@ -7,8 +7,8 @@
 #include <rpp/dense/batch.hpp>
 #include <rpp/gpu/strategies.hpp>
 #include <rpp/operations.hpp>
-#include <rpp/sparse/compressed_matrix.hpp>
 #include <rpp/utility.hpp>
+#include <rpp/sparse/matrix.hpp>
 
 namespace rpp::ops {
 

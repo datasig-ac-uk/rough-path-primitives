@@ -12,7 +12,7 @@
 #include <rpp/cpu/ops/single_thread.hpp>
 #include <rpp/cpu/strategies.hpp>
 #include <rpp/dense/views.hpp>
-#include <rpp/sparse/compressed_matrix.hpp>
+#include <rpp/sparse/matrix.hpp>
 
 namespace rpp::benchmarks::cpu {
 

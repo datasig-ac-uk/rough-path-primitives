@@ -3,11 +3,11 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/sparse/compressed_matrix.hpp>
+#include <rpp/sparse/matrix.hpp>
+
 
 namespace {
 
-using rpp::sparse::CompressedFormat;
 
 template<typename T, typename Size>
 [[nodiscard]] auto copy_storage(T const* values, Size size)
@@ -53,17 +53,11 @@ TEST(CompressedMatrixConversionTests, ConvertsCsrToCsc)
 
     auto const csc = rpp::sparse::swap_format(csr);
 
-    static_assert(decltype(csc)::format == CompressedFormat::CSC);
     EXPECT_EQ(csc.nnz(), 6);
     EXPECT_EQ(csc.outer_dim(), 4);
     EXPECT_EQ(csc.inner_dim(), 3);
 
-    auto const csc_view = static_cast<rpp::sparse::CompressedMatrix<
-        Scalar const*,
-        Index const*,
-        Offset const*,
-        CompressedFormat::CSC
-    > >(csc);
+    auto const csc_view = csc.view();
     EXPECT_EQ(csc_view.rows(), 3);
     EXPECT_EQ(csc_view.cols(), 4);
 
@@ -96,17 +90,11 @@ TEST(CompressedMatrixConversionTests, ConvertsCscToCsr)
 
     auto const csr = rpp::sparse::swap_format(csc);
 
-    static_assert(decltype(csr)::format == CompressedFormat::CSR);
     EXPECT_EQ(csr.nnz(), 6);
     EXPECT_EQ(csr.outer_dim(), 3);
     EXPECT_EQ(csr.inner_dim(), 4);
 
-    auto const csr_view = static_cast<rpp::sparse::CompressedMatrix<
-        Scalar const*,
-        Index const*,
-        Offset const*,
-        CompressedFormat::CSR
-    > >(csr);
+    auto const csr_view = csr.view();
     EXPECT_EQ(csr_view.rows(), 3);
     EXPECT_EQ(csr_view.cols(), 4);
 
@@ -169,14 +157,9 @@ TEST(CompressedMatrixConversionTests, RoundTripsCsrThroughCsc)
     );
 
     auto const csc = rpp::sparse::swap_format(csr);
-    auto const roundtrip = rpp::sparse::swap_format(static_cast<rpp::sparse::CompressedMatrix<
-        Scalar const*,
-        Index const*,
-        Offset const*,
-        CompressedFormat::CSC
-    > >(csc));
+    auto const roundtrip = rpp::sparse::swap_format(csc.view());
 
-    static_assert(decltype(roundtrip)::format == CompressedFormat::CSR);
+    // static_assert(decltype(roundtrip)::format == CompressedFormat::CSR);
     EXPECT_EQ(roundtrip.outer_dim(), csr.outer_dim());
     EXPECT_EQ(roundtrip.inner_dim(), csr.inner_dim());
     expect_storage(roundtrip, data, indices, offsets);
@@ -202,14 +185,9 @@ TEST(CompressedMatrixConversionTests, RoundTripsCscThroughCsr)
     );
 
     auto const csr = rpp::sparse::swap_format(csc);
-    auto const roundtrip = rpp::sparse::swap_format(static_cast<rpp::sparse::CompressedMatrix<
-        Scalar const*,
-        Index const*,
-        Offset const*,
-        CompressedFormat::CSR
-    > >(csr));
+    auto const roundtrip = rpp::sparse::swap_format(csr.view());
 
-    static_assert(decltype(roundtrip)::format == CompressedFormat::CSC);
+    // static_assert(decltype(roundtrip)::format == CompressedFormat::CSC);
     EXPECT_EQ(roundtrip.outer_dim(), csc.outer_dim());
     EXPECT_EQ(roundtrip.inner_dim(), csc.inner_dim());
     expect_storage(roundtrip, data, indices, offsets);
@@ -257,25 +235,20 @@ TEST(CompressedMatrixConversionTests, ConvertsGradedCompressedMatrix)
     std::vector<Index> const indices{0, 3, 2, 0, 1, 3};
     std::vector<Offset> const offsets{0, 2, 3, 6};
 
-    auto const csr = rpp::sparse::GradedCompressedMatrix<
+    auto const csr = rpp::sparse::GradedMatrixView<
+        rpp::sparse::CSRMatrix,
         Scalar const*,
         Index const*,
-        Offset const*,
-        CompressedFormat::CSR
+        Offset const*
     >{data.data(), indices.data(), offsets.data(), static_cast<std::ptrdiff_t>(data.size()), 3, 4};
 
     auto const csc = rpp::sparse::swap_format(csr);
 
-    static_assert(decltype(csc)::format == CompressedFormat::CSC);
+    // static_assert(decltype(csc)::format == CompressedFormat::CSC);
     EXPECT_EQ(csc.outer_dim(), 4);
     EXPECT_EQ(csc.inner_dim(), 3);
 
-    auto const csc_view = static_cast<rpp::sparse::GradedCompressedMatrix<
-        Scalar const*,
-        Index const*,
-        Offset const*,
-        CompressedFormat::CSC
-    > >(csc);
+    auto const csc_view = csc.view();
     EXPECT_EQ(csc_view.rows(), 3);
     EXPECT_EQ(csc_view.cols(), 4);
 

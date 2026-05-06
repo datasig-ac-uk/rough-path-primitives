@@ -218,6 +218,10 @@ public:
     constexpr auto outer_dim() const noexcept { return outer_dim_; }
     constexpr auto inner_dim() const noexcept { return inner_dim_; }
 
+    constexpr CompressedMatrix<DataPointer, IndexPointer, OffsetPointer, Format> view() const noexcept {
+        return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
+    }
+
     constexpr explicit operator CompressedMatrix<DataPointer, IndexPointer, OffsetPointer, Format>() const noexcept {
         return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
     }
@@ -267,6 +271,10 @@ public:
     constexpr auto outer_dim() const noexcept { return outer_dim_; }
     constexpr auto inner_dim() const noexcept { return inner_dim_; }
 
+    constexpr CompressedMatrix<Scalar const*, Index const*, Offset const*, Format> view() const noexcept {
+        return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
+    }
+
     constexpr explicit operator CompressedMatrix<Scalar const *, Index const *, Offset const *,
         Format>() const noexcept {
         return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
@@ -305,6 +313,10 @@ public:
     using Base::inner_dim;
 
     explicit operator GradedMatrix() const noexcept {
+        return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
+    }
+
+    constexpr GradedMatrix view() const noexcept {
         return {data(), indices(), offsets(), nnz(), outer_dim(), inner_dim()};
     }
 };

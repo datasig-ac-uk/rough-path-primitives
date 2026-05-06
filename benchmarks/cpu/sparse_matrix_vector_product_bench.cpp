@@ -6,14 +6,16 @@ namespace rb = rpp::benchmarks::cpu;
 template <typename MatrixFactory>
 void run_sparse_benchmark(benchmark::State& state, MatrixFactory&& make_matrix)
 {
-    using Op = rpp::ops::SparseMatrixVectorProduct<rb::Strategy>;
     rb::SparseCase test_case(
         static_cast<rb::Degree>(state.range(0)),
         static_cast<rb::Degree>(state.range(1))
     );
-    Op op;
-    auto ctx = test_case.tensors.template context<Op>();
     auto matrix = make_matrix(test_case);
+    using Matrix = decltype(matrix);
+
+    using Op = rpp::ops::SparseMatrixVectorProduct<rb::Strategy, rpp::sparse::matrix_format_v<Matrix>>;
+    auto ctx = test_case.tensors.template context<Op>();
+    Op op;
 
     for (auto _ : state) {
         auto out = test_case.tensors.out_vector();

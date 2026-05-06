@@ -39,7 +39,8 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/config/target.h
         include/rpp/dense/batch.hpp
         include/rpp/dense/views.hpp
-        include/rpp/sparse/compressed_matrix.hpp
+        include/rpp/sparse/detail/compressed_matrix.hpp
+        include/rpp/sparse/matrix.hpp
         include/rpp/sparse/l2t_matrix.hpp
         include/rpp/sparse/t2l_matrix.hpp
         include/rpp/architecture.hpp

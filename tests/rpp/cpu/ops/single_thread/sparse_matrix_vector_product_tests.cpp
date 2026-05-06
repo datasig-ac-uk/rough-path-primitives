@@ -6,7 +6,7 @@
 #include <rpp/cpu/ops/single_thread/sparse_matrix_vector_product.hpp>
 #include <rpp/dense/batch.hpp>
 #include <rpp/dense/views.hpp>
-#include <rpp/sparse/compressed_matrix.hpp>
+#include <rpp/sparse/matrix.hpp>
 
 #include "polynomial_tensor_helper.hpp"
 
@@ -83,7 +83,7 @@ TEST_F(SparseMatrixVectorProductTests, AppliesCsrMatrix)
     VectorView<Scalar*> out_view(out.data(), out_basis);
     VectorView<Scalar const*> arg_view(arg.data(), arg_basis);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy>{}(make_context(), out_view, matrix, arg_view);
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(make_context(), out_view, matrix, arg_view);
 
     EXPECT_EQ(out, make_vector({-3, 65, 78}));
 }
@@ -106,7 +106,7 @@ TEST_F(SparseMatrixVectorProductTests, AppliesCscMatrix)
     VectorView<Scalar*> out_view(out.data(), out_basis);
     VectorView<Scalar const*> arg_view(arg.data(), arg_basis);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy>{}(make_context(), out_view, matrix, arg_view);
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSCMatrix>{}(make_context(), out_view, matrix, arg_view);
 
     EXPECT_EQ(out, make_vector({-3, 65, 78}));
 }
@@ -129,7 +129,7 @@ TEST_F(SparseMatrixVectorProductTests, ScalesResult)
     VectorView<Scalar*> out_view(out.data(), out_basis);
     VectorView<Scalar const*> arg_view(arg.data(), arg_basis);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy>{}(
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(
         make_context(),
         out_view,
         matrix,
@@ -156,7 +156,7 @@ TEST_F(SparseMatrixVectorProductTests, AppliesToLogicalViewRanges)
     VectorView<Scalar*> out_view(out.data(), basis, 1, 1);
     VectorView<Scalar const*> arg_view(arg.data(), basis, 2, 2);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy>{}(make_context(), out_view, matrix, arg_view);
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(make_context(), out_view, matrix, arg_view);
 
     EXPECT_EQ(out, make_vector({-1, 31, 4, -1, -1, -1, -1}));
 }
@@ -193,7 +193,7 @@ TEST_F(SparseMatrixVectorProductTests, KernelWrapperMatchesDirectOperation)
         Scalar{2}
     );
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy> op;
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix> op;
     auto const ctx = make_context();
     for (Index tensor_idx = 0; tensor_idx < tensor_count; ++tensor_idx) {
         auto out = rpp::dense::DenseVectorView<Scalar*, Basis>(
