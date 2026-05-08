@@ -8,6 +8,7 @@
 
 #include <cuda_runtime.h>
 
+#include <rpp/config.h>
 #include <rpp/gpu/architecture.hpp>
 
 
