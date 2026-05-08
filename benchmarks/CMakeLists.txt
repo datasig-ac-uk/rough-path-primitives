@@ -20,5 +20,5 @@ endif()
 add_subdirectory(cpu)
 
 if (RPP_ENABLE_CUDA)
-    add_subdirectory(gpu)
+#    add_subdirectory(gpu)
 endif()

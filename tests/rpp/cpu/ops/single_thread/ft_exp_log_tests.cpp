@@ -2,13 +2,14 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/ops/single_thread/ft_exp.hpp>
-#include <rpp/cpu/ops/single_thread/ft_inplace_mul.hpp>
-#include <rpp/cpu/ops/single_thread/ft_log.hpp>
-#include <rpp/cpu/ops/single_thread/tensor_add_identity.hpp>
-#include <rpp/cpu/ops/single_thread/tensor_set_identity.hpp>
-#include <rpp/cpu/ops/single_thread/vector_set_zero.hpp>
 #include <rpp/dense/views.hpp>
+
+#include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
+#include <rpp/cpu/operations/single_thread/basic/tensor_add_identity.hpp>
+#include <rpp/cpu/operations/single_thread/basic/tensor_set_identity.hpp>
+#include <rpp/cpu/operations/single_thread/basic/vector_set_constant.hpp>
+#include <rpp/cpu/operations/single_thread/intermediate/ft_log.hpp>
+#include <rpp/cpu/operations/single_thread/intermediate/ft_exp.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
@@ -100,7 +101,7 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::VectorSetZero<Strategy>{}(ctx, out_view);
+        rpp::ops::VectorSetConstant<Strategy>{}(ctx, out_view, Scalar{0});
 
         Scalar const one{1};
         for (Degree d = basis.depth; d > 0; --d) {

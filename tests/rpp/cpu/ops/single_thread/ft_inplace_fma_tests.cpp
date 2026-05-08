@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/ops/single_thread/ft_fma.hpp>
-#include <rpp/cpu/ops/single_thread/ft_inplace_fma.hpp>
+#include <rpp/cpu/operations/single_thread/basic/ft_fma.hpp>
+#include <rpp/cpu/operations/single_thread/basic/ft_inplace_fma.hpp>
 #include <rpp/dense/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
@@ -158,7 +158,7 @@ TEST_F(FreeTensorInplaceFmaTests, KernelWrapperMatchesDirectOperation)
     auto const c = Wrapper::make_batch('c', basis);
 
     rpp::cpu::single_thread::ft_inplace_fma_kernel<
-        rpp::ops::InplaceFMAType::AEqualsBCPlusA
+        rpp::ops::FTInplaceFMAType::AEqualsBCPlusA
     >(
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(b, basis),

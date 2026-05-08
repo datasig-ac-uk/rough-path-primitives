@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/ops/single_thread/vector_inplace_add.hpp>
+#include <rpp/cpu/operations/single_thread/basic/vector_inplace_add.hpp>
 #include <rpp/dense/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"

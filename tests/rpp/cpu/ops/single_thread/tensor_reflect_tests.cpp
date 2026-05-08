@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/ops/single_thread/tensor_reflect.hpp>
+#include <rpp/cpu/operations/single_thread/basic/tensor_reflect.hpp>
 #include <rpp/dense/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"

@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/ops/single_thread/st_fma.hpp>
-#include <rpp/cpu/ops/single_thread/st_inplace_fma.hpp>
+#include <rpp/cpu/operations/single_thread/basic/st_fma.hpp>
+#include <rpp/cpu/operations/single_thread/basic/st_inplace_fma.hpp>
 #include <rpp/dense/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"

@@ -15,7 +15,6 @@ function(rpp_add_cpu_benchmark target)
     )
 endfunction()
 
-rpp_add_cpu_benchmark(vector_set_zero_bench)
 rpp_add_cpu_benchmark(vector_set_constant_bench)
 rpp_add_cpu_benchmark(vector_assign_bench)
 rpp_add_cpu_benchmark(vector_inplace_add_bench)

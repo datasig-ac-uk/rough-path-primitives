@@ -2,9 +2,9 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/ops/single_thread/st_adj_mul.hpp>
-#include <rpp/cpu/ops/single_thread/st_fma.hpp>
-#include <rpp/cpu/ops/single_thread/tensor_pairing.hpp>
+#include <rpp/cpu/operations/single_thread/basic/st_adj_mul.hpp>
+#include <rpp/cpu/operations/single_thread/basic/st_fma.hpp>
+#include <rpp/cpu/operations/single_thread/basic/tensor_pairing.hpp>
 #include <rpp/dense/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"

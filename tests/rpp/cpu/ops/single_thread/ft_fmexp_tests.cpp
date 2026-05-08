@@ -2,13 +2,13 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/ops/single_thread/ft_exp.hpp>
-#include <rpp/cpu/ops/single_thread/ft_fmexp.hpp>
-#include <rpp/cpu/ops/single_thread/ft_inplace_mul.hpp>
-#include <rpp/cpu/ops/single_thread/ft_mul.hpp>
-#include <rpp/cpu/ops/single_thread/tensor_set_identity.hpp>
-#include <rpp/cpu/ops/single_thread/vector_assign.hpp>
-#include <rpp/cpu/ops/single_thread/vector_inplace_add.hpp>
+#include <rpp/cpu/operations/single_thread/intermediate/ft_exp.hpp>
+#include <rpp/cpu/operations/single_thread/intermediate/ft_fmexp.hpp>
+#include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
+#include <rpp/cpu/operations/single_thread/basic/ft_mul.hpp>
+#include <rpp/cpu/operations/single_thread/basic/tensor_set_identity.hpp>
+#include <rpp/cpu/operations/single_thread/basic/vector_assign.hpp>
+#include <rpp/cpu/operations/single_thread/basic/vector_inplace_add.hpp>
 #include <rpp/dense/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"

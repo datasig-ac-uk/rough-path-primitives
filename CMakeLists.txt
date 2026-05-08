@@ -10,7 +10,11 @@ project(RoughPathPrimitives
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+if(NOT DEFINED CMAKE_CUDA_HOST_COMPILER)
+    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+endif()
 
 
 option(RPP_ENABLE_CUDA "Enable cuda support" OFF)
@@ -29,8 +33,77 @@ target_include_directories(RPP INTERFACE
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-add_library(RPPStub STATIC src/stub.cpp)
-target_link_libraries(RPPStub PRIVATE RPP)
+#add_library(RPPStub STATIC src/stub.cpp)
+#target_link_libraries(RPPStub PRIVATE RPP)
+
+
+set(RPP_BASIC_OPS
+        ft_adj_lmul
+        ft_adj_rmul
+        ft_fma
+        ft_inplace_fma
+        ft_inplace_mul
+        ft_mul
+        lie_to_tensor
+        sparse_matrix_vector
+        st_adj_mul
+        st_fma
+        st_inplace_mul
+        st_mul
+        tensor_add_identity
+        tensor_antipode
+        tensor_generalised_antipode
+        tensor_pairing
+        tensor_reflect
+        tensor_set_identity
+        tensor_to_lie
+        vector_add
+        vector_assign
+        vector_inplace_add
+        vector_scalar_multiply
+        vector_set_constant
+)
+
+set(RPP_INTERMEDIATE_OPS
+        ft_exp
+        ft_fmexp
+        ft_log
+)
+
+
+function(rpp_make_op_file_list _out)
+    set(options)
+    set(one_param_args PLATFORM STRATEGY)
+    set(multi_param_args ADDITIONAL)
+    cmake_parse_arguments(PARSE_ARGV 1 "ARG" "${options}" "${one_param_args}" "${multi_param_args}")
+
+    set(_working)
+    set(_prefix "include/rpp/${ARG_PLATFORM}/operations/${ARG_STRATEGY}")
+    foreach(op IN LISTS RPP_BASIC_OPS)
+        set(_path "${_prefix}/basic/${op}.hpp")
+        message(TRACE "Adding operation header file: ${_path}")
+        list(APPEND _working ${_path})
+    endforeach()
+
+    foreach(op IN LISTS RPP_INTERMEDIATE_OPS)
+        set(_path "${_prefix}/intermediate/${op}.hpp")
+        message(TRACE "Adding operation header file: ${_path}")
+        list(APPEND _working ${_path})
+    endforeach()
+
+    set(${_out} ${_working} PARENT_SCOPE)
+endfunction()
+
+set(RPP_OPS)
+foreach(op IN LISTS RPP_BASIC_OPS)
+    list(APPEND RPP_OPS "include/rpp/operations/basic/${op}.hpp")
+endforeach()
+
+foreach(op IN LISTS RPP_INTERMEDIATE_OPS)
+    list(APPEND RPP_OPS "include/rpp/operations/intermediate/${op}.hpp")
+endforeach()
+
+rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread)
 
 target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/basis/hall_basis.hpp
@@ -49,34 +122,16 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/operations.hpp
         include/rpp/utility.hpp
         include/rpp/cpu/strategies.hpp
-        include/rpp/cpu/ops/single_thread.hpp
-        include/rpp/cpu/ops/single_thread/detail/antipode.hpp
-        include/rpp/cpu/ops/single_thread/detail/batch_wrapper.hpp
-        include/rpp/cpu/ops/single_thread/detail/ft_multiply.hpp
-        include/rpp/cpu/ops/single_thread/ft_adj_lmul.hpp
-        include/rpp/cpu/ops/single_thread/ft_adj_rmul.hpp
-        include/rpp/cpu/ops/single_thread/ft_exp.hpp
-        include/rpp/cpu/ops/single_thread/ft_fma.hpp
-        include/rpp/cpu/ops/single_thread/ft_fmexp.hpp
-        include/rpp/cpu/ops/single_thread/ft_inplace_fma.hpp
-        include/rpp/cpu/ops/single_thread/ft_inplace_mul.hpp
-        include/rpp/cpu/ops/single_thread/ft_log.hpp
-        include/rpp/cpu/ops/single_thread/ft_mul.hpp
-        include/rpp/cpu/ops/single_thread/sparse_matrix_vector_product.hpp
-        include/rpp/cpu/ops/single_thread/st_adj_mul.hpp
-        include/rpp/cpu/ops/single_thread/st_fma.hpp
-        include/rpp/cpu/ops/single_thread/st_inplace_fma.hpp
-        include/rpp/cpu/ops/single_thread/st_mul.hpp
-        include/rpp/cpu/ops/single_thread/tensor_add_identity.hpp
-        include/rpp/cpu/ops/single_thread/tensor_antipode.hpp
-        include/rpp/cpu/ops/single_thread/tensor_pairing.hpp
-        include/rpp/cpu/ops/single_thread/tensor_reflect.hpp
-        include/rpp/cpu/ops/single_thread/tensor_set_identity.hpp
-        include/rpp/cpu/ops/single_thread/vector_assign.hpp
-        include/rpp/cpu/ops/single_thread/vector_inplace_add.hpp
-        include/rpp/cpu/ops/single_thread/vector_set_constant.hpp
-        include/rpp/cpu/ops/single_thread/vector_set_zero.hpp
+        ${RPP_OPS}
+        include/rpp/cpu/operations/single_thread.hpp
+        include/rpp/cpu/operations/single_thread/basic/detail/ft_multiply.hpp
+        include/rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp
+        ${RPP_CPU_ST_OPS}
 )
+
+
+
+rpp_make_op_file_list(RPP_GPU_BLOCK_OPS PLATFORM gpu STRATEGY block)
 
 
 set(RPP_GPU_SOURCES
@@ -84,32 +139,10 @@ set(RPP_GPU_SOURCES
         include/rpp/gpu/ops/block/detail/ft_adjoint_multiply.hpp
         include/rpp/gpu/ops/block/detail/ft_multiply.hpp
         include/rpp/gpu/ops/block/detail/st_multiply.hpp
-        include/rpp/gpu/ops/block/ft_adj_lmul.hpp
-        include/rpp/gpu/ops/block/ft_adj_rmul.hpp
-        include/rpp/gpu/ops/block/ft_exp.hpp
-        include/rpp/gpu/ops/block/ft_fma.hpp
-        include/rpp/gpu/ops/block/ft_fmexp.hpp
-        include/rpp/gpu/ops/block/ft_inplace_fma.hpp
-        include/rpp/gpu/ops/block/ft_inplace_mul.hpp
-        include/rpp/gpu/ops/block/ft_log.hpp
-        include/rpp/gpu/ops/block/ft_mul.hpp
-        include/rpp/gpu/ops/block/sparse_matrix_vector_product.hpp
-        include/rpp/gpu/ops/block/st_adj_mul.hpp
-        include/rpp/gpu/ops/block/st_fma.hpp
-        include/rpp/gpu/ops/block/st_inplace_fma.hpp
-        include/rpp/gpu/ops/block/st_mul.hpp
-        include/rpp/gpu/ops/block/tensor_add_identity.hpp
-        include/rpp/gpu/ops/block/tensor_antipode.hpp
-        include/rpp/gpu/ops/block/tensor_pairing.hpp
-        include/rpp/gpu/ops/block/tensor_reflect.hpp
-        include/rpp/gpu/ops/block/tensor_set_identity.hpp
-        include/rpp/gpu/ops/block/vector_assign.hpp
-        include/rpp/gpu/ops/block/vector_inplace_add.hpp
-        include/rpp/gpu/ops/block/vector_set_constant.hpp
-        include/rpp/gpu/ops/block/vector_set_zero.hpp
         include/rpp/gpu/architecture.hpp
         include/rpp/gpu/kernel.hpp
         include/rpp/gpu/strategies.hpp
+        ${RPP_GPU_BLOCK_OPS}
 )
 
 if (RPP_ENABLE_CUDA)
