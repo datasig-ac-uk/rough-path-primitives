@@ -127,17 +127,15 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
     {
         auto const strategy = Strategy{};
         auto const scratch_bytes = Op::scratch_space_size(strategy, basis);
-        std::vector<Scalar> scratch(
-            (scratch_bytes + sizeof(Scalar) - 1) / sizeof(Scalar)
-        );
-        auto const ctx = Strategy::make_context(
-            reinterpret_cast<std::byte*>(scratch.data())
-        );
+        std::vector<std::byte> scratch(scratch_bytes);
+        auto const ctx = Strategy::make_context(scratch.data());
 
+        Op::init_scratch_space(ctx, basis);
         Op op;
         for (Index tensor_idx = 0; tensor_idx < tensor_count; ++tensor_idx) {
             fn(op, ctx, tensor_idx);
         }
+        Op::destroy_scratch_space(ctx, basis);
     }
 };
 

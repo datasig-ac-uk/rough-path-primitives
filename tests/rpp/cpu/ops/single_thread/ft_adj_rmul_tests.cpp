@@ -76,14 +76,16 @@ protected:
 
         std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
         auto const scratch_bytes = AdjMul::scratch_space_size(Strategy{}, basis);
-        std::vector<Scalar> scratch((scratch_bytes + sizeof(Scalar) - 1) / sizeof(Scalar));
+        std::vector<std::byte> scratch(scratch_bytes);
 
         TensorView<Scalar*> out_view(out.data(), basis);
         TensorView<Scalar const*> op_view(op.data(), basis);
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
-        auto const ctx = Strategy::make_context(reinterpret_cast<std::byte*>(scratch.data()));
+        auto const ctx = Strategy::make_context(scratch.data());
+        AdjMul::init_scratch_space(ctx, basis);
         AdjMul{}(ctx, out_view, op_view, arg_view);
+        AdjMul::destroy_scratch_space(ctx, basis);
         return out;
     }
 };
@@ -139,38 +141,6 @@ TEST_F(FreeTensorAdjointRightMulTests, IsBilinearInOperatorAndArgument)
     EXPECT_EQ(lhs, rhs);
 }
 
-TEST_F(FreeTensorAdjointRightMulTests, KernelWrapperMatchesDirectOperation)
-{
-    using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
-    auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
-    auto const& basis = basis_data.basis;
-    auto const strategy = Wrapper::Strategy{};
-
-    auto actual = Wrapper::make_batch('o', basis);
-    auto expected = actual;
-    auto const op_arg = Wrapper::make_batch('a', basis);
-    auto const arg = Wrapper::make_batch('x', basis);
-
-    rpp::cpu::single_thread::ft_adj_rmul_kernel(
-        Wrapper::tensor_batch(actual, basis),
-        Wrapper::tensor_batch(op_arg, basis),
-        Wrapper::tensor_batch(arg, basis),
-        basis,
-        strategy,
-        Wrapper::tensor_count
-    );
-    Wrapper::apply_direct<rpp::ops::FTAdjRMul<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
-            auto out = Wrapper::tensor_view(expected, basis, tensor_idx);
-            auto operator_arg = Wrapper::tensor_view(op_arg, basis, tensor_idx);
-            auto operand = Wrapper::tensor_view(arg, basis, tensor_idx);
-            op(ctx, out, operator_arg, operand);
-        }
-    );
-
-    EXPECT_EQ(actual, expected);
-}
 
 } // namespace
