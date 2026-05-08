@@ -2,25 +2,23 @@
 #define RPP_GPU_OPERATIONS_BLOCK_BASIC_TENSOR_ADD_IDENTITY_HPP
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
-#include <rpp/operations.hpp>
-#include <rpp/gpu/strategies.hpp>
 #include <rpp/utility.hpp>
+#include <rpp/dense/batch.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/tensor_add_identity.hpp>
+
+#include <rpp/gpu/strategies.hpp>
 
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class TensorAddIdentity<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class TensorAddIdentity<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename Tensor>
     RPP_DEVICE void operator()(Context const& ctx, Tensor& tensor, Accum scalar = Accum{1}) const noexcept {

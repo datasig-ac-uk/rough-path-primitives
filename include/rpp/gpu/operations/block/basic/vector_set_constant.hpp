@@ -5,24 +5,22 @@
 
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/operations.hpp>
-#include <rpp/gpu/strategies.hpp>
 #include <rpp/utility.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/vector_set_constant.hpp>
+
+#include <rpp/gpu/strategies.hpp>
 
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class VectorSetConstant<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class VectorSetConstant<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Index = typename Strategy::Index;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename Vector, typename Value>
     RPP_DEVICE void operator()(Context const& ctx, Vector& vec, Value const& value) const noexcept {

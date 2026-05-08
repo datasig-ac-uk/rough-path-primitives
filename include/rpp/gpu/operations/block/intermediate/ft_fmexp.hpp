@@ -6,8 +6,9 @@
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
 #include <rpp/gpu/strategies.hpp>
-#include <rpp/operations.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/intermediate/ft_fmexp.hpp>
 
 #include <rpp/gpu/operations/block/basic/vector_assign.hpp>
 #include <rpp/gpu/operations/block/basic/ft_inplace_fma.hpp>
@@ -15,7 +16,7 @@
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class FTFMExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class FTFMExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;

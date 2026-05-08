@@ -2,27 +2,24 @@
 #define RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_MUL_HPP
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
-#include <rpp/gpu/strategies.hpp>
-#include <rpp/operations.hpp>
-#include <rpp/gpu/operations/block/detail/ft_multiply.hpp>
 #include <rpp/utility.hpp>
+#include <rpp/dense/batch.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/ft_mul.hpp>
+
+#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/basic/detail/ft_multiply.hpp>
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class FTMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class FTMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>
     RPP_DEVICE void operator()(Context const& ctx, TensorOut& out, TensorLhs const& lhs, TensorRhs const& rhs, Accum beta = Accum{1}) const noexcept {

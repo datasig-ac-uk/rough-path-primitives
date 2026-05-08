@@ -3,33 +3,10 @@
 
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/operations.hpp>
-#include <rpp/gpu/strategies.hpp>
 #include <rpp/utility.hpp>
 
-#include <rpp/gpu/operations/block/detail/antipode.hpp>
-
-namespace rpp::ops {
-
-template <typename Accum_, unsigned BlockSize, typename Architecture>
-class TensorReflect<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
-    using Context = typename Strategy::Context;
-
-public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
-    template <typename TensorOut, typename TensorArg>
-    RPP_DEVICE void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
-        gpu::block::generalised_antipode(ctx, out, arg, gpu::block::NoSigningPolicy{});
-    }
-};
-
-} // namespace rpp::ops
+#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/basic/tensor_generalised_antipode.hpp>
 
 namespace rpp::gpu::block {
 

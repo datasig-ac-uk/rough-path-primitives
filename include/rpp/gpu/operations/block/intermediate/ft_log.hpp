@@ -6,22 +6,24 @@
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
 #include <rpp/gpu/strategies.hpp>
-#include <rpp/operations.hpp>
 
-#include <rpp/gpu/operations/block/basic/vector_set_zero.hpp>
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/intermediate/ft_log.hpp>
+
+#include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
 #include <rpp/gpu/operations/block/basic/ft_inplace_mul.hpp>
 #include <rpp/gpu/operations/block/basic/tensor_add_identity.hpp>
 
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class FTLog<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class FTLog<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;
 
-    using SetZero = VectorSetZero<Strategy>;
+    using SetZero = VectorSetConstant<Strategy>;
     using InplaceMul = FTInplaceMul<Strategy>;
     using AddIdentity = TensorAddIdentity<Strategy>;
 
@@ -41,7 +43,7 @@ public:
     RPP_DEVICE void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
         auto const& basis = out.basis();
         constexpr Accum one{1};
-        set_zero(ctx, out);
+        set_zero(ctx, out, Accum{0});
 
         for (Degree d = basis.depth; d > 0; --d) {
             const auto max_degree = basis.depth - d + 1;

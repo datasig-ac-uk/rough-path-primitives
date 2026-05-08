@@ -167,7 +167,6 @@ if (RPP_ENABLE_CUDA)
 
     set(RPP_GPU_SOURCES
             include/rpp/gpu/architecture.hpp
-            include/rpp/gpu/kernel.hpp
             include/rpp/gpu/strategies.hpp
             ${RPP_GPU_BLOCK_OPS}
     )

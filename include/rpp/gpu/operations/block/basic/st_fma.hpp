@@ -3,26 +3,24 @@
 
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/operations.hpp>
-#include <rpp/gpu/operations/block/detail/st_multiply.hpp>
 #include <rpp/utility.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/st_fma.hpp>
+
 #include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/basic/detail/st_multiply.hpp>
 
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class STFma<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class STFma<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
     RPP_DEVICE void operator()(

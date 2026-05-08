@@ -8,13 +8,14 @@
 
 #include <rpp/dense/batch.hpp>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/tensor_generalised_antipode.hpp>
 
 #include <rpp/gpu/strategies.hpp>
 
-namespace rpp {
-template <typename Accum_, unsigned BlockSize, typename Architecture, ops::TensorAntipodeSigningPolicy Policy>
-class ops::TensorGeneralisedAntipode<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>, Policy, void>
+namespace rpp::ops {
+template <typename Accum_, unsigned BlockSize, typename Architecture, TensorAntipodeSigningPolicy Policy>
+class TensorGeneralisedAntipode<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>, Policy, void>
     : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
 
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
@@ -23,10 +24,10 @@ public:
     using Context = typename Strategy::Context;
 
     template <typename TensorOut, typename TensorArg>
-    void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
+    RPP_DEVICE void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
         auto const& basis = out.basis();
 
-        for (auto elt_idx=ctx.thread_rank(); elt_idx<arg.size(); elt_idx += ctx.num_threads()) {
+        for (auto elt_idx=ctx.thread_rank(); elt_idx<static_cast<typename Strategy::Index>(arg.size()); elt_idx += ctx.num_threads()) {
             const auto degree = basis.degree(elt_idx);
             const auto degree_begin = basis.start_of_degree(degree);
             const auto rev_idx = basis.reverse_index(elt_idx - degree_begin, degree);

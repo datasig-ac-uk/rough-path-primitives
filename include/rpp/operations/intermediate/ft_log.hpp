@@ -8,6 +8,7 @@
 #include <rpp/utility.hpp>
 
 #include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/ft_inplace_mul.hpp>
 #include <rpp/operations/basic/ft_mul.hpp>
 #include <rpp/operations/basic/tensor_add_identity.hpp>
 #include <rpp/operations/basic/vector_set_constant.hpp>
@@ -22,7 +23,7 @@ class FTLog : public BaseOperation<Strategy> {
     using Degree = typename Strategy::Degree;
 
     using SetConstant =VectorSetConstant<Strategy>;
-    using InplaceMul = FTInplaceMul<Strategy>;
+    using InplaceMul = rpp::ops::FTInplaceMul<Strategy>;
     using AddIdentity = TensorAddIdentity<Strategy>;
 
     SetConstant set_constant;

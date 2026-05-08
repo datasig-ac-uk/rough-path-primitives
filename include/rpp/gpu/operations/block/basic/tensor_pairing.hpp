@@ -5,15 +5,17 @@
 #include <functional>
 
 #include <rpp/config.h>
-#include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/tensor_pairing.hpp>
 
 #include <rpp/gpu/strategies.hpp>
 
 namespace rpp::ops {
 
 template <typename Accum, unsigned MaxBlockSize, typename Architecture>
-class TensorPairing<gpu::strategies::BlockStrategy<Accum, MaxBlockSize, Architecture>> {
+class TensorPairing<gpu::strategies::BlockStrategy<Accum, MaxBlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum, MaxBlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
 

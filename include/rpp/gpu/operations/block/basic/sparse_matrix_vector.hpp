@@ -4,17 +4,21 @@
 #include <cstddef>
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
-#include <rpp/gpu/strategies.hpp>
-#include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
+#include <rpp/dense/batch.hpp>
 #include <rpp/sparse/matrix.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/sparse_matrix_vector.hpp>
+
+#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
 
 namespace rpp::ops {
 
 template<typename Accum_, unsigned BlockSize, typename Architecture>
 class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>,
-            sparse::MatrixFormat::CSR> {
+            sparse::MatrixFormat::CSR> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -28,14 +32,9 @@ class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize
     using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
 
 public:
-    template<typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template<typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
-    void operator()(Context const &ctx, VectorOut &out, Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
+    RPP_DEVICE void operator()(Context const &ctx, VectorOut &out, Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
                     VectorArg const &arg, Accum alpha = Accum{1}) const noexcept {
         using Scalar = typename VectorOut::value_type;
 
@@ -52,7 +51,7 @@ public:
 
             for (auto entry = begin + warp_lane; entry < end; entry += Strategy::warp_size) {
                 Accum coeff{matrix.value(entry)};
-                Accum arg_val{matrix.inner_index(entry)};
+                Accum arg_val{arg_it[matrix.inner_index(entry)]};
                 acc += coeff * arg_val;
             }
 
@@ -68,30 +67,30 @@ public:
 
 template<typename Accum_, unsigned BlockSize, typename Architecture>
 class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>,
-            sparse::MatrixFormat::CSC> {
+            sparse::MatrixFormat::CSC> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
     template<typename D, typename I, typename O>
-    using Matrix = sparse::MatrixView<sparse::MatrixFormat::CSR, D, I, O>;
+    using Matrix = sparse::MatrixView<sparse::MatrixFormat::CSC, D, I, O>;
 
     template<typename D, typename I, typename O>
-    using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
+    using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSC, D, I, O>;
 
-    VectorSetZero<Strategy> set_zero;
+    VectorSetConstant<Strategy> set_constant;
 public:
     template<typename Basis>
     static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
         ignore_unused(basis);
-        return basis.block_size * sizeof(Accum_);
+        return strategy.block_size * sizeof(Accum_);
     }
 
     template<typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
-    void operator()(Context const &ctx, VectorOut &out, Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
+    RPP_DEVICE void operator()(Context const &ctx, VectorOut &out, Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
                     VectorArg const &arg, Accum alpha = Accum{1}) const noexcept {
-        set_zero(ctx, out);
+        set_constant(ctx, out, Accum{0});
         ctx.sync();
 
         auto out_it = out.begin();

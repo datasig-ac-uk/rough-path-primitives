@@ -5,9 +5,11 @@
 
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/gpu/strategies.hpp>
-#include <rpp/operations.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/intermediate/ft_exp.hpp>
+
+#include <rpp/gpu/strategies.hpp>
 #include <rpp/gpu/operations/block/basic/ft_inplace_mul.hpp>
 #include <rpp/gpu/operations/block/basic/tensor_add_identity.hpp>
 #include <rpp/gpu/operations/block/basic/tensor_set_identity.hpp>
@@ -15,7 +17,7 @@
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class FTExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class FTExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;

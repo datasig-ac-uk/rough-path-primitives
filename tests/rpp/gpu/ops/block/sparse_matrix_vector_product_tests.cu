@@ -148,10 +148,13 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
         basis.size()
     );
 
+    using Op = rpp::ops::SparseMatrixVectorProduct<rpp::gpu::strategies::BlockStrategy<Helper::Scalar>, rpp::sparse::CSCMatrix>;
+    auto smem_bytes = Op::scratch_space_size(gpu_strategy, basis);
+
     rpp::gpu::block::sparse_matrix_vector_product_kernel<<<
         Helper::tensor_count,
         gpu_strategy.block_size,
-        0
+        smem_bytes
     >>>(
         Helper::device_vector_batch(device_actual, basis),
         device_matrix,

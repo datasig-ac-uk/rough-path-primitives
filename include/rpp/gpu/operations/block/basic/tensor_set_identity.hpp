@@ -3,15 +3,18 @@
 
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/tensor_set_identity.hpp>
+
 #include <rpp/gpu/strategies.hpp>
-#include <rpp/gpu/operations/block/basic/vector_set_zero.hpp>
+#include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
 
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class TensorSetIdentity<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class TensorSetIdentity<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
 public:
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
@@ -19,20 +22,15 @@ public:
 
 
 private:
-    using SetZero = VectorSetZero<Strategy>;
-    SetZero set_zero;
+    using SetConstant = VectorSetConstant<Strategy>;
+    SetConstant set_constant;
 public:
 
 
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename Tensor>
     RPP_DEVICE void operator()(Context const& ctx, Tensor& tensor, Accum scalar = Accum{1}) const noexcept {
-        set_zero(ctx, tensor);
+        set_constant(ctx, tensor, Accum{0});
         if (ctx.thread_rank() == 0) {
             tensor[0] = scalar;
         }

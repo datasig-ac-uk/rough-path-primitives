@@ -5,9 +5,12 @@
 
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/gpu/strategies.hpp>
-#include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/vector_scalar_multiply.hpp>
+
+#include <rpp/gpu/strategies.hpp>
 
 namespace rpp::ops {
 

@@ -6,6 +6,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/tensor_to_lie.hpp>
 
 #include <rpp/gpu/strategies.hpp>

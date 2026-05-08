@@ -3,17 +3,19 @@
 
 #include <algorithm>
 
-#include <cuda/std/__ranges/data.h>
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/gpu/strategies.hpp>
-#include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/vector_assign.hpp>
+
+#include <rpp/gpu/strategies.hpp>
 
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class VectorAssign<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class VectorAssign<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
 public:
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
@@ -21,11 +23,6 @@ public:
     using Index = typename Strategy::Index;
 
 
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
 
     template <typename VectorOut, typename VectorArg>

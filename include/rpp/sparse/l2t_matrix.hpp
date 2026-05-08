@@ -5,7 +5,7 @@
 
 #include <rpp/config.h>
 #include <rpp/basis.hpp>
-#include <rpp/sparse/compressed_matrix.hpp>
+#include <rpp/sparse/detail/compressed_matrix.hpp>
 
 
 namespace rpp::sparse {

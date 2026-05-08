@@ -3,16 +3,17 @@
 
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/operations.hpp>
-#include <rpp/utility.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/ft_inplace_fma.hpp>
 
 #include <rpp/gpu/strategies.hpp>
-#include <detail/ft_multiply.hpp>
+#include <rpp/gpu/operations/block/basic/detail/ft_multiply.hpp>
 
 namespace rpp::ops {
 
-template <typename Accum_, unsigned BlockSize, typename Architecture, InplaceFMAType FMAType>
-class FTInplaceFma<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>, FMAType> {
+template <typename Accum_, unsigned BlockSize, typename Architecture, FTInplaceFMAType FMAType>
+class FTInplaceFma<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>, FMAType> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -20,11 +21,6 @@ class FTInplaceFma<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architectur
     using Index = typename Strategy::Index;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename TensorA, typename TensorB, typename TensorC>
     RPP_DEVICE void operator()(
@@ -41,7 +37,7 @@ public:
 
         for (Degree out_deg = a.max_degree(); out_deg > low_range_degree; --out_deg) {
             for (auto elt_idx = basis.start_of_degree(out_deg) + ctx.thread_rank(); elt_idx < basis.end_of_degree(out_deg); elt_idx += ctx.num_threads()) {
-                if constexpr (FMAType == InplaceFMAType::AEqualsABPlusC) {
+                if constexpr (FMAType == FTInplaceFMAType::AEqualsABPlusC) {
                     auto acc = gpu::block::ft_multiply_loop_with_degree(ctx, a, b, elt_idx, out_deg, basis);
                     acc *= beta;
                     Accum c_val{0};
@@ -49,7 +45,7 @@ public:
                         c_val = Accum{c[elt_idx]};
                     }
                     a[elt_idx] = static_cast<Scalar>(alpha * c_val + acc);
-                } else if constexpr (FMAType == InplaceFMAType::AEqualsBAPlusC) {
+                } else if constexpr (FMAType == FTInplaceFMAType::AEqualsBAPlusC) {
                     auto acc = gpu::block::ft_multiply_loop_with_degree(ctx, b, a, elt_idx, out_deg, basis);
                     acc *= beta;
                     Accum c_val{0};
@@ -57,7 +53,7 @@ public:
                         c_val = Accum{c[elt_idx]};
                     }
                     a[elt_idx] = static_cast<Scalar>(alpha * c_val + acc);
-                } else if constexpr (FMAType == InplaceFMAType::AEqualsBCPlusA) {
+                } else if constexpr (FMAType == FTInplaceFMAType::AEqualsBCPlusA) {
                     auto acc = gpu::block::ft_multiply_loop_with_degree(ctx, b, c, elt_idx, out_deg, basis);
                     acc *= beta;
                     a[elt_idx] = static_cast<Scalar>(alpha * Accum{a[elt_idx]} + acc);
@@ -73,15 +69,15 @@ public:
         Accum acc{0};
         if (active) {
             const auto degree = basis.degree_linear(elt_idx);
-            if constexpr (FMAType == InplaceFMAType::AEqualsABPlusC) {
+            if constexpr (FMAType == FTInplaceFMAType::AEqualsABPlusC) {
                 acc = gpu::block::ft_multiply_loop_with_degree(ctx, a, b, elt_idx, degree, basis);
                 acc *= beta;
                 acc += alpha * Accum{c[elt_idx]};
-            } else if constexpr (FMAType == InplaceFMAType::AEqualsBAPlusC) {
+            } else if constexpr (FMAType == FTInplaceFMAType::AEqualsBAPlusC) {
                 acc = gpu::block::ft_multiply_loop_with_degree(ctx, b, a, elt_idx, degree, basis);
                 acc *= beta;
                 acc += alpha * Accum{c[elt_idx]};
-            } else if constexpr (FMAType == InplaceFMAType::AEqualsBCPlusA) {
+            } else if constexpr (FMAType == FTInplaceFMAType::AEqualsBCPlusA) {
                 acc = gpu::block::ft_multiply_loop_with_degree(ctx, b, c, elt_idx, degree, basis);
                 acc *= beta;
                 acc += alpha * Accum{a[elt_idx]};
@@ -101,7 +97,7 @@ public:
 
 namespace rpp::gpu::block {
 
-template <ops::InplaceFMAType FMAType, typename BatchA, typename BatchB, typename BatchC, typename Basis, typename Accum_, unsigned MaxBlockSize, typename Architecture>
+template <ops::FTInplaceFMAType FMAType, typename BatchA, typename BatchB, typename BatchC, typename Basis, typename Accum_, unsigned MaxBlockSize, typename Architecture>
 RPP_KERNEL void ft_inplace_fma_kernel(
     const BatchA batch_a,
     const BatchB batch_b,

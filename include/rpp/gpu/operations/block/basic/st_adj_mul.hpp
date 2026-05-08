@@ -2,16 +2,19 @@
 #define RPP_GPU_OPERATIONS_BLOCK_BASIC_ST_ADJ_MUL_HPP
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
-#include <rpp/gpu/strategies.hpp>
-#include <rpp/operations.hpp>
-#include <rpp/gpu/operations/block/basic/vector_set_zero.hpp>
 #include <rpp/utility.hpp>
+#include <rpp/dense/batch.hpp>
+
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/st_adj_mul.hpp>
+
+#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
 
 namespace rpp::ops {
 
 template <typename Accum_, unsigned BlockSize, typename Architecture>
-class STAdjMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+class STAdjMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -20,23 +23,18 @@ class STAdjMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> 
     using Letter = typename Strategy::Letter;
     using Bitmask = typename Strategy::Bitmask;
 
-    using SetZero = VectorSetZero<Strategy>;
+    using SetConstant = VectorSetConstant<Strategy>;
 
-    SetZero set_zero;
+    SetConstant set_constant;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>
     RPP_DEVICE void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
         using Scalar = typename TensorOut::value_type;
         auto const& basis = out.basis();
 
-        set_zero(ctx, out);
+        set_constant(ctx, out, Accum{0});
         ctx.sync();
 
         const auto arg_begin = basis.start_of_degree(arg.min_degree());

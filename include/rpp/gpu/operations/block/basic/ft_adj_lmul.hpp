@@ -7,16 +7,18 @@
 
 #include <rpp/config.h>
 #include <rpp/dense/batch.hpp>
-#include <rpp/operations.hpp>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/operations/basic/ft_adj_lmul.hpp>
+
 #include <rpp/gpu/strategies.hpp>
-#include <detail/ft_adjoint_multiply.hpp>
+#include <rpp/gpu/operations/block/basic/detail/ft_adjoint_multiply.hpp>
 
 namespace rpp {
 namespace ops {
 template<typename Accum_, unsigned BlockSize, typename Architecture>
-class FTAdjLMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture> > {
+class FTAdjLMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture> > : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
