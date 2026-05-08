@@ -17,13 +17,17 @@ void apply_batch(
     using Index = typename Strategy::Index;
 
     const auto scratch_size = Op::scratch_space_size(strategy, basis);
-    std::vector<std::byte> scratch((scratch_size + sizeof(Accum) - 1) / sizeof(Accum));
+    std::vector<std::byte> scratch(scratch_size);
     auto const ctx = strategy.make_context(scratch.data());
+
+    Op::init_scratch_space(ctx, basis);
 
     Op op;
     for (Index idx = 0; idx < n_tensors; ++idx) {
         fn(op, ctx, idx);
     }
+
+    Op::destroy_scratch_space(ctx, basis);
 }
 
 } // namespace rpp::cpu::single_thread::detail
