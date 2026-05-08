@@ -37,8 +37,12 @@ public:
 
     template <typename Element>
     RPP_HOST_DEVICE
-    RPP_NODISCARD Element* scratch_space() const noexcept {
-        return reinterpret_cast<Element*>(scratch_ptr_);
+    RPP_NODISCARD decltype(auto) scratch_space() const noexcept {
+        if constexpr (std::is_pointer_v<Element>) {
+            return reinterpret_cast<Element>(scratch_ptr_);
+        } else {
+            return *reinterpret_cast<Element*>(scratch_ptr_);
+        }
     }
 
 

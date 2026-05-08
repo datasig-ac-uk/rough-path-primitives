@@ -18,7 +18,7 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture_>
-class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>, sparse::MatrixFormat::CSR> {
+class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>, sparse::MatrixFormat::CSR> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -31,13 +31,6 @@ class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Ar
     using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
 
 public:
-
-    template <typename Basis>
-    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
        void operator()(
            Context const& ctx,
@@ -79,7 +72,7 @@ public:
 
 
 template <typename Accum_, typename Architecture_>
-class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>, sparse::MatrixFormat::CSC> {
+class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>, sparse::MatrixFormat::CSC> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;

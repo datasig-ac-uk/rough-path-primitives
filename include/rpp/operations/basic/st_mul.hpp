@@ -6,12 +6,13 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/st_inplace_fma.hpp>
 
 namespace rpp::ops {
 
 template <typename Strategy, typename=void>
-class STMul {
+class STMul : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 

@@ -6,6 +6,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/sparse_matrix_vector.hpp>
 
 namespace rpp::ops {
@@ -17,7 +18,7 @@ enum class L2TImplementationType {
 };
 
 template <typename Strategy, L2TImplementationType Implementation, typename=void>
-class LieToTensor {
+class LieToTensor : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     static_assert((Implementation == L2TImplementationType::CSRSparseMatrix
         || Implementation == L2TImplementationType::CSCSparseMatrix),

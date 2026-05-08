@@ -49,7 +49,7 @@ namespace rpp::ops {
 
 
 template<typename Accum_, typename Architecture>
-class FTInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>, FTInplaceFMAType::AEqualsBCPlusA> {
+class FTInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>, FTInplaceFMAType::AEqualsBCPlusA> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -58,12 +58,6 @@ class FTInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>, 
     using Degree = typename Strategy::Degree;
 
 public:
-    template <typename Basis>
-    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template<typename TensorA, typename TensorB, typename TensorC>
     void operator()(
         Context const &ctx,

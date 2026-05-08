@@ -6,6 +6,8 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+
 namespace rpp::ops {
 
 enum class TensorAntipodeSigningPolicy {
@@ -14,15 +16,9 @@ enum class TensorAntipodeSigningPolicy {
 };
 
 template <typename Strategy, TensorAntipodeSigningPolicy Policy, typename=void>
-class TensorGeneralisedAntipode {
+class TensorGeneralisedAntipode : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename TensorOut, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
         static_assert(

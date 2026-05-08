@@ -7,6 +7,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_mul.hpp>
 #include <rpp/operations/basic/tensor_add_identity.hpp>
 #include <rpp/operations/basic/vector_set_constant.hpp>
@@ -14,7 +15,7 @@
 namespace rpp::ops {
 
 template <typename Strategy, typename=void>
-class FTLog {
+class FTLog : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 
     using Accum = typename Strategy::Accum;

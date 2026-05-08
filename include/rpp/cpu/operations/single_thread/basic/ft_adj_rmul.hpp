@@ -19,10 +19,11 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class FTAdjRMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+class FTAdjRMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = Accum_;
+    using Index = typename Strategy::Index;
 
     using Antipode = TensorAntipode<Strategy>;
     using AdjLMul = FTAdjLMul<Strategy>;
@@ -30,21 +31,55 @@ class FTAdjRMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     Antipode antipode;
     AdjLMul adj_lmul;
 
+    static Accum* batch_ptr(std::byte* base, Index batch_no, Index stride) noexcept{
+        return reinterpret_cast<Accum*>(base + batch_no * stride);
+    }
+
+    static size_t batch_stride(Index basis_size) noexcept {
+        return align_up(basis_size * sizeof(Accum), std::size_t{64});
+    }
+
 public:
     template <typename Basis>
     static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
         ignore_unused(strategy);
-        return 3 * align_up(basis.size() * sizeof(Accum), std::size_t{64});
+        return 3 * batch_stride(basis.size());
+    }
+
+    template <typename Basis>
+    static void init_scratch_space(Context const& ctx, Basis const& basis) noexcept {
+        if constexpr (!std::is_trivially_constructible_v<Accum>) {
+            const auto basis_size = basis.size();
+            const auto stride = batch_stride(basis_size);
+            auto* data = ctx.template scratch_space<std::byte*>();
+
+            std::uninitialized_default_construct_n(batch_ptr(data, 0, stride), basis_size);
+            std::uninitialized_default_construct_n(batch_ptr(data, 1, stride), basis_size);
+            std::uninitialized_default_construct_n(batch_ptr(data, 2, stride), basis_size);
+        }
+    }
+
+    template <typename Basis>
+    static void destroy_scratch_space(Context const& ctx, Basis const& basis) noexcept {
+        if constexpr (!std::is_trivially_destructible_v<Accum>) {
+            const auto basis_size = basis.size();
+            const auto stride = batch_stride(basis_size);
+            auto* data = ctx.template scratch_space<std::byte*>();
+
+            std::destroy_n(batch_ptr(data, 0, stride), basis_size);
+            std::destroy_n(batch_ptr(data, 1, stride), basis_size);
+            std::destroy_n(batch_ptr(data, 2, stride), basis_size);
+        }
     }
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
         auto const& basis = out.basis();
-        auto* ptr = ctx.template scratch_space<Accum>();
-        const auto stride = align_up(basis.size() * sizeof(Accum), std::size_t{64}) / sizeof(Accum);
-        dense::DenseTensorView<Accum*, typename TensorOut::Basis> out_workspace(ptr, out.basis(), out.min_degree(), out.max_degree());
-        dense::DenseTensorView<Accum*, typename TensorOp::Basis> op_workspace(ptr + stride, op.basis(), op.min_degree(), op.max_degree());
-        dense::DenseTensorView<Accum*, typename TensorArg::Basis> arg_workspace(ptr + 2 * stride, arg.basis(), arg.min_degree(), arg.max_degree());
+        auto* ptr = ctx.template scratch_space<std::byte*>();
+        const auto stride = batch_stride(basis.size());
+        dense::DenseTensorView<Accum*, typename TensorOut::Basis> out_workspace(batch_ptr(ptr, 0, stride), out.basis(), out.min_degree(), out.max_degree());
+        dense::DenseTensorView<Accum*, typename TensorOp::Basis> op_workspace(batch_ptr(ptr, 1, stride), op.basis(), op.min_degree(), op.max_degree());
+        dense::DenseTensorView<Accum*, typename TensorArg::Basis> arg_workspace(batch_ptr(ptr, 2, stride), arg.basis(), arg.min_degree(), arg.max_degree());
 
         std::fill(out_workspace.begin(), out_workspace.end(), Accum{0});
 

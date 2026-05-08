@@ -7,6 +7,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
 #include <rpp/operations/basic/vector_assign.hpp>
 
@@ -14,7 +15,7 @@ namespace rpp::ops {
 
 
 template <typename Strategy, typename=void>
-class FTFMExp {
+class FTFMExp : public BaseOperation<Strategy> {
 
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;

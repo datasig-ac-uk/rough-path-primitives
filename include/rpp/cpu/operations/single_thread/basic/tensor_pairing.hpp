@@ -15,17 +15,11 @@ namespace rpp::ops {
 
 
 template <typename Accum, typename Architecture>
-class TensorPairing<cpu::strategies::SingleThreadStrategy<Accum, Architecture>> {
+class TensorPairing<cpu::strategies::SingleThreadStrategy<Accum, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum, Architecture>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum, Architecture>;
     using Context = typename Strategy::Context;
 
 public:
-    template <typename Basis>
-    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename Scalar, typename TensorFunc, typename TensorArg>
     void operator()(Context const& ctx, Scalar& out, TensorFunc const& functional, TensorArg const& arg) const noexcept {
         ignore_unused(ctx);

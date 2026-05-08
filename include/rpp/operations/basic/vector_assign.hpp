@@ -6,18 +6,14 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+
 namespace rpp::ops {
 
 template <typename Strategy, typename=void>
-class VectorAssign {
+class VectorAssign : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename VectorOut, typename VectorArg>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, VectorOut& out, VectorArg const& arg) const noexcept {

@@ -6,12 +6,13 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/sparse/matrix.hpp>
 
 namespace rpp::ops {
 
 template <typename Strategy, sparse::MatrixFormat Format, typename=void>
-class SparseMatrixVectorProduct {
+class SparseMatrixVectorProduct : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 
@@ -19,12 +20,6 @@ class SparseMatrixVectorProduct {
     using MatrixView = typename sparse::MatrixView<Format, Args...>::type;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
     RPP_HOST_DEVICE
     void operator()(

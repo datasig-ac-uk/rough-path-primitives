@@ -17,17 +17,11 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class VectorSetConstant<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+class VectorSetConstant<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
 
 public:
-    template <typename Basis>
-    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename Vector, typename Value>
     void operator()(Context const& ctx, Vector& vec, Value const& value) const noexcept {
         std::fill(vec.begin(), vec.end(), value);

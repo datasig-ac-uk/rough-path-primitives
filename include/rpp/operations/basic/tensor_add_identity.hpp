@@ -6,19 +6,15 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+
 namespace rpp::ops {
 
 template <typename Strategy, typename=void>
-class TensorAddIdentity {
+class TensorAddIdentity : public BaseOperation<Strategy> {
     using Accum = typename Strategy::Accum;
 public:
     using Context = typename Strategy::Context;
-
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename Tensor>
     RPP_HOST_DEVICE

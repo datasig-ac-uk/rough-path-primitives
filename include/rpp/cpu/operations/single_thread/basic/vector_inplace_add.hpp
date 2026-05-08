@@ -17,19 +17,13 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class VectorInplaceAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+class VectorInplaceAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
 public:
-    template <typename Basis>
-    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename VectorLhs, typename VectorRhs>
     void operator()(Context const& ctx, VectorLhs& lhs, VectorRhs const& rhs, Accum alpha = Accum{1}) const noexcept {
         using Scalar = typename VectorLhs::value_type;

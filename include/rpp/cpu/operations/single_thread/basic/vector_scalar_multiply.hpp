@@ -14,19 +14,13 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture_>
-class VectorScalarMultiply<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_> > {
+class VectorScalarMultiply<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_> > : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
 public:
     using Context = typename Strategy::Context;
-
-    template<typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template<typename Vector>
     RPP_HOST_DEVICE

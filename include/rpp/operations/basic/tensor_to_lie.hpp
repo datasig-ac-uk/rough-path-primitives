@@ -6,6 +6,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/sparse_matrix_vector.hpp>
 
 namespace rpp::ops {
@@ -17,7 +18,7 @@ enum class T2LImplementationType {
 };
 
 template <typename Strategy, T2LImplementationType Implementation, typename=void>
-class TensorToLie {
+class TensorToLie : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 
     static constexpr auto matrix_format = (Implementation == T2LImplementationType::CSRSparseMatrix)

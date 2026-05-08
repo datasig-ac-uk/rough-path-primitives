@@ -16,18 +16,12 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class TensorAddIdentity<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+class TensorAddIdentity<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 
 public:
-    template <typename Basis>
-    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename Tensor>
     void operator()(Context const& ctx, Tensor& tensor, Accum scalar = Accum{1}) const noexcept {
         tensor[0] = Accum{tensor[0]} + scalar;

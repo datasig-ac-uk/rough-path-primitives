@@ -6,18 +6,14 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+
 namespace rpp::ops {
 
 template <typename Strategy, typename=void>
-class STAdjMul {
+class STAdjMul : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename TensorOut, typename TensorOp, typename TensorArg>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {

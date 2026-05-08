@@ -5,19 +5,14 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/operations/base_operation.hpp>
+
 namespace rpp::ops {
 template<typename Strategy, typename=void>
-class FTFma {
-    using Context = typename Strategy::Context;
-
-    using Accum = typename Strategy::Accum;
-
+class FTFma : public BaseOperation<Strategy>{
 public:
-    template<typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
+    using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
 
     template<typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
     RPP_HOST_DEVICE

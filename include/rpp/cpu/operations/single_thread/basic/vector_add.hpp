@@ -14,7 +14,7 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture_>
-class VectorAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>> {
+class VectorAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
@@ -22,12 +22,6 @@ class VectorAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>> {
 
 public:
     using Context = typename Strategy::Context;
-
-    template<typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template<typename VectorOut, typename VectorLhs, typename VectorRhs> RPP_HOST_DEVICE
     void operator()(Context const &ctx, VectorOut &out, VectorLhs const &lhs, VectorRhs const &rhs,

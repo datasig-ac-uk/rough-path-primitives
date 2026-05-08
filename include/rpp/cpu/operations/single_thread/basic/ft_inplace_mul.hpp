@@ -17,7 +17,7 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class FTInplaceMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+class FTInplaceMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -25,12 +25,6 @@ class FTInplaceMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> 
     using Index = typename Strategy::Index;
 
 public:
-    template <typename Basis>
-    static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
-
     template <typename TensorLhs, typename TensorRhs>
     void operator()(Context const& ctx, TensorLhs& lhs, TensorRhs const& rhs, Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorLhs::value_type;
