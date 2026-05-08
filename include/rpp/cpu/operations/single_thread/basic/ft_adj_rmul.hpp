@@ -1,5 +1,5 @@
-#ifndef RPP_CPU_OPS_SINGLE_THREAD_FT_ADJ_RMUL_HPP
-#define RPP_CPU_OPS_SINGLE_THREAD_FT_ADJ_RMUL_HPP
+#ifndef RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_FT_ADJ_RMUL_HPP
+#define RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_FT_ADJ_RMUL_HPP
 
 #include <algorithm>
 #include <cstddef>
@@ -123,4 +123,4 @@ void ft_adj_rmul_kernel(
 
 } // namespace rpp::cpu::single_thread
 
-#endif // RPP_CPU_OPS_SINGLE_THREAD_FT_ADJ_RMUL_HPP
+#endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_FT_ADJ_RMUL_HPP

@@ -1,5 +1,5 @@
-#ifndef RPP_CPU_OPS_SINGLE_THREAD_ST_ADJ_MUL_HPP
-#define RPP_CPU_OPS_SINGLE_THREAD_ST_ADJ_MUL_HPP
+#ifndef RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_ST_ADJ_MUL_HPP
+#define RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_ST_ADJ_MUL_HPP
 
 #include <algorithm>
 #include <array>
@@ -112,4 +112,4 @@ void st_adj_mul_kernel(
 
 } // namespace rpp::cpu::single_thread
 
-#endif // RPP_CPU_OPS_SINGLE_THREAD_ST_ADJ_MUL_HPP
+#endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_ST_ADJ_MUL_HPP

@@ -1,5 +1,5 @@
-#ifndef RPP_CPU_OPS_SINGLE_THREAD_TENSOR_ANTIPODE_HPP
-#define RPP_CPU_OPS_SINGLE_THREAD_TENSOR_ANTIPODE_HPP
+#ifndef RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_TENSOR_ANTIPODE_HPP
+#define RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_TENSOR_ANTIPODE_HPP
 
 #include <rpp/cpu/operations/single_thread/basic/tensor_generalised_antipode.hpp>
 
@@ -30,4 +30,4 @@ void tensor_antipode_kernel(
 
 } // namespace rpp::cpu::single_thread
 
-#endif // RPP_CPU_OPS_SINGLE_THREAD_TENSOR_ANTIPODE_HPP
+#endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_TENSOR_ANTIPODE_HPP

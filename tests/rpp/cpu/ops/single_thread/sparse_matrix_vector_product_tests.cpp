@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/operations/single_thread/basic/sparse_matrix_vector_product.hpp>
+#include <rpp/cpu/operations/single_thread/basic/sparse_matrix_vector.hpp>
 #include <rpp/dense/batch.hpp>
 #include <rpp/dense/views.hpp>
 #include <rpp/sparse/matrix.hpp>

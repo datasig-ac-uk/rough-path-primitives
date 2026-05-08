@@ -1,5 +1,5 @@
-#ifndef RPP_CPU_OPS_SINGLE_THREAD_ST_FMA_HPP
-#define RPP_CPU_OPS_SINGLE_THREAD_ST_FMA_HPP
+#ifndef RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_ST_FMA_HPP
+#define RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_ST_FMA_HPP
 
 #include <algorithm>
 #include <array>
@@ -139,4 +139,4 @@ void st_fma_kernel(
 
 } // namespace rpp::cpu::single_thread
 
-#endif // RPP_CPU_OPS_SINGLE_THREAD_ST_FMA_HPP
+#endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_ST_FMA_HPP

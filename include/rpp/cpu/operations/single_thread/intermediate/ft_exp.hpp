@@ -1,5 +1,5 @@
-#ifndef RPP_CPU_OPS_SINGLE_THREAD_FT_EXP_HPP
-#define RPP_CPU_OPS_SINGLE_THREAD_FT_EXP_HPP
+#ifndef RPP_CPU_OPERATIONS_SINGLE_THREAD_INTERMEDIATE_FT_EXP_HPP
+#define RPP_CPU_OPERATIONS_SINGLE_THREAD_INTERMEDIATE_FT_EXP_HPP
 
 #include <cstddef>
 
@@ -13,30 +13,6 @@
 #include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_add_identity.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_set_identity.hpp>
-
-
-namespace rpp::ops {
-
-// template <typename Accum_, typename Architecture>
-// class FTExp<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
-//     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
-//     using Context = typename Strategy::Context;
-//
-// public:
-//     template <typename Basis>
-//     static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-//         ignore_unused(strategy, basis);
-//         return 0;
-//     }
-//
-//     template <typename TensorOut, typename TensorArg>
-//     void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
-//         ignore_unused(ctx, out, arg);
-//     }
-// };
-
-
-} // namespace rpp::ops
 
 namespace rpp::cpu::single_thread {
 
@@ -65,4 +41,4 @@ void ft_exp_kernel(
 
 } // namespace rpp::cpu::single_thread
 
-#endif // RPP_CPU_OPS_SINGLE_THREAD_FT_EXP_HPP
+#endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_INTERMEDIATE_FT_EXP_HPP
