@@ -48,7 +48,7 @@ set(RPP_BASIC_OPS
         sparse_matrix_vector
         st_adj_mul
         st_fma
-        st_inplace_mul
+        st_inplace_fma
         st_mul
         tensor_add_identity
         tensor_antipode
@@ -72,38 +72,61 @@ set(RPP_INTERMEDIATE_OPS
 
 
 function(rpp_make_op_file_list _out)
-    set(options)
+    set(options PRIMARY)
     set(one_param_args PLATFORM STRATEGY)
     set(multi_param_args ADDITIONAL)
     cmake_parse_arguments(PARSE_ARGV 1 "ARG" "${options}" "${one_param_args}" "${multi_param_args}")
 
     set(_working)
-    set(_prefix "include/rpp/${ARG_PLATFORM}/operations/${ARG_STRATEGY}")
+    set(_missing)
+    if (ARG_PRIMARY)
+        set(_prefix "include/rpp/operations")
+    else()
+        set(_prefix "include/rpp/${ARG_PLATFORM}/operations/${ARG_STRATEGY}")
+    endif()
     foreach(op IN LISTS RPP_BASIC_OPS)
         set(_path "${_prefix}/basic/${op}.hpp")
         message(TRACE "Adding operation header file: ${_path}")
+        if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
+            list(APPEND _missing "${_path}")
+        endif()
         list(APPEND _working ${_path})
     endforeach()
 
     foreach(op IN LISTS RPP_INTERMEDIATE_OPS)
         set(_path "${_prefix}/intermediate/${op}.hpp")
         message(TRACE "Adding operation header file: ${_path}")
+        if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
+            list(APPEND _missing "${_path}")
+        endif()
         list(APPEND _working ${_path})
     endforeach()
+
+    foreach(addition IN LISTS ARG_ADDITIONAL)
+        set(_path "${_prefix}/${addition}")
+        message(TRACE "Adding additional operation header: ${_path}")
+        if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
+            list(APPEND _missing "${_path}")
+        endif()
+        list(APPEND _working ${_path})
+    endforeach()
+
+    if (NOT "${_missing}" STREQUAL "")
+        list(JOIN _missing "\n" _missing_paths)
+        message(WARNING
+                "The following operation files could not be found:\n${_missing_paths}")
+    endif()
 
     set(${_out} ${_working} PARENT_SCOPE)
 endfunction()
 
-set(RPP_OPS)
-foreach(op IN LISTS RPP_BASIC_OPS)
-    list(APPEND RPP_OPS "include/rpp/operations/basic/${op}.hpp")
-endforeach()
 
-foreach(op IN LISTS RPP_INTERMEDIATE_OPS)
-    list(APPEND RPP_OPS "include/rpp/operations/intermediate/${op}.hpp")
-endforeach()
-
-rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread)
+rpp_make_op_file_list(RPP_OPS PRIMARY ADDITIONAL base_operation.hpp)
+rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread
+    ADDITIONAL
+        basic/detail/ft_multiply.hpp
+        detail/batch_wrapper.hpp
+)
 
 target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/basis/hall_basis.hpp
@@ -123,31 +146,31 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/utility.hpp
         include/rpp/cpu/strategies.hpp
         ${RPP_OPS}
-        include/rpp/cpu/operations/single_thread.hpp
-        include/rpp/cpu/operations/single_thread/basic/detail/ft_multiply.hpp
-        include/rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp
         ${RPP_CPU_ST_OPS}
 )
 
 
 
-rpp_make_op_file_list(RPP_GPU_BLOCK_OPS PLATFORM gpu STRATEGY block)
 
-
-set(RPP_GPU_SOURCES
-        include/rpp/gpu/ops/block/detail/antipode.hpp
-        include/rpp/gpu/ops/block/detail/ft_adjoint_multiply.hpp
-        include/rpp/gpu/ops/block/detail/ft_multiply.hpp
-        include/rpp/gpu/ops/block/detail/st_multiply.hpp
-        include/rpp/gpu/architecture.hpp
-        include/rpp/gpu/kernel.hpp
-        include/rpp/gpu/strategies.hpp
-        ${RPP_GPU_BLOCK_OPS}
-)
 
 if (RPP_ENABLE_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
+
+    rpp_make_op_file_list(RPP_GPU_BLOCK_OPS PLATFORM gpu STRATEGY block
+            ADDITIONAL
+            strategy.hpp
+            basic/detail/ft_adjoint_multiply.hpp
+            basic/detail/ft_multiply.hpp
+            basic/detail/st_multiply.hpp
+    )
+
+    set(RPP_GPU_SOURCES
+            include/rpp/gpu/architecture.hpp
+            include/rpp/gpu/kernel.hpp
+            include/rpp/gpu/strategies.hpp
+            ${RPP_GPU_BLOCK_OPS}
+    )
 
     target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         ${RPP_GPU_SOURCES}
