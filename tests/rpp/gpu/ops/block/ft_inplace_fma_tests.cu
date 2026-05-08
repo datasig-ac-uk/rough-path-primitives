@@ -1,0 +1,164 @@
+#include <gtest/gtest.h>
+
+#include <rpp/cpu/operations/single_thread/basic/ft_fma.hpp>
+#include <rpp/cpu/operations/single_thread/basic/ft_inplace_fma.hpp>
+#include <rpp/gpu/operations/block/basic/ft_inplace_fma.hpp>
+
+#include "gpu_block_test_helper.cuh"
+
+namespace {
+
+TEST(GpuBlockFtInplaceFmaTests, AEqualsBCPlusAMatchesCpuForSingleElementBatches)
+{
+    using Helper = rpp::tests::GpuBlockTestHelper;
+    using GpuOp = rpp::ops::FTInplaceFma<Helper::GpuStrategy, rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>;
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    for (auto const& config : rpp::tests::gpu_block_test_configs) {
+        auto const basis_data = Helper::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto const cpu_strategy = Helper::cpu_strategy();
+        auto const gpu_strategy = Helper::gpu_strategy();
+        auto constexpr alpha = Helper::Scalar{0.5};
+        auto constexpr beta = Helper::Scalar{-1.25};
+
+        auto expected = Helper::make_batch(1, basis, Helper::Scalar{0.01});
+        auto actual = expected;
+        auto const b = Helper::make_batch(2, basis, Helper::Scalar{0.01});
+        auto const c = Helper::make_batch(3, basis, Helper::Scalar{0.01});
+
+        Helper::DeviceVector<Helper::Scalar> device_actual(actual);
+        Helper::DeviceVector<Helper::Scalar> device_b(b);
+        Helper::DeviceVector<Helper::Scalar> device_c(c);
+        Helper::DeviceBasis device_basis(basis_data);
+
+    rpp::gpu::block::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsBCPlusA><<<
+        Helper::tensor_count,
+        gpu_strategy.block_size,
+        Helper::shared_memory_size<GpuOp>(basis)
+    >>>(
+        Helper::device_tensor_batch(device_actual, basis),
+        Helper::device_tensor_batch(device_b, basis),
+        Helper::device_tensor_batch(device_c, basis),
+        device_basis.basis,
+        gpu_strategy,
+        Helper::tensor_count,
+        alpha,
+        beta
+    );
+    RPP_CUDA_ASSERT(cudaGetLastError());
+    RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+
+    rpp::cpu::single_thread::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(
+            Helper::host_tensor_batch(expected, basis),
+            Helper::host_tensor_batch(b, basis),
+            Helper::host_tensor_batch(c, basis),
+            basis,
+            cpu_strategy,
+            Helper::tensor_count,
+            alpha,
+            beta
+        );
+
+        actual = Helper::copy_to_host(device_actual);
+        Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
+    }
+}
+
+TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference)
+{
+    using Helper = rpp::tests::GpuBlockTestHelper;
+    using GpuABOp = rpp::ops::FTInplaceFma<Helper::GpuStrategy, rpp::ops::FTInplaceFMAType::AEqualsABPlusC>;
+    using GpuBAOp = rpp::ops::FTInplaceFma<Helper::GpuStrategy, rpp::ops::FTInplaceFMAType::AEqualsBAPlusC>;
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    for (auto const& config : rpp::tests::gpu_block_test_configs) {
+        auto const basis_data = Helper::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto const cpu_strategy = Helper::cpu_strategy();
+        auto const gpu_strategy = Helper::gpu_strategy();
+        auto constexpr alpha = Helper::Scalar{-0.5};
+        auto constexpr beta = Helper::Scalar{0.75};
+
+        auto const initial_a = Helper::make_batch(1, basis, Helper::Scalar{0.01});
+        auto const b = Helper::make_batch(2, basis, Helper::Scalar{0.01});
+        auto const c = Helper::make_batch(3, basis, Helper::Scalar{0.01});
+
+        auto expected_ab = Helper::make_zero_batch(basis);
+        auto actual_ab = initial_a;
+        Helper::DeviceVector<Helper::Scalar> device_ab(actual_ab);
+        Helper::DeviceVector<Helper::Scalar> device_b(b);
+        Helper::DeviceVector<Helper::Scalar> device_c(c);
+        Helper::DeviceBasis device_basis(basis_data);
+
+        rpp::gpu::block::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsABPlusC><<<
+            Helper::tensor_count,
+            gpu_strategy.block_size,
+            Helper::shared_memory_size<GpuABOp>(basis)
+        >>>(
+            Helper::device_tensor_batch(device_ab, basis),
+            Helper::device_tensor_batch(device_b, basis),
+            Helper::device_tensor_batch(device_c, basis),
+            device_basis.basis,
+            gpu_strategy,
+            Helper::tensor_count,
+            alpha,
+            beta
+        );
+        RPP_CUDA_ASSERT(cudaGetLastError());
+        RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+
+        rpp::cpu::single_thread::ft_fma_kernel(
+            Helper::host_tensor_batch(expected_ab, basis),
+            Helper::host_tensor_batch(c, basis),
+            Helper::host_tensor_batch(initial_a, basis),
+            Helper::host_tensor_batch(b, basis),
+            basis,
+            cpu_strategy,
+            Helper::tensor_count,
+            alpha,
+            beta
+        );
+
+        actual_ab = Helper::copy_to_host(device_ab);
+        Helper::expect_near(actual_ab, expected_ab, Helper::Scalar{1.5e-4});
+
+        auto expected_ba = Helper::make_zero_batch(basis);
+        auto actual_ba = initial_a;
+        Helper::DeviceVector<Helper::Scalar> device_ba(actual_ba);
+
+        rpp::gpu::block::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsBAPlusC><<<
+            Helper::tensor_count,
+            gpu_strategy.block_size,
+            Helper::shared_memory_size<GpuBAOp>(basis)
+        >>>(
+            Helper::device_tensor_batch(device_ba, basis),
+            Helper::device_tensor_batch(device_b, basis),
+            Helper::device_tensor_batch(device_c, basis),
+            device_basis.basis,
+            gpu_strategy,
+            Helper::tensor_count,
+            alpha,
+            beta
+        );
+        RPP_CUDA_ASSERT(cudaGetLastError());
+        RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+
+        rpp::cpu::single_thread::ft_fma_kernel(
+            Helper::host_tensor_batch(expected_ba, basis),
+            Helper::host_tensor_batch(c, basis),
+            Helper::host_tensor_batch(b, basis),
+            Helper::host_tensor_batch(initial_a, basis),
+            basis,
+            cpu_strategy,
+            Helper::tensor_count,
+            alpha,
+            beta
+        );
+
+        actual_ba = Helper::copy_to_host(device_ba);
+        Helper::expect_near(actual_ba, expected_ba, Helper::Scalar{1.5e-4});
+    }
+}
+
+} // namespace
