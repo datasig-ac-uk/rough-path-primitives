@@ -23,7 +23,8 @@
       "cacheVariables": {
         "CMAKE_CUDA_COMPILER": "/usr/local/cuda/bin/nvcc",
         "CUDAToolkit_ROOT": "/usr/local/cuda",
-        "CMAKE_CUDA_ARCHITECTURES": "native"
+        "CMAKE_CUDA_ARCHITECTURES": "native",
+        "RPP_ENABLE_CUDA": "ON"
       },
       "environment": {
         "CUDA_PATH": "/usr/local/cuda",
@@ -38,8 +39,7 @@
       "inherits": "base",
       "binaryDir": "${sourceDir}/cmake-build-debug",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "RPP_ENABLE_CUDA": "OFF"
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
@@ -48,8 +48,7 @@
       "inherits": "base",
       "binaryDir": "${sourceDir}/cmake-build-release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "RPP_ENABLE_CUDA": "OFF"
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {

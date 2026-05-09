@@ -20,6 +20,7 @@ endif()
 option(RPP_ENABLE_CUDA "Enable cuda support" OFF)
 option(RPP_ENABLE_TESTS "Enable building tests" ${PROJECT_IS_TOP_LEVEL})
 option(RPP_ENABLE_BENCHMARKS "Enable building benchmarks" ${PROJECT_IS_TOP_LEVEL})
+option(RPP_ADD_STUB_TARGET "Add a stub target that includes all headers" ${PROJECT_IS_TOP_LEVEL})
 
 
 include(GNUInstallDirs)
@@ -133,6 +134,8 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/basis/lie_multiplication.hpp
         include/rpp/config/compiler.h
         include/rpp/config/target.h
+        include/rpp/support/span.hpp
+        include/rpp/support/strided_iterator.hpp
         include/rpp/dense/batch.hpp
         include/rpp/dense/views.hpp
         include/rpp/sparse/detail/compressed_matrix.hpp
@@ -184,4 +187,29 @@ endif()
 
 if (RPP_ENABLE_BENCHMARKS)
     add_subdirectory(benchmarks)
+endif()
+
+
+if(RPP_ADD_STUB_TARGET)
+    add_library(RPP_Stub STATIC)
+    target_link_libraries(RPP_Stub PRIVATE RPP)
+
+    get_target_property(_headers RPP HEADER_SET)
+    set(_include)
+
+    foreach(_hdr IN LISTS _headers)
+        cmake_path(RELATIVE_PATH _hdr BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/include")
+        list(APPEND _include "#include <${_hdr}>")
+    endforeach()
+    list(JOIN _include "\n" _include_str)
+
+    if(RPP_ENABLE_CUDA)
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/stub.cu" "${_include_str}")
+        target_sources(RPP_Stub PRIVATE
+                ${CMAKE_CURRENT_BINARY_DIR}/stub.cu)
+    else()
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/stub.cpp" "${_include_str}")
+        target_sources(RPP_Stub PRIVATE
+            ${CMAKE_CURRENT_BINARY_DIR}/stub.cpp)
+    endif()
 endif()

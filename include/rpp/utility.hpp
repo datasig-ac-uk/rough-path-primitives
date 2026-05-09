@@ -1,12 +1,19 @@
 #ifndef RPP_UTILITY_HPP
 #define RPP_UTILITY_HPP
 
+#include <algorithm>
 #include <cstdint>
 #include <type_traits>
 
 #include <rpp/config.h>
 
 namespace rpp {
+
+
+
+
+
+
 
 template <typename... Args>
 inline constexpr bool static_assert_fail = false;
@@ -48,6 +55,42 @@ RPP_HOST_DEVICE inline T* align_up(T* ptr) noexcept {
         const auto modifier = static_cast<uintptr_t>(Alignment - 1);
         return reinterpret_cast<T*>((reinterpret_cast<uintptr_t>(ptr) + modifier) & ~modifier);
     }
+}
+
+
+
+template <typename I, size_t N>
+RPP_HOST_DEVICE constexpr I maximum(const I (&elements)[N]) noexcept {
+    static_assert(N > 0, "Maximum of empty array is not defined");
+    I max = elements[0];
+    for (size_t i=1; i<N; ++i) {
+        max = std::max(elements[i], max);
+    }
+    return max;
+}
+
+
+template <typename... I>
+RPP_HOST_DEVICE constexpr auto maximum(I... elements) noexcept {
+    std::common_type_t<I...> vals { elements... };
+    return maximum(vals);
+}
+
+template <typename I, size_t N>
+RPP_HOST_DEVICE constexpr I minimum(const I (&elements)[N]) noexcept {
+    static_assert(N > 0, "Minimum of empty array is not defined");
+    I max = elements[0];
+    for (size_t i=1; i<N; ++i) {
+        max = std::min(elements[i], max);
+    }
+    return max;
+}
+
+
+template <typename... I>
+RPP_HOST_DEVICE constexpr auto minimum(I... elements) noexcept {
+    std::common_type_t<I...> vals { elements... };
+    return minimum(vals);
 }
 
 }
