@@ -134,6 +134,7 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/basis/lie_multiplication.hpp
         include/rpp/config/compiler.h
         include/rpp/config/target.h
+        include/rpp/support/error.hpp
         include/rpp/support/span.hpp
         include/rpp/support/strided_iterator.hpp
         include/rpp/dense/batch.hpp
