@@ -9,16 +9,16 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/intermediate/ft_exp.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/ft_inplace_mul.hpp>
 #include <rpp/gpu/operations/block/basic/tensor_add_identity.hpp>
 #include <rpp/gpu/operations/block/basic/tensor_set_identity.hpp>
 
 namespace rpp::ops {
 
-template <typename Accum_, unsigned BlockSize, typename Architecture>
-class FTExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template <typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class FTExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;
@@ -59,15 +59,15 @@ public:
 
 namespace rpp::gpu::block {
 
-template <typename BatchOut, typename BatchArg, typename Basis, typename Accum_, unsigned MaxBlockSize, typename Architecture>
+template <typename BatchOut, typename BatchArg, typename Basis, typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
 RPP_KERNEL void ft_exp_kernel(
     const BatchOut batch_out,
     const BatchArg batch_arg,
     const Basis basis,
-    const strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors
 ) {
-    using Strategy = strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 
