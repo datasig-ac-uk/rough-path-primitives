@@ -10,22 +10,22 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/vector_scalar_multiply.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 
 namespace rpp::ops {
-
-template <typename Accum_, unsigned BlockSize, typename Architecture>
-class VectorScalarMultiply<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class VectorScalarMultiply<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > : public
+        BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
 public:
-    template <typename Vector>
-    RPP_DEVICE void operator()(Context const& ctx, Vector& vec, Accum scalar) const noexcept {
+    template<typename Vector>
+    RPP_DEVICE void operator()(Context const &ctx, Vector &vec, Accum scalar) const noexcept {
         using Scalar = typename Vector::value_type;
-        auto const& basis = vec.basis();
+        auto const &basis = vec.basis();
         const auto min_degree = vec.min_degree();
         const auto max_degree = vec.max_degree();
         if (max_degree < min_degree) {
@@ -37,26 +37,25 @@ public:
         auto data = vec.data() + begin;
 
         for (Index i = ctx.thread_rank(); i < size; i += ctx.num_threads()) {
-            Accum val { data[i] };
+            Accum val{data[i]};
             Accum result = val * scalar;
             data[i] = static_cast<Scalar>(result);
         }
     }
 };
-
 } // namespace rpp::ops
 
 namespace rpp::gpu::block {
-
-template <typename Batch, typename Basis, typename Accum_, unsigned MaxBlockSize, typename Architecture>
+template<typename Batch, typename Basis, typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename
+    Architecture>
 RPP_KERNEL void vector_scalar_multiply_kernel(
     const Batch batch,
     const Basis basis,
-    const strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors,
     Accum_ scalar
 ) {
-    using Strategy = strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 
@@ -68,7 +67,6 @@ RPP_KERNEL void vector_scalar_multiply_kernel(
     auto vec = batch.view(my_index, basis);
     op(ctx, vec, scalar);
 }
-
 } // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_VECTOR_SCALAR_MULTIPLY_HPP

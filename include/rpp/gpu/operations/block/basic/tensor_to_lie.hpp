@@ -9,20 +9,20 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/tensor_to_lie.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/sparse_matrix_vector.hpp>
 
 namespace rpp::gpu::block {
 
-template <typename LieBatchOut, typename TensorBatchIn, typename Matrix, typename Accum, unsigned MaxBlockSize, typename Architecture>
+template <typename LieBatchOut, typename TensorBatchIn, typename Matrix, typename Accum, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
 RPP_KERNEL void tensor_to_lie_kernel(
     const LieBatchOut lie_batch_out,
     const TensorBatchIn tensor_batch_in,
     const Matrix matrix,
-    const strategies::BlockStrategy<Accum, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors
 ) {
-    using Strategy = strategies::BlockStrategy<Accum, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture>;
 
     static constexpr auto impl_type = sparse::matrix_format_v<Matrix> == sparse::MatrixFormat::CSR
         ? ops::T2LImplementationType::CSRSparseMatrix : ops::T2LImplementationType::CSCSparseMatrix;

@@ -2,6 +2,7 @@
 #define RPP_GPU_OPERATIONS_BLOCK_STRATEGY_HPP
 
 #include <cstddef>
+#include <limits>
 
 #include <cuda_runtime.h>
 
@@ -58,7 +59,7 @@ public:
 
     RPP_DEVICE RPP_NODISCARD static constexpr unsigned group_idx() noexcept {
         if constexpr (static_small_block) {
-            return threadIdx.x / block_size;
+            return threadIdx.x / static_block_size;
         } else {
             return 0;
         }
@@ -165,7 +166,6 @@ struct BlockSizeHolder {
     static constexpr unsigned block_size = BlockSize;
 
     constexpr BlockSizeHolder(unsigned size) noexcept
-        : block_size(size)
     {}
 };
 

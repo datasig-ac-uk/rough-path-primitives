@@ -8,29 +8,30 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_inplace_mul.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/detail/ft_multiply.hpp>
 
 namespace rpp::ops {
-
-template <typename Accum_, unsigned BlockSize, typename Architecture>
-class FTInplaceMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class FTInplaceMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > : public
+        BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;
     using Index = typename Strategy::Index;
 
 public:
-
-    template <typename TensorLhs, typename TensorRhs>
-    RPP_DEVICE void operator()(Context const& ctx, TensorLhs& lhs, TensorRhs const& rhs, Accum beta = Accum{1}) const noexcept {
+    template<typename TensorLhs, typename TensorRhs>
+    RPP_DEVICE void operator()(Context const &ctx, TensorLhs &lhs, TensorRhs const &rhs,
+                               Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorLhs::value_type;
-        auto const& basis = lhs.basis();
+        auto const &basis = lhs.basis();
         const auto low_range_degree = std::min(lhs.max_degree(), ctx.low_range_degree(basis));
 
         for (Degree out_deg = lhs.max_degree(); out_deg > low_range_degree; --out_deg) {
-            for (auto elt_idx = basis.start_of_degree(out_deg) + ctx.thread_rank(); elt_idx < basis.end_of_degree(out_deg); elt_idx += ctx.num_threads()) {
+            for (auto elt_idx = basis.start_of_degree(out_deg) + ctx.thread_rank();
+                 elt_idx < basis.end_of_degree(out_deg); elt_idx += ctx.num_threads()) {
                 const auto acc = gpu::block::ft_multiply_loop_with_degree(ctx, lhs, rhs, elt_idx, out_deg, basis);
                 lhs[elt_idx] = static_cast<Scalar>(beta * acc);
             }
@@ -50,21 +51,21 @@ public:
         }
     }
 };
-
 } // namespace rpp::ops
 
 namespace rpp::gpu::block {
-
-template <typename BatchLhs, typename BatchRhs, typename Basis, typename Accum_, unsigned MaxBlockSize, typename Architecture>
+template<typename BatchLhs, typename BatchRhs, typename Basis, typename Accum_, unsigned BlockSize, unsigned
+    MaxBlockSize, typename
+    Architecture>
 RPP_KERNEL void ft_inplace_mul_kernel(
     const BatchLhs batch_lhs,
     const BatchRhs batch_rhs,
     const Basis basis,
-    const strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors,
     Accum_ beta = Accum_{1}
 ) {
-    using Strategy = strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 
@@ -78,7 +79,6 @@ RPP_KERNEL void ft_inplace_mul_kernel(
     auto rhs = batch_rhs.view(my_index, basis);
     op(ctx, lhs, rhs, beta);
 }
-
 } // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_INPLACE_MUL_HPP

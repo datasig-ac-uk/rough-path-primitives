@@ -10,23 +10,24 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/vector_inplace_add.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 
 namespace rpp::ops {
-
-template <typename Accum_, unsigned BlockSize, typename Architecture>
-class VectorInplaceAdd<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class VectorInplaceAdd<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize,
+            Architecture> > : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize,
+            Architecture> > {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
 public:
-
-    template <typename VectorLhs, typename VectorRhs>
-    RPP_DEVICE void operator()(Context const& ctx, VectorLhs& lhs, VectorRhs const& rhs, Accum alpha = Accum{1}) const noexcept {
+    template<typename VectorLhs, typename VectorRhs>
+    RPP_DEVICE void operator()(Context const &ctx, VectorLhs &lhs, VectorRhs const &rhs,
+                               Accum alpha = Accum{1}) const noexcept {
         using Scalar = typename VectorLhs::value_type;
-        auto const& basis = lhs.basis();
+        auto const &basis = lhs.basis();
         const auto min_degree = std::max(lhs.min_degree(), rhs.min_degree());
         const auto max_degree = std::min(lhs.max_degree(), rhs.max_degree());
         if (max_degree < min_degree) {
@@ -39,28 +40,28 @@ public:
         auto rhs_data = rhs.data() + begin;
 
         for (Index i = ctx.thread_rank(); i < size; i += ctx.num_threads()) {
-            Accum lhs_val { lhs_data[i] };
-            Accum rhs_val { rhs_data[i] };
+            Accum lhs_val{lhs_data[i]};
+            Accum rhs_val{rhs_data[i]};
             Accum result = lhs_val + alpha * rhs_val;
             lhs_data[i] = static_cast<Scalar>(result);
         }
     }
 };
-
 } // namespace rpp::ops
 
 namespace rpp::gpu::block {
-
-template <typename BatchLhs, typename BatchRhs, typename Basis, typename Accum_, unsigned MaxBlockSize, typename Architecture>
+template<typename BatchLhs, typename BatchRhs, typename Basis, typename Accum_, unsigned BlockSize, unsigned
+    MaxBlockSize, typename
+    Architecture>
 RPP_KERNEL void vector_inplace_add_kernel(
     const BatchLhs batch_lhs,
     const BatchRhs batch_rhs,
     const Basis basis,
-    const strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors,
     Accum_ alpha = Accum_{1}
 ) {
-    using Strategy = strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 
@@ -72,7 +73,6 @@ RPP_KERNEL void vector_inplace_add_kernel(
     auto lhs = batch_lhs.view(my_index, basis);
     op(ctx, lhs, batch_rhs.view(my_index, basis), alpha);
 }
-
 } // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_VECTOR_INPLACE_ADD_HPP

@@ -12,22 +12,23 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_adj_lmul.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/detail/ft_adjoint_multiply.hpp>
 
 namespace rpp {
 namespace ops {
-template<typename Accum_, unsigned BlockSize, typename Architecture>
-class FTAdjLMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture> > : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class FTAdjLMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize,
+            Architecture> > : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;
     using Index = typename Strategy::Index;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+    template<typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
         ignore_unused(strategy, basis);
         return sizeof(typename Strategy::BlockReduceArray);
     }
@@ -93,17 +94,17 @@ public:
 
 
 namespace gpu::block {
-template<typename BatchOut, typename BatchOp, typename BatchArg, typename Basis, typename Accum, unsigned MaxBlockSize,
+template<typename BatchOut, typename BatchOp, typename BatchArg, typename Basis, typename Accum, unsigned BlockSize, unsigned MaxBlockSize,
     typename Architecture>
 RPP_KERNEL void ft_adj_lmul_kernel(
     const BatchOut batch_out,
     const BatchOp batch_op,
     const BatchArg batch_arg,
     const Basis basis,
-    const strategies::BlockStrategy<Accum, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors
 ) {
-    using Strategy = strategies::BlockStrategy<Accum, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 
@@ -118,7 +119,6 @@ RPP_KERNEL void ft_adj_lmul_kernel(
     auto arg = batch_arg.view(my_index, basis);
     op(ctx, out, op_tensor, arg);
 }
-
 }
 } // namespace rpp
 

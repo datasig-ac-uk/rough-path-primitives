@@ -8,14 +8,15 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/st_adj_mul.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
 
 namespace rpp::ops {
-
-template <typename Accum_, unsigned BlockSize, typename Architecture>
-class STAdjMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class STAdjMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize,
+            Architecture> > : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize,
+            Architecture> > {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;
@@ -28,11 +29,11 @@ class STAdjMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> 
     SetConstant set_constant;
 
 public:
-
-    template <typename TensorOut, typename TensorOp, typename TensorArg>
-    RPP_DEVICE void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
+    template<typename TensorOut, typename TensorOp, typename TensorArg>
+    RPP_DEVICE void operator()(Context const &ctx, TensorOut &out, TensorOp const &op,
+                               TensorArg const &arg) const noexcept {
         using Scalar = typename TensorOut::value_type;
-        auto const& basis = out.basis();
+        auto const &basis = out.basis();
 
         set_constant(ctx, out, Accum{0});
         ctx.sync();
@@ -69,21 +70,21 @@ public:
         }
     }
 };
-
 } // namespace rpp::ops
 
 namespace rpp::gpu::block {
-
-template <typename BatchOut, typename BatchOp, typename BatchArg, typename Basis, typename Accum_, unsigned MaxBlockSize, typename Architecture>
+template<typename BatchOut, typename BatchOp, typename BatchArg, typename Basis, typename Accum_, unsigned BlockSize,
+    unsigned MaxBlockSize,
+    typename Architecture>
 RPP_KERNEL void st_adj_mul_kernel(
     const BatchOut batch_out,
     const BatchOp batch_op,
     const BatchArg batch_arg,
     const Basis basis,
-    const strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors
 ) {
-    using Strategy = strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 
@@ -98,7 +99,6 @@ RPP_KERNEL void st_adj_mul_kernel(
     auto arg = batch_arg.view(my_index, basis);
     op(ctx, out, op_tensor, arg);
 }
-
 } // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_ST_ADJ_MUL_HPP

@@ -10,13 +10,13 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/vector_set_constant.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 
 namespace rpp::ops {
 
-template <typename Accum_, unsigned BlockSize, typename Architecture>
-class VectorSetConstant<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template <typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class VectorSetConstant<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Index = typename Strategy::Index;
 
@@ -41,8 +41,7 @@ public:
             data += count_to_align;
             size -= count_to_align;
 
-            for (Index i=ctx.thread_rank(); i<size; i += ctx.num_threads()) {
-                data[i] = value;
+            for (Index i=ctx.thread_rank(); i<size; i += ctx.num_threads()) { data[i] = value;
             }
         } else {
             for (Index i = ctx.thread_rank(); i < size; i += ctx.num_threads()) {
@@ -57,15 +56,15 @@ public:
 
 namespace rpp::gpu::block {
 
-template <typename BatchVector, typename Basis, typename Value, typename Accum_, unsigned MaxBlockSize, typename Architecture>
+template <typename BatchVector, typename Basis, typename Value, typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
 RPP_KERNEL void vector_set_constant_kernel(
     const BatchVector batch_vec,
     const Basis basis,
-    const strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors,
     const Value value
 ) {
-    using Strategy = strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 

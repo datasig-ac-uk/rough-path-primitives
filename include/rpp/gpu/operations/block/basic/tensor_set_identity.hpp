@@ -8,15 +8,15 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/tensor_set_identity.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
 
 namespace rpp::ops {
 
-template <typename Accum_, unsigned BlockSize, typename Architecture>
-class TensorSetIdentity<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+template <typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class TensorSetIdentity<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
 public:
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 
@@ -41,15 +41,15 @@ public:
 
 namespace rpp::gpu::block {
 
-template <typename BatchTensor, typename Basis, typename Accum_, unsigned MaxBlockSize, typename Architecture>
+template <typename BatchTensor, typename Basis, typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
 RPP_KERNEL void tensor_set_identity_kernel(
     const BatchTensor batch_tensor,
     const Basis basis,
-    const strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors,
     Accum_ scalar = Accum_{1}
 ) {
-    using Strategy = strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 

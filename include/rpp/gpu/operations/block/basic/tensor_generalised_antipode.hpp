@@ -11,14 +11,14 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/tensor_generalised_antipode.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 
 namespace rpp::ops {
-template <typename Accum_, unsigned BlockSize, typename Architecture, TensorAntipodeSigningPolicy Policy>
-class TensorGeneralisedAntipode<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>, Policy, void>
-    : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
+template <typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture, TensorAntipodeSigningPolicy Policy>
+class TensorGeneralisedAntipode<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>, Policy, void>
+    : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
 
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
 public:
     using Context = typename Strategy::Context;

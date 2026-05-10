@@ -11,15 +11,15 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/sparse_matrix_vector.hpp>
 
-#include <rpp/gpu/strategies.hpp>
+#include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
 
 namespace rpp::ops {
-
-template<typename Accum_, unsigned BlockSize, typename Architecture>
-class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>,
-            sparse::MatrixFormat::CSR> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>,
+            sparse::MatrixFormat::CSR> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize,
+            MaxBlockSize, Architecture> > {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
@@ -32,10 +32,10 @@ class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize
     using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
 
 public:
-
     template<typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
-    RPP_DEVICE void operator()(Context const &ctx, VectorOut &out, Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
-                    VectorArg const &arg, Accum alpha = Accum{1}) const noexcept {
+    RPP_DEVICE void operator()(Context const &ctx, VectorOut &out,
+                               Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
+                               VectorArg const &arg, Accum alpha = Accum{1}) const noexcept {
         using Scalar = typename VectorOut::value_type;
 
         auto out_it = out.begin();
@@ -61,14 +61,14 @@ public:
                 out_it[row] = static_cast<Scalar>(alpha * result);
             }
         }
-
     }
 };
 
-template<typename Accum_, unsigned BlockSize, typename Architecture>
-class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>,
-            sparse::MatrixFormat::CSC> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>> {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, Architecture>;
+template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>,
+            sparse::MatrixFormat::CSC> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize,
+            MaxBlockSize, Architecture> > {
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
@@ -80,6 +80,7 @@ class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize
     using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSC, D, I, O>;
 
     VectorSetConstant<Strategy> set_constant;
+
 public:
     template<typename Basis>
     static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
@@ -88,8 +89,9 @@ public:
     }
 
     template<typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
-    RPP_DEVICE void operator()(Context const &ctx, VectorOut &out, Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
-                    VectorArg const &arg, Accum alpha = Accum{1}) const noexcept {
+    RPP_DEVICE void operator()(Context const &ctx, VectorOut &out,
+                               Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
+                               VectorArg const &arg, Accum alpha = Accum{1}) const noexcept {
         set_constant(ctx, out, Accum{0});
         ctx.sync();
 
@@ -149,11 +151,11 @@ public:
         }
     }
 };
-
 } // namespace rpp::ops
 
 namespace rpp::gpu::block {
 template<typename BatchOut, typename Matrix, typename BatchArg, typename OutBasis, typename ArgBasis, typename Accum_,
+    unsigned BlockSize,
     unsigned MaxBlockSize, typename Architecture>
 RPP_KERNEL void sparse_matrix_vector_product_kernel(
     const BatchOut batch_out,
@@ -161,11 +163,11 @@ RPP_KERNEL void sparse_matrix_vector_product_kernel(
     const BatchArg batch_arg,
     const OutBasis out_basis,
     const ArgBasis arg_basis,
-    const strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture> strategy,
+    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
     typename Architecture::Index n_tensors,
     Accum_ alpha = Accum_{1}
 ) {
-    using Strategy = strategies::BlockStrategy<Accum_, MaxBlockSize, Architecture>;
+    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
     extern __shared__ std::byte smem_bytes[];
 
@@ -173,7 +175,7 @@ RPP_KERNEL void sparse_matrix_vector_product_kernel(
     const auto my_index = strategy.object_index(blockIdx.x, threadIdx.x);
     if (my_index >= n_tensors) { return; }
 
-    ops::SparseMatrixVectorProduct<Strategy, sparse::matrix_format_v<Matrix>> op;
+    ops::SparseMatrixVectorProduct<Strategy, sparse::matrix_format_v<Matrix> > op;
 
     auto out = batch_out.view(my_index, out_basis);
     auto arg = batch_arg.view(my_index, arg_basis);
