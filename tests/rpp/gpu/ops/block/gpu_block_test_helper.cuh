@@ -70,11 +70,11 @@ struct GpuBlockTestHelper {
         static constexpr unsigned max_depth = 16;
     };
 
+    static constexpr unsigned block_size = 128;
     using CpuStrategy = cpu::strategies::SingleThreadStrategy<Scalar, CpuArchitecture>;
-    using GpuStrategy = gpu::strategies::BlockStrategy<Scalar, 256, GpuArchitecture>;
+    using GpuStrategy = gpu::strategies::BlockStrategy<Scalar, block_size, 256, GpuArchitecture>;
 
     static constexpr Index tensor_count = 1;
-    static constexpr unsigned block_size = 128;
 
     struct TensorConfig {
         Degree width;

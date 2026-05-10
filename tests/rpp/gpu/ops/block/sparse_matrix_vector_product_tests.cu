@@ -148,7 +148,7 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
         basis.size()
     );
 
-    using Op = rpp::ops::SparseMatrixVectorProduct<rpp::gpu::strategies::BlockStrategy<Helper::Scalar>, rpp::sparse::CSCMatrix>;
+    using Op = rpp::ops::SparseMatrixVectorProduct<Helper::GpuStrategy, rpp::sparse::CSCMatrix>;
     auto smem_bytes = Op::scratch_space_size(gpu_strategy, basis);
 
     rpp::gpu::block::sparse_matrix_vector_product_kernel<<<
