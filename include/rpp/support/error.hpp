@@ -135,7 +135,6 @@ public:
     RPP_NODISCARD
     constexpr ErrorCode code() const noexcept { return code_; }
 
-    // Returns payload message if present, otherwise uses default_message.
     RPP_NODISCARD
     constexpr std::string_view message() const noexcept {
         if constexpr (Holder::has_payload) {
