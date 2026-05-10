@@ -3,7 +3,7 @@
 
 #include <cstddef>
 
-#include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/operations/single_thread/strategy.hpp>
 #include <rpp/utility.hpp>
 
 #include <rpp/dense/batch.hpp>

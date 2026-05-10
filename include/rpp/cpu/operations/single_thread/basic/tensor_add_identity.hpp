@@ -10,7 +10,7 @@
 
 #include <rpp/operations/basic/tensor_set_identity.hpp>
 
-#include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/operations/single_thread/strategy.hpp>
 #include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
 
 namespace rpp::ops {

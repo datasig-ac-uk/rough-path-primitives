@@ -8,7 +8,7 @@
 
 #include <rpp/operations/basic/vector_scalar_multiply.hpp>
 
-#include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/operations/single_thread/strategy.hpp>
 
 
 namespace rpp::ops {

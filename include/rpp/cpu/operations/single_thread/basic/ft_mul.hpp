@@ -9,7 +9,7 @@
 #include <rpp/dense/batch.hpp>
 #include <rpp/operations/basic/ft_mul.hpp>
 
-#include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/operations/single_thread/strategy.hpp>
 #include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
 #include <rpp/cpu/operations/single_thread/basic/ft_inplace_fma.hpp>
 

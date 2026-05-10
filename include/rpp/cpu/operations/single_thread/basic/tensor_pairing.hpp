@@ -9,7 +9,7 @@
 
 #include <rpp/operations/basic/tensor_pairing.hpp>
 
-#include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/operations/single_thread/strategy.hpp>
 
 namespace rpp::ops {
 

@@ -10,7 +10,7 @@
 
 #include <rpp/operations/intermediate/ft_log.hpp>
 
-#include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/operations/single_thread/strategy.hpp>
 #include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
 #include <rpp/cpu/operations/single_thread/basic/vector_set_constant.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_add_identity.hpp>

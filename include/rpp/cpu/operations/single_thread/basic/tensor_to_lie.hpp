@@ -8,7 +8,7 @@
 
 #include <rpp/operations/basic/tensor_to_lie.hpp>
 
-#include <rpp/cpu/strategies.hpp>
+#include <rpp/cpu/operations/single_thread/strategy.hpp>
 #include <rpp/cpu/operations/single_thread/basic/sparse_matrix_vector.hpp>
 
 namespace rpp::cpu::single_thread {
