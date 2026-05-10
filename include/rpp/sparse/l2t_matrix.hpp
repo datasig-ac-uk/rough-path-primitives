@@ -5,7 +5,8 @@
 
 #include <rpp/config.h>
 #include <rpp/basis.hpp>
-#include <rpp/sparse/detail/compressed_matrix.hpp>
+#include <rpp/sparse/matrix.hpp>
+
 
 
 namespace rpp::sparse {
@@ -44,7 +45,7 @@ void insert_commutator(Builder& builder, Basis const& basis, typename Basis::Ind
 
 template <typename Scalar, typename LieBasis>
 RPP_NODISCARD
-sparse::OwnedCompressedMatrix<std::vector<Scalar>, std::vector<typename LieBasis::Index>, std::vector<typename LieBasis::Index>, CompressedFormat::CSC>
+sparse::GradedMatrixOwned<CSCMatrix, std::vector<Scalar>, std::vector<typename LieBasis::Index>, std::vector<typename LieBasis::Index>>
 make_l2t_matrix(LieBasis const& basis) {
     using Index = typename LieBasis::Index;
     using Degree = typename LieBasis::Degree;

@@ -4,14 +4,14 @@
 #include <vector>
 #include <unordered_map>
 
-#include <rpp/sparse/compressed_matrix.hpp>
+#include <rpp/sparse/matrix.hpp>
 
 namespace rpp::sparse {
 
 
 template <typename Scalar, typename LieBasis, typename MultiplicationCache>
 RPP_NODISCARD
-sparse::OwnedCompressedMatrix<std::vector<Scalar>, std::vector<typename LieBasis::Index>, std::vector<typename LieBasis::Index>, CompressedFormat::CSC>
+sparse::GradedMatrixOwned<CSCMatrix, std::vector<Scalar>, std::vector<typename LieBasis::Index>, std::vector<typename LieBasis::Index>>
 make_t2l_matrix(LieBasis const& basis, MultiplicationCache& cache) {
     using Index = typename LieBasis::Index;
     using Degree = typename LieBasis::Degree;
