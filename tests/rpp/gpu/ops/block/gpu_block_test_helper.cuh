@@ -18,7 +18,7 @@
 #include <thrust/random.h>
 #include <thrust/transform.h>
 
-#include <rpp/basis.hpp>
+#include <rpp/basis/tensor_basis.hpp>
 #include <rpp/cpu/strategies.hpp>
 #include <rpp/dense/batch.hpp>
 #include <rpp/gpu/architecture.hpp>
@@ -198,22 +198,22 @@ struct GpuBlockTestHelper {
 
     [[nodiscard]] static auto host_vector_batch(HostVector<Scalar>& data, Basis const& basis)
     {
-        return dense::make_vector_batch(host_data(data), basis.size(), Degree{0}, basis.depth);
+        return dense::make_vector_batch(host_data(data), basis.size(), Degree{0}, basis.depth, basis);
     }
 
     [[nodiscard]] static auto host_vector_batch(HostVector<Scalar> const& data, Basis const& basis)
     {
-        return dense::make_vector_batch(host_data(data), basis.size(), Degree{0}, basis.depth);
+        return dense::make_vector_batch(host_data(data), basis.size(), Degree{0}, basis.depth, basis);
     }
 
     [[nodiscard]] static auto device_vector_batch(DeviceVector<Scalar>& data, Basis const& basis)
     {
-        return dense::make_vector_batch(device_data(data), basis.size(), Degree{0}, basis.depth);
+        return dense::make_vector_batch(device_data(data), basis.size(), Degree{0}, basis.depth, basis);
     }
 
     [[nodiscard]] static auto device_vector_batch(DeviceVector<Scalar> const& data, Basis const& basis)
     {
-        return dense::make_vector_batch(device_data(data), basis.size(), Degree{0}, basis.depth);
+        return dense::make_vector_batch(device_data(data), basis.size(), Degree{0}, basis.depth, basis);
     }
 
     [[nodiscard]] static auto host_tensor_batch(HostVector<Scalar>& data, Basis const& basis)

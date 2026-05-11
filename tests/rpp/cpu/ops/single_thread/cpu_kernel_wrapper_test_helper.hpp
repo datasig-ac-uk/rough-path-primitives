@@ -105,7 +105,8 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
             data.data(),
             basis.size(),
             Degree{0},
-            basis.depth
+            basis.depth,
+            typename Basis::Tag{}
         );
     }
 
@@ -118,7 +119,8 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
             data.data(),
             basis.size(),
             Degree{0},
-            basis.depth
+            basis.depth,
+            typename Basis::Tag{}
         );
     }
 

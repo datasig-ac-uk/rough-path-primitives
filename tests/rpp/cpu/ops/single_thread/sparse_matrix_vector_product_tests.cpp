@@ -179,8 +179,8 @@ TEST_F(SparseMatrixVectorProductTests, KernelWrapperMatchesDirectOperation)
     std::vector<Index> const offsets{0, 2, 3, 6};
     auto const matrix = make_csr(values, indices, offsets, out_basis.size(), arg_basis.size());
 
-    auto const out_batch = rpp::dense::make_vector_batch(actual.data(), out_basis.size(), 0, out_basis.depth);
-    auto const arg_batch = rpp::dense::make_vector_batch(arg.data(), arg_basis.size(), 0, arg_basis.depth);
+    auto const out_batch = rpp::dense::make_vector_batch(actual.data(), out_basis.size(), 0, out_basis.depth, out_basis);
+    auto const arg_batch = rpp::dense::make_vector_batch(arg.data(), arg_basis.size(), 0, arg_basis.depth, arg_basis);
 
     rpp::cpu::single_thread::sparse_matrix_vector_product_kernel(
         out_batch,

@@ -1,17 +1,16 @@
 #ifndef RPP_DENSE_VIEWS_HPP
 #define RPP_DENSE_VIEWS_HPP
 
+#include <algorithm>
 #include <cstddef>
 #include <iterator>
 
 #include <rpp/config.h>
 
-#include <rpp/basis.hpp>
-
 namespace rpp::dense {
 namespace detail {
 template<typename It_>
-class VectorFragment {
+class GradedVectorFragment {
     using Traits = std::iterator_traits<It_>;
     using Index = typename Traits::difference_type;
 
@@ -23,7 +22,7 @@ public:
     using reference = typename Traits::reference;
 
     RPP_HOST_DEVICE
-    constexpr VectorFragment(It_ data, Index size)
+    constexpr GradedVectorFragment(It_ data, Index size)
         : data_(data), size_(size) {
     }
 
@@ -54,7 +53,7 @@ public:
     using Degree = typename Basis::Degree;
     using Index_ = typename Basis::Index;
 
-    using Fragment = detail::VectorFragment<It_>;
+    using Fragment = detail::GradedVectorFragment<It_>;
 
 
 private:
@@ -77,11 +76,19 @@ public:
     RPP_HOST_DEVICE RPP_NODISCARD constexpr Basis const &basis() const noexcept { return basis_; }
     RPP_HOST_DEVICE RPP_NODISCARD constexpr iterator data() const noexcept { return data_; }
 
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Index begin_index() const noexcept {
+        return basis_.start_of_degree(min_degree_);
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Index end_index() const noexcept {
+        return basis_.end_of_degree(max_degree_);
+    }
+
     RPP_HOST_DEVICE RPP_NODISCARD constexpr iterator begin() const noexcept {
-        return data_ + basis_.start_of_degree(min_degree_);
+        return data_ + begin_index();
     }
     RPP_HOST_DEVICE RPP_NODISCARD constexpr iterator end() const noexcept {
-        return data_ + basis_.end_of_degree(max_degree_);
+        return data_ + end_index();
     }
 
 

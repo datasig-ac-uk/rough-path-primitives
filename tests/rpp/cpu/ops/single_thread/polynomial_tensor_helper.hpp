@@ -11,7 +11,7 @@
 #include <libalgebra_lite/coefficients.h>
 #include <libalgebra_lite/polynomial.h>
 
-#include <rpp/basis.hpp>
+#include <rpp/basis/tensor_basis.hpp>
 #include <rpp/cpu/strategies.hpp>
 #include <rpp/dense/views.hpp>
 

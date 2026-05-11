@@ -8,7 +8,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include <rpp/basis.hpp>
+#include <rpp/basis/tensor_basis.hpp>
 #include <rpp/cpu/operations/single_thread.hpp>
 #include <rpp/cpu/strategies.hpp>
 #include <rpp/dense/views.hpp>

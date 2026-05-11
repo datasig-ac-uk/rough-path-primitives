@@ -8,7 +8,7 @@
 
 #include <rpp/config.h>
 #include <rpp/architecture.hpp>
-#include <rpp/basis.hpp>
+#include <rpp/basis/lie_basis.hpp>
 
 
 namespace rpp {

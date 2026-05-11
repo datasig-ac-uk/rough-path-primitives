@@ -9,9 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include <rpp/basis.hpp>
-
 #include <rpp/architecture.hpp>
+#include <rpp/basis/lie_basis.hpp>
 
 
 namespace rpp {

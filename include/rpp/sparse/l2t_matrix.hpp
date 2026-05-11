@@ -4,7 +4,8 @@
 #include <vector>
 
 #include <rpp/config.h>
-#include <rpp/basis.hpp>
+#include <rpp/basis/lie_basis.hpp>
+#include <rpp/basis/tensor_basis.hpp>
 #include <rpp/sparse/matrix.hpp>
 
 

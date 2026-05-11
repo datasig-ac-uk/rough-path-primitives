@@ -15,6 +15,9 @@ namespace rpp::gpu::strategies {
 
 inline constexpr unsigned dynamic_block_size = std::numeric_limits<unsigned>::max();
 
+template <typename Strategy>
+inline constexpr bool is_block_strategy_v = false;
+
 namespace detail {
 
 template <typename Strategy_>
@@ -206,6 +209,7 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize>{
     static constexpr unsigned warp_count = (block_size + warp_size - 1) / warp_size;
     static constexpr unsigned max_warp_count = (max_block_size + warp_size - 1) / warp_size;
     static constexpr unsigned sector_alignment = Architecture::sector_alignment;
+    static constexpr bool static_small_block = static_block_size < warp_size;
 
     static_assert(
         is_pow_2(block_size)
@@ -216,27 +220,42 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize>{
 
     using BlockReduceArray = Accum[max_warp_count];
 
-    RPP_HOST_DEVICE
+    RPP_HOST_DEVICE RPP_NODISCARD
     static constexpr Index objects_per_block() noexcept {
-        return MaxBlockSize / block_size;
+        if constexpr (BlockSize < MaxBlockSize) {
+            return MaxBlockSize / block_size;
+        } else {
+            return 1;
+        }
     }
 
-    RPP_HOST_DEVICE
-    constexpr Index threads_per_object() noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD
+    static constexpr Index threads_per_object() noexcept {
         return block_size;
     }
 
-    RPP_HOST_DEVICE
-    static constexpr Index object_index(unsigned block_index, unsigned thread_index RPP_MAYBE_UNUSED) noexcept {
-        return static_cast<Index>(block_index);
+    RPP_HOST_DEVICE RPP_NODISCARD
+    static constexpr Index object_index(unsigned block_index, unsigned thread_index) noexcept {
+        if constexpr (BlockSize < MaxBlockSize) {
+            return static_cast<Index>(block_index) * objects_per_block() + thread_index / block_size;
+        } else {
+            return static_cast<Index>(block_index);
+        }
     }
 
     RPP_DEVICE static constexpr Context make_context(std::byte* smem_bytes) noexcept {
-        return Context { smem_bytes };
+        if constexpr (BlockSize < MaxBlockSize) {
+            return Context { smem_bytes + threadIdx.x / block_size };
+        } else {
+            return Context { smem_bytes };
+        }
     }
 
 };
 
+
+template <typename Accum, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+inline constexpr bool is_block_strategy_v<BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture>> = true;
 
 
 }

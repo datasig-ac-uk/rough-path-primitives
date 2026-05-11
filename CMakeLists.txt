@@ -132,8 +132,11 @@ rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread
 target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/basis/basis_pack.hpp
         include/rpp/basis/basis_tags.hpp
+        include/rpp/basis/graded_basis.hpp
         include/rpp/basis/hall_basis.hpp
+        include/rpp/basis/lie_basis.hpp
         include/rpp/basis/lie_multiplication.hpp
+        include/rpp/basis/tensor_basis.hpp
         include/rpp/config/compiler.h
         include/rpp/config/target.h
         include/rpp/support/error.hpp
