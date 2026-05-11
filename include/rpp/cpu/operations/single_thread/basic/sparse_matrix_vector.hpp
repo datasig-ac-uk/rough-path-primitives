@@ -35,8 +35,8 @@ public:
        void operator()(
            Context const& ctx,
            VectorOut& out,
-           Matrix<DataIter, IndexIter, OffsetsIter> const& matrix,
            VectorArg const& arg,
+           Matrix<DataIter, IndexIter, OffsetsIter> const& matrix,
            Accum alpha = Accum{1}
        ) const noexcept {
         using Scalar = typename VectorOut::value_type;
@@ -62,11 +62,11 @@ public:
        void operator()(
            Context const& ctx,
            VectorOut& out,
-           GradedMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
            VectorArg const& arg,
+           GradedMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
            Accum alpha = Accum{1}
        ) const noexcept {
-        return operator()(ctx, out, static_cast<Matrix<DataIter, IndexIter, OffsetsIter> const&>(matrix), arg, alpha);
+        return operator()(ctx, out, arg, static_cast<Matrix<DataIter, IndexIter, OffsetsIter> const&>(matrix), alpha);
     }
 };
 
@@ -97,8 +97,8 @@ public:
        void operator()(
            Context const& ctx,
            VectorOut& out,
-           Matrix<DataIter, IndexIter, OffsetsIter> const& matrix,
            VectorArg const& arg,
+           Matrix<DataIter, IndexIter, OffsetsIter> const& matrix,
            Accum alpha = Accum{1}
        ) const noexcept {
         using Scalar = typename VectorOut::value_type;
@@ -126,11 +126,11 @@ public:
        void operator()(
            Context const& ctx,
            VectorOut& out,
-           GradedMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
            VectorArg const& arg,
+           GradedMatrix<DataIter, IndexIter, OffsetsIter> const& matrix,
            Accum alpha = Accum{1}
        ) const noexcept {
-        return operator()(ctx, out, static_cast<Matrix<DataIter, IndexIter, OffsetsIter> const&>(matrix), arg, alpha);
+        return operator()(ctx, out, arg, static_cast<Matrix<DataIter, IndexIter, OffsetsIter> const&>(matrix), alpha);
     }
 };
 
@@ -142,8 +142,8 @@ namespace rpp::cpu::single_thread {
 template <typename BatchOut, typename Matrix, typename BatchArg, typename OutBasis, typename ArgBasis, typename Accum_, typename Architecture>
 void sparse_matrix_vector_product_kernel(
     const BatchOut batch_out,
-    const Matrix matrix,
     const BatchArg batch_arg,
+    const Matrix matrix,
     const OutBasis out_basis,
     const ArgBasis arg_basis,
     const strategies::SingleThreadStrategy<Accum_, Architecture> strategy,
@@ -160,7 +160,7 @@ void sparse_matrix_vector_product_kernel(
         [&](Op const& op, typename Strategy::Context const& ctx, typename Strategy::Index idx) {
             auto out = batch_out.view(idx, out_basis);
             auto arg = batch_arg.view(idx, arg_basis);
-            op(ctx, out, matrix, arg, alpha);
+            op(ctx, out, arg, matrix, alpha);
         }
     );
 }

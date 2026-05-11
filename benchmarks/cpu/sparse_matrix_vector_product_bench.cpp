@@ -20,7 +20,7 @@ void run_sparse_benchmark(benchmark::State& state, MatrixFactory&& make_matrix)
     for (auto _ : state) {
         auto out = test_case.tensors.out_vector();
         auto arg = test_case.tensors.a_vector();
-        op(ctx, out, matrix, arg);
+        op(ctx, out, arg, matrix);
         benchmark::ClobberMemory();
     }
 

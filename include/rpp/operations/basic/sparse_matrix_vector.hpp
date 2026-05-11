@@ -25,8 +25,8 @@ public:
     void operator()(
         Context const& ctx,
         VectorOut& out,
-        MatrixView<DataIter, IndexIter, OffsetsIter> const& matrix,
         VectorArg const& arg,
+        MatrixView<DataIter, IndexIter, OffsetsIter> const& matrix,
         Accum alpha = Accum{1}
     ) const noexcept {
         static_assert(

@@ -83,7 +83,7 @@ TEST_F(SparseMatrixVectorProductTests, AppliesCsrMatrix)
     VectorView<Scalar*> out_view(out.data(), out_basis);
     VectorView<Scalar const*> arg_view(arg.data(), arg_basis);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(make_context(), out_view, matrix, arg_view);
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(make_context(), out_view, arg_view, matrix);
 
     EXPECT_EQ(out, make_vector({-3, 65, 78}));
 }
@@ -106,7 +106,7 @@ TEST_F(SparseMatrixVectorProductTests, AppliesCscMatrix)
     VectorView<Scalar*> out_view(out.data(), out_basis);
     VectorView<Scalar const*> arg_view(arg.data(), arg_basis);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSCMatrix>{}(make_context(), out_view, matrix, arg_view);
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSCMatrix>{}(make_context(), out_view, arg_view, matrix);
 
     EXPECT_EQ(out, make_vector({-3, 65, 78}));
 }
@@ -132,8 +132,8 @@ TEST_F(SparseMatrixVectorProductTests, ScalesResult)
     rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(
         make_context(),
         out_view,
-        matrix,
         arg_view,
+        matrix,
         Scalar{2}
     );
 
@@ -156,7 +156,7 @@ TEST_F(SparseMatrixVectorProductTests, AppliesToLogicalViewRanges)
     VectorView<Scalar*> out_view(out.data(), basis, 1, 1);
     VectorView<Scalar const*> arg_view(arg.data(), basis, 2, 2);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(make_context(), out_view, matrix, arg_view);
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(make_context(), out_view, arg_view, matrix);
 
     EXPECT_EQ(out, make_vector({-1, 31, 4, -1, -1, -1, -1}));
 }
@@ -184,8 +184,8 @@ TEST_F(SparseMatrixVectorProductTests, KernelWrapperMatchesDirectOperation)
 
     rpp::cpu::single_thread::sparse_matrix_vector_product_kernel(
         out_batch,
-        matrix,
         arg_batch,
+        matrix,
         out_basis,
         arg_basis,
         Strategy{},
@@ -204,7 +204,7 @@ TEST_F(SparseMatrixVectorProductTests, KernelWrapperMatchesDirectOperation)
             arg.data() + static_cast<std::size_t>(tensor_idx * arg_basis.size()),
             arg_basis
         );
-        op(ctx, out, matrix, rhs, Scalar{2});
+        op(ctx, out, rhs, matrix, Scalar{2});
     }
 
     EXPECT_EQ(actual, expected);

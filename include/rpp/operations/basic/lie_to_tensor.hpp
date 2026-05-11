@@ -44,7 +44,7 @@ public:
     template <typename TensorOut, typename LieIn, typename... MatrixArgs>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorOut& out, LieIn const& arg, Matrix<MatrixArgs...> const& matrix) const noexcept {
-        impl(ctx, out, matrix, arg);
+        impl(ctx, out, arg, matrix);
     }
 };
 

@@ -81,8 +81,8 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CsrMatchesCpuForSingleElementBatche
         0
     >>>(
         Helper::device_vector_batch(device_actual, basis),
-        device_matrix,
         Helper::device_vector_batch(device_arg, basis),
+        device_matrix,
         device_basis.basis,
         device_basis.basis,
         gpu_strategy,
@@ -94,8 +94,8 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CsrMatchesCpuForSingleElementBatche
 
     rpp::cpu::single_thread::sparse_matrix_vector_product_kernel(
         Helper::host_vector_batch(expected, basis),
-        host_matrix,
         Helper::host_vector_batch(arg, basis),
+        host_matrix,
         basis,
         basis,
         cpu_strategy,
@@ -157,8 +157,8 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
         smem_bytes
     >>>(
         Helper::device_vector_batch(device_actual, basis),
-        device_matrix,
         Helper::device_vector_batch(device_arg, basis),
+        device_matrix,
         device_basis.basis,
         device_basis.basis,
         gpu_strategy,
@@ -170,8 +170,8 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
 
     rpp::cpu::single_thread::sparse_matrix_vector_product_kernel(
         Helper::host_vector_batch(expected, basis),
-        host_matrix,
         Helper::host_vector_batch(arg, basis),
+        host_matrix,
         basis,
         basis,
         cpu_strategy,

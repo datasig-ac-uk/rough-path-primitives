@@ -34,8 +34,9 @@ class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize
 public:
     template<typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
     RPP_DEVICE void operator()(Context const &ctx, VectorOut &out,
+                               VectorArg const &arg,
                                Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
-                               VectorArg const &arg, Accum alpha = Accum{1}) const noexcept {
+                               Accum alpha = Accum{1}) const noexcept {
         using Scalar = typename VectorOut::value_type;
 
         auto out_it = out.begin();
@@ -90,8 +91,9 @@ public:
 
     template<typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
     RPP_DEVICE void operator()(Context const &ctx, VectorOut &out,
+                               VectorArg const &arg,
                                Matrix<DataIter, IndexIter, OffsetsIter> const &matrix,
-                               VectorArg const &arg, Accum alpha = Accum{1}) const noexcept {
+                               Accum alpha = Accum{1}) const noexcept {
         set_constant(ctx, out, Accum{0});
         ctx.sync();
 
@@ -159,8 +161,8 @@ template<typename BatchOut, typename Matrix, typename BatchArg, typename OutBasi
     unsigned MaxBlockSize, typename Architecture>
 RPP_KERNEL void sparse_matrix_vector_product_kernel(
     const BatchOut batch_out,
-    const Matrix matrix,
     const BatchArg batch_arg,
+    const Matrix matrix,
     const OutBasis out_basis,
     const ArgBasis arg_basis,
     const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
@@ -179,7 +181,7 @@ RPP_KERNEL void sparse_matrix_vector_product_kernel(
 
     auto out = batch_out.view(my_index, out_basis);
     auto arg = batch_arg.view(my_index, arg_basis);
-    op(ctx, out, matrix, arg, alpha);
+    op(ctx, out, arg, matrix, alpha);
 }
 } // namespace rpp::gpu::block
 
