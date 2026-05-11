@@ -133,6 +133,23 @@ constexpr bool check_unique(T t, Ts... ts) noexcept {
 
 
 
+/**
+ * @brief
+ *   BasisPack aggregates a variadic list of basis types, each identified by a unique
+ *   @c BasisTag. The class stores each basis object (or type) by inheriting from
+ *   @c detail::HolderOf<Basis>..., thereby providing compile‑time access to the
+ *   underlying bases.
+ *
+ *   A static assertion (enabled by default) enforces that all tags are distinct at
+ *   compile time. The class offers a forwarding constructor that moves the supplied
+ *   basis objects into the appropriate holders.
+ *
+ * @tparam Bases Types of the bases to be packed; each must expose a nested
+ *   @c Tag type used for identification.
+ *
+ * @note When @c RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK is defined, the compile‑time
+ *   uniqueness check is omitted.
+ */
 template <typename... Bases>
 struct BasisPack : detail::HolderOf<Bases>... {
 #ifndef RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK
@@ -192,6 +209,18 @@ constexpr auto idx(Basis basis) noexcept -> detail::BasisHolder<IndexedBasisTag<
 
 } // namespace basis
 
+/**
+ * @brief Constructs a @c BasisPack from a variadic list of basis objects.
+ *
+ * @tparam Bases Types of the basis objects; each must provide a nested
+ *   @c Tag type that uniquely identifies the basis.
+ *
+ * @param bases A pack of basis objects of types @c Bases... to be packed.
+ *   Each object is moved into the appropriate holder within the resulting
+ *   @c BasisPack.
+ *
+ * @return A @c BasisPack<Bases...> containing the supplied basis objects.
+ */
 template <typename... Bases>
 constexpr BasisPack<Bases...> make_basis_pack(Bases... bases) {
     return {std::move(bases)...};

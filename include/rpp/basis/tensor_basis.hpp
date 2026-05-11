@@ -16,6 +16,25 @@ namespace rpp {
 RPP_MAKE_BASIS_TAG(TensorBasis);
 
 template <typename Degree_, typename Index_>
+/**
+ * @brief Tensor basis representing a graded set of tensor indices.
+ *
+ * `TensorBasis` provides a lexicographic indexing scheme for tensors of a given
+ * depth (`Degree`) and a signed integer index type (`Index`). It inherits from
+ * `GradedBasis` and implements utilities for:
+ *
+ * - Truncating the basis depth (`truncate`).
+ * - Unpacking a flat index into an array of letter components (`unpack_index_to_letters`).
+ * - Packing a set of letters into a masked index, separating left‑ and right‑hand
+ *   degree components (`pack_masked_index`).
+ * - Reversing a packed index back into a flat representation (`reverse_index`).
+ *
+ * The class is templated on the numeric degree type and the index type, and
+ * leverages host/device macros (`RPP_HOST`, `RPP_HOST_DEVICE`) to support both
+ * CPU and GPU code paths. It does not expose raw member properties; interaction
+ * should be performed through its member functions.
+ *
+ */
 struct TensorBasis : GradedBasis<Degree_, Index_, TensorBasisTag> {
     using Base = GradedBasis<Degree_, Index_, TensorBasisTag>;
 

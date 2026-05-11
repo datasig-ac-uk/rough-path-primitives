@@ -30,6 +30,15 @@ struct StandardLieBasisOrder {
 
 } // namespace detail
 
+/**
+ * @class LieBasis
+ *
+ * Represents a Lie algebra basis object used for symbolic and numerical computations.
+ * The class encapsulates a set of basis elements and provides operations such as
+ * linear combination, product, and commutator evaluation. It supports both dense
+ * representations and sparse storage, offering flexible access to basis vectors and
+ * their algebraic relations.
+ */
 template <typename Degree_, typename Index_, typename Ordering=detail::StandardLieBasisOrder>
 struct LieBasis : GradedBasis<Degree_, Index_, LieBasisTag>, Ordering {
     using Base = GradedBasis<Degree_, Index_, LieBasisTag>;
