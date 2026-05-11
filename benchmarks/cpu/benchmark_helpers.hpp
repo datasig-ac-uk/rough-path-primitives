@@ -33,8 +33,8 @@ struct BenchmarkArchitecture {
 using Strategy = rpp::cpu::strategies::SingleThreadStrategy<Scalar, BenchmarkArchitecture>;
 using Context = Strategy::Context;
 
-using VectorView = dense::DenseVectorView<Scalar*, Basis>;
-using ConstVectorView = dense::DenseVectorView<Scalar const*, Basis>;
+using VectorView = dense::DenseGradedVectorView<Scalar*, Basis>;
+using ConstVectorView = dense::DenseGradedVectorView<Scalar const*, Basis>;
 using TensorView = dense::DenseTensorView<Scalar*, Basis>;
 using ConstTensorView = dense::DenseTensorView<Scalar const*, Basis>;
 
