@@ -9,6 +9,17 @@
 
 namespace rpp::dense {
 namespace detail {
+
+/**
+ * @class VectorFragment
+ * @brief Represents a fragment or subsection of a vector with specified boundaries.
+ *
+ * This class is designed to operate on a subset of a vector, allowing
+ * operations to be performed on a contiguous range within the vector without
+ * directly modifying the original vector. It maintains information about
+ * the starting index and length of the fragment.
+ *
+ */
 template<typename It_>
 class VectorFragment {
     using Traits = std::iterator_traits<It_>;
@@ -38,6 +49,18 @@ public:
 };
 } // namespace detail
 
+/**
+ * @brief Read‑write view into a dense graded vector limited to a specified segment.
+ *
+ * This class provides a lightweight façade over a dense graded vector,
+ * exposing only a contiguous sub‑range defined by a start index and length.
+ * It enables operations that are logically scoped to that segment (e.g.,
+ * reductions, element‑wise updates) without copying the underlying data.
+ * All indexed accesses are translated to the corresponding location in the
+ * parent container, ensuring that modifications affect the original vector.
+ * The view does not own its storage; it merely delegates all queries to the
+ * owning container, preserving memory layout and performance.
+ */
 template<typename It_, typename Basis_>
 class DenseGradedVectorView {
     using Traits = std::iterator_traits<It_>;
@@ -123,6 +146,33 @@ public:
 };
 
 
+/**
+ * @brief Read‑write view into a dense graded tensor limited to a contiguous
+ *        degree sub‑range.
+ *
+ * @tparam It_   Iterator type used by the underlying dense graded vector.
+ * @tparam Basis_ Type that defines the grading basis (e.g., degree space).
+ *
+ * This class derives from @c DenseGradedVectorView and does not own any
+ * storage; it merely provides a façade over a segment of a parent container.
+ * The view enables operations that are logically scoped to a degree interval
+ * without copying data, translating all indexed accesses to the corresponding
+ * locations in the parent container.
+ *
+ * The primary operation offered by this class is @ref truncate, which
+ * constructs a new view restricted to the intersection of the requested degree
+ * range with the degrees actually present in the underlying vector.
+ *
+ * @param min_degree  Lower bound of the desired degree interval.
+ * @param max_degree  Upper bound of the desired degree interval.
+ *
+ * @return A new @c DenseTensorView representing the intersection of the
+ *         requested degree range with the existing degree range of the
+ *         underlying container.
+ *
+ * @note The truncation operation is constexpr and noexcept, allowing it to be
+ *       evaluated at compile time when possible.
+ */
 template<typename It_, typename Basis_>
 class DenseTensorView : public DenseGradedVectorView<It_, Basis_> {
     using Base = DenseGradedVectorView<It_, Basis_>;
@@ -143,6 +193,23 @@ public:
 };
 
 
+/**
+ * @brief A read‑write view specialized for Lie algebras that provides
+ *        a limited perspective on a dense graded vector.
+ *
+ * This class extends @c DenseGradedVectorView to operate only on a
+ * contiguous segment of degrees defined by the user. It does not own
+ * storage; instead, it references the underlying container and translates
+ * all operations to the corresponding positions within that container.
+ * The view supports truncation to a requested degree interval, automatically
+ * intersecting it with the existing degree range of the parent object.
+ * Truncation is performed constexpr and noexcept, enabling compile‑time
+ * evaluation when possible.
+ *
+ * The view facilitates scoped computations on Lie‑type structures while
+ * preserving the original memory layout and enabling modifications to
+ * propagate to the underlying data.
+ */
 template <typename It, typename Basis>
 class DenseLieView : public DenseGradedVectorView<It, Basis> {
     using Base = DenseGradedVectorView<It, Basis>;
