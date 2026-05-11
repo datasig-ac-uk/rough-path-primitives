@@ -10,7 +10,7 @@
 namespace rpp::dense {
 namespace detail {
 template<typename It_>
-class GradedVectorFragment {
+class VectorFragment {
     using Traits = std::iterator_traits<It_>;
     using Index = typename Traits::difference_type;
 
@@ -22,7 +22,7 @@ public:
     using reference = typename Traits::reference;
 
     RPP_HOST_DEVICE
-    constexpr GradedVectorFragment(It_ data, Index size)
+    constexpr VectorFragment(It_ data, Index size)
         : data_(data), size_(size) {
     }
 
@@ -39,7 +39,7 @@ public:
 } // namespace detail
 
 template<typename It_, typename Basis_>
-class DenseVectorView {
+class DenseGradedVectorView {
     using Traits = std::iterator_traits<It_>;
 
 public:
@@ -53,7 +53,7 @@ public:
     using Degree = typename Basis::Degree;
     using Index_ = typename Basis::Index;
 
-    using Fragment = detail::GradedVectorFragment<It_>;
+    using Fragment = detail::VectorFragment<It_>;
 
 
 private:
@@ -64,12 +64,12 @@ private:
 
 public:
     RPP_HOST_DEVICE
-    constexpr DenseVectorView(It_ data, Basis const &basis)
+    constexpr DenseGradedVectorView(It_ data, Basis const &basis)
         : data_(data), min_degree_(0), max_degree_(basis.depth), basis_(basis) {
     }
 
     RPP_HOST_DEVICE
-    constexpr DenseVectorView(It_ data, Basis const &basis, Degree min_deg, Degree max_degree)
+    constexpr DenseGradedVectorView(It_ data, Basis const &basis, Degree min_deg, Degree max_degree)
         : data_(data), min_degree_(min_deg), max_degree_(max_degree), basis_(basis) {
     }
 
@@ -124,8 +124,8 @@ public:
 
 
 template<typename It_, typename Basis_>
-class DenseTensorView : public DenseVectorView<It_, Basis_> {
-    using Base = DenseVectorView<It_, Basis_>;
+class DenseTensorView : public DenseGradedVectorView<It_, Basis_> {
+    using Base = DenseGradedVectorView<It_, Basis_>;
 
 public:
     using Base::Base;
@@ -144,8 +144,8 @@ public:
 
 
 template <typename It, typename Basis>
-class DenseLieView : public DenseVectorView<It, Basis> {
-    using Base = DenseVectorView<It, Basis>;
+class DenseLieView : public DenseGradedVectorView<It, Basis> {
+    using Base = DenseGradedVectorView<It, Basis>;
 
 public:
     using Base::Base;

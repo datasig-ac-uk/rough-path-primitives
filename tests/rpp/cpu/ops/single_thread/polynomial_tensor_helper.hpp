@@ -40,7 +40,7 @@ struct PolynomialTensorHelper {
     using Context = typename Strategy::Context;
 
     template <typename Ptr>
-    using VectorView = dense::DenseVectorView<Ptr, Basis>;
+    using VectorView = dense::DenseGradedVectorView<Ptr, Basis>;
 
     template <typename Ptr>
     using TensorView = dense::DenseTensorView<Ptr, Basis>;

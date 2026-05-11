@@ -196,11 +196,11 @@ TEST_F(SparseMatrixVectorProductTests, KernelWrapperMatchesDirectOperation)
     rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix> op;
     auto const ctx = make_context();
     for (Index tensor_idx = 0; tensor_idx < tensor_count; ++tensor_idx) {
-        auto out = rpp::dense::DenseVectorView<Scalar*, Basis>(
+        auto out = rpp::dense::DenseGradedVectorView<Scalar*, Basis>(
             expected.data() + static_cast<std::size_t>(tensor_idx * out_basis.size()),
             out_basis
         );
-        auto rhs = rpp::dense::DenseVectorView<Scalar const*, Basis>(
+        auto rhs = rpp::dense::DenseGradedVectorView<Scalar const*, Basis>(
             arg.data() + static_cast<std::size_t>(tensor_idx * arg_basis.size()),
             arg_basis
         );

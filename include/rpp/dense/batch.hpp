@@ -71,7 +71,7 @@ public:
 
     template<typename Index, typename BasisPack>
     RPP_HOST_DEVICE constexpr auto view(Index index, BasisPack const &basis_pack) const noexcept {
-        return view_as<DenseVectorView>(index, basis_pack);
+        return view_as<DenseGradedVectorView>(index, basis_pack);
     }
 };
 
