@@ -1,0 +1,79 @@
+#ifndef RPP_BASIS_GRADED_BASIS_HPP
+#define RPP_BASIS_GRADED_BASIS_HPP
+
+#include <rpp/config.h>
+
+namespace rpp {
+
+template <typename Degree_, typename Index_, typename Tag_>
+struct GradedBasis {
+    using Tag = Tag_;
+
+    using Degree = Degree_;
+    using Index = Index_;
+
+    Degree width;
+    Degree depth;
+    Index const *degree_begin;
+
+    GradedBasis(Degree width_, Degree depth_, Index const *degree_begin_) noexcept
+        : width(width_), depth(depth_), degree_begin(degree_begin_) {
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Index size() const noexcept {
+        return degree_begin[depth + 1];
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Index true_size() const noexcept { return size(); }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Index start_of_degree(Degree d) const noexcept {
+        return degree_begin[d];
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Index end_of_degree(Degree d) const noexcept {
+        return degree_begin[d+1];
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Index size_of_degree(Degree d) const noexcept {
+        return degree_begin[d+1] - degree_begin[d];
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Degree degree(Index idx) const noexcept {
+        Degree diff = this->depth + 1;
+        Degree pos = 0;
+        while (diff > 0) {
+            const Degree half = diff / 2;
+            const Degree new_pos = pos + half;
+
+            if (this->degree_begin[new_pos] <= idx) {
+                pos = new_pos + 1;
+                diff -= half + 1;
+            } else {
+                diff = half;
+            }
+        }
+        return pos - 1;
+    }
+
+    RPP_HOST_DEVICE RPP_NODISCARD
+    constexpr Degree degree_linear(Index idx) const noexcept {
+        Degree result = 0;
+        while (result <= depth && degree_begin[result] <= idx) {
+            ++result;
+        }
+        return result - 1;
+    }
+
+};
+
+
+
+} // namespace rpp
+
+#endif //RPP_BASIS_GRADED_BASIS_HPP
