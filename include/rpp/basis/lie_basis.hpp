@@ -39,11 +39,12 @@ struct StandardLieBasisOrder {
  * representations and sparse storage, offering flexible access to basis vectors and
  * their algebraic relations.
  */
-template <typename Degree_, typename Index_, typename Ordering=detail::StandardLieBasisOrder>
-struct LieBasis : GradedBasis<Degree_, Index_, LieBasisTag>, Ordering {
-    using Base = GradedBasis<Degree_, Index_, LieBasisTag>;
+template <typename Architecture_, typename Ordering=detail::StandardLieBasisOrder>
+struct LieBasis : GradedBasis<Architecture_, LieBasisTag>, Ordering {
+    using Base = GradedBasis<Architecture_, LieBasisTag>;
     using Degree = typename Base::Degree;
     using Index = typename Base::Index;
+    using Architecture = typename Base::Architecture;
 
     Index const* data;
 
@@ -133,7 +134,7 @@ struct LieBasis : GradedBasis<Degree_, Index_, LieBasisTag>, Ordering {
     }
 };
 
-using StandardLieBasis = LieBasis<std::int32_t, std::ptrdiff_t>;
+using StandardLieBasis = LieBasis<arch::NativeArchitecture>;
 
 } // namespace rpp
 

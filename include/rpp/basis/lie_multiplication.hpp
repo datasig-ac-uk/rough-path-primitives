@@ -74,7 +74,7 @@ template<typename Architecture=arch::NativeArchitecture>
 class LieMultiplicationCache {
     using Degree = typename Architecture::Degree;
     using Index = typename Architecture::Index;
-    using Basis = rpp::LieBasis<Degree, Index>;
+    using Basis = rpp::LieBasis<Architecture>;
 
     using CacheInteger = std::make_signed_t<Index>;
     using DataEntry = std::pair<Index, CacheInteger>;

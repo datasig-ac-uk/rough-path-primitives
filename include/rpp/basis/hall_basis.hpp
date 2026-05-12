@@ -49,8 +49,8 @@ public:
         }
     }
 
-    constexpr LieBasis<Degree, Index> to_lie_basis() const noexcept {
-        return LieBasis<Degree, Index>{width_, depth_, degree_begin_.data(), data_.data() };
+    constexpr LieBasis<Architecture> to_lie_basis() const noexcept {
+        return LieBasis<Architecture>{width_, depth_, degree_begin_.data(), data_.data() };
     }
 
     constexpr auto operator[](Index index) const noexcept {

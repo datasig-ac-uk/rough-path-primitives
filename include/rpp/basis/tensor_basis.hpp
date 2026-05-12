@@ -15,7 +15,6 @@ namespace rpp {
 
 RPP_MAKE_BASIS_TAG(TensorBasis);
 
-template <typename Degree_, typename Index_>
 /**
  * @brief Tensor basis representing a graded set of tensor indices.
  *
@@ -35,11 +34,13 @@ template <typename Degree_, typename Index_>
  * should be performed through its member functions.
  *
  */
-struct TensorBasis : GradedBasis<Degree_, Index_, TensorBasisTag> {
-    using Base = GradedBasis<Degree_, Index_, TensorBasisTag>;
+template <typename Architecture_>
+struct TensorBasis : GradedBasis<Architecture_, TensorBasisTag> {
+    using Base = GradedBasis<Architecture_, TensorBasisTag>;
 
     using Degree = typename Base::Degree;
     using Index = typename Base::Index;
+    using Architecture = typename Base::Architecture;
 
     using Base::Base;
     using Base::size;
@@ -104,7 +105,7 @@ struct TensorBasis : GradedBasis<Degree_, Index_, TensorBasisTag> {
     }
 };
 
-using StandardTensorBasis = TensorBasis<std::int32_t, std::ptrdiff_t>;
+using StandardTensorBasis = TensorBasis<arch::NativeArchitecture>;
 
 template <typename Index, typename Width, typename Degree>
 RPP_HOST_DEVICE RPP_NODISCARD

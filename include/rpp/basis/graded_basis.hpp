@@ -1,16 +1,18 @@
 #ifndef RPP_BASIS_GRADED_BASIS_HPP
 #define RPP_BASIS_GRADED_BASIS_HPP
 
+#include <rpp/architecture.hpp>
 #include <rpp/config.h>
 
 namespace rpp {
 
-template <typename Degree_, typename Index_, typename Tag_>
+template <typename Architecture_, typename Tag_>
 struct GradedBasis {
+    using Architecture = Architecture_;
     using Tag = Tag_;
 
-    using Degree = Degree_;
-    using Index = Index_;
+    using Degree = typename Architecture::Degree;
+    using Index = typename Architecture::Index;
 
     Degree width;
     Degree depth;

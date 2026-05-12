@@ -131,6 +131,9 @@ Error<char const*> map_cuda_error(cudaError_t err) {
     return Error<char const*>(code, cudaGetErrorString(err));
 }
 
+
+
+
 } // namespace rpp::gpu
 
 #endif //RPP_GPU_DEVICE_HPP
