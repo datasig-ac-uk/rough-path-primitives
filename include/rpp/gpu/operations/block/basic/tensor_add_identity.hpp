@@ -19,6 +19,8 @@ class TensorAddIdentity<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlo
     using Accum = typename Strategy::Accum;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename Tensor>
     RPP_DEVICE void operator()(Context const &ctx, Tensor &tensor, Accum scalar = Accum{1}) const noexcept {
         if (ctx.thread_rank() == 0) {

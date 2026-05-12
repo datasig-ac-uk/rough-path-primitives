@@ -16,6 +16,8 @@ class VectorInplaceAdd : public BaseOperation<Strategy> {
 
 public:
     using Context = typename Strategy::Context;
+    static constexpr bool is_implemented = false;
+
 
     template<typename VectorLhs, typename VectorRhs>
     RPP_HOST_DEVICE

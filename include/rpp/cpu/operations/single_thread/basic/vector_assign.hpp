@@ -22,6 +22,8 @@ class VectorAssign<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> 
     using Context = typename Strategy::Context;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename VectorOut, typename VectorArg>
     void operator()(Context const& ctx, VectorOut& out, VectorArg const& arg) const noexcept {
         auto const& basis = out.basis();

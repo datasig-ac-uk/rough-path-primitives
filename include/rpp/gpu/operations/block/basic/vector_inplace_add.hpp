@@ -23,6 +23,8 @@ class VectorInplaceAdd<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBloc
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename VectorLhs, typename VectorRhs>
     RPP_DEVICE void operator()(Context const &ctx, VectorLhs &lhs, VectorRhs const &rhs,
                                Accum alpha = Accum{1}) const noexcept {

@@ -11,6 +11,8 @@ namespace rpp::ops {
 template<typename Strategy, typename=void>
 class FTFma : public BaseOperation<Strategy>{
 public:
+    static constexpr bool is_implemented = false;
+
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 

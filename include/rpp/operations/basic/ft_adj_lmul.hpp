@@ -5,6 +5,7 @@
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
+#include <rpp/support/error.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 
@@ -14,6 +15,8 @@ namespace rpp::ops {
 template <typename Strategy, typename=void>
 class FTAdjLMul : public BaseOperation<Strategy> {
 public:
+    static constexpr bool is_implemented = false;
+
     using Context = typename Strategy::Context;
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>

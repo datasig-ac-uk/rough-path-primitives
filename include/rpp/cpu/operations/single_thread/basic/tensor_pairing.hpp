@@ -20,6 +20,8 @@ class TensorPairing<cpu::strategies::SingleThreadStrategy<Accum, Architecture>> 
     using Context = typename Strategy::Context;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename Scalar, typename TensorFunc, typename TensorArg>
     void operator()(Context const& ctx, Scalar& out, TensorFunc const& functional, TensorArg const& arg) const noexcept {
         ignore_unused(ctx);

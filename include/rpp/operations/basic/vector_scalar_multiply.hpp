@@ -15,6 +15,8 @@ class VectorScalarMultiply : public BaseOperation<Strategy> {
     using Accum = typename Strategy::Accum;
 public:
     using Context = typename Strategy::Context;
+    static constexpr bool is_implemented = false;
+
 
     template<typename Vector>
     RPP_HOST_DEVICE

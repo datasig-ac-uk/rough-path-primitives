@@ -22,6 +22,8 @@ class FTInplaceMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSiz
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename TensorLhs, typename TensorRhs>
     RPP_DEVICE void operator()(Context const &ctx, TensorLhs &lhs, TensorRhs const &rhs,
                                Accum beta = Accum{1}) const noexcept {

@@ -63,6 +63,8 @@ class STMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : publi
     }
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>
     void operator()(Context const& ctx, TensorOut& out, TensorLhs const& lhs, TensorRhs const& rhs, Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorOut::value_type;

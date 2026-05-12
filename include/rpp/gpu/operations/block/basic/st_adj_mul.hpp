@@ -29,6 +29,8 @@ class STAdjMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize,
     SetConstant set_constant;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename TensorOut, typename TensorOp, typename TensorArg>
     RPP_DEVICE void operator()(Context const &ctx, TensorOut &out, TensorOp const &op,
                                TensorArg const &arg) const noexcept {

@@ -19,6 +19,8 @@ class STMul : public BaseOperation<Strategy> {
     using InplaceFMA = STInplaceFma<Strategy>;
     InplaceFMA fma;
 public:
+    static constexpr bool is_implemented = InplaceFMA::is_implemented;
+
     template <typename Basis>
     static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
         return InplaceFMA::scratch_space_size(strategy, basis);

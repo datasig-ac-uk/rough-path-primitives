@@ -32,6 +32,8 @@ class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize
     using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
     RPP_DEVICE void operator()(Context const &ctx, VectorOut &out,
                                VectorArg const &arg,

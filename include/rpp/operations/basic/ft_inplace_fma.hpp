@@ -22,6 +22,8 @@ class FTInplaceFma : public BaseOperation<Strategy> {
 
     using Accum = typename Strategy::Accum;
 public:
+    static constexpr bool is_implemented = false;
+
     template <typename TensorA, typename TensorB, typename TensorC>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorA& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {

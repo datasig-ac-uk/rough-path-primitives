@@ -28,6 +28,7 @@ class FTFMExp : public BaseOperation<Strategy> {
     Assign assign;
 public:
     using Context = typename Strategy::Context;
+    static constexpr bool is_implemented = InplaceFMA123::is_implemented && Assign::is_implemented;
 
     template <typename Basis>
     static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {

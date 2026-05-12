@@ -20,6 +20,7 @@ class FTMul : public BaseOperation<Strategy> {
     FMA fma;
 
 public:
+    static constexpr bool is_implemented = FMA::is_implemented;
 
     template <typename Basis>
     static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {

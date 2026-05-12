@@ -21,6 +21,8 @@ class FTFma<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Arch
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
     RPP_DEVICE void operator()(
         Context const &ctx,

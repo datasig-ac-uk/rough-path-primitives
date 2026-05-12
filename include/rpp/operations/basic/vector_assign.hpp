@@ -14,6 +14,8 @@ template <typename Strategy, typename=void>
 class VectorAssign : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 public:
+    static constexpr bool is_implemented = false;
+
     template <typename VectorOut, typename VectorArg>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, VectorOut& out, VectorArg const& arg) const noexcept {

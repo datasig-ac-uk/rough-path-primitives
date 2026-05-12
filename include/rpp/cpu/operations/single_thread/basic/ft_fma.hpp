@@ -26,6 +26,8 @@ class FTFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture> > : publ
     using Degree = typename Strategy::Degree;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
     void operator()(
         Context const &ctx,

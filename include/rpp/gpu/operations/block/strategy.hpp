@@ -8,22 +8,23 @@
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
+#include <rpp/support/error.hpp>
 
 #include <rpp/gpu/architecture.hpp>
+#include <rpp/gpu/operations/block/kernel.hpp>
 
 namespace rpp::gpu::strategies {
-
 inline constexpr unsigned dynamic_block_size = std::numeric_limits<unsigned>::max();
 
-template <typename Strategy>
+template<typename Strategy>
 inline constexpr bool is_block_strategy_v = false;
 
 namespace detail {
-
-template <typename Strategy_>
+template<typename Strategy_>
 class BlockContext {
 public:
     using Strategy = Strategy_;
+
     using BlockReduceArray = typename Strategy::BlockReduceArray;
     using Degree = typename Strategy::Degree;
     using Index = typename Strategy::Index;
@@ -34,15 +35,14 @@ public:
     static constexpr unsigned static_block_size = Strategy_::static_block_size;
 
     static constexpr bool static_small_block = static_block_size < Strategy::warp_size;
-private:
 
-    std::byte* smem_ptr_;
+private:
+    std::byte *smem_ptr_;
 
 public:
-
-    explicit constexpr BlockContext(std::byte* smem_ptr) noexcept
-        : smem_ptr_(smem_ptr)
-    {}
+    explicit constexpr BlockContext(std::byte *smem_ptr) noexcept
+        : smem_ptr_(smem_ptr) {
+    }
 
     RPP_DEVICE RPP_NODISCARD static constexpr unsigned thread_rank() noexcept {
         if constexpr (static_small_block) {
@@ -104,27 +104,27 @@ public:
         }
     }
 
-    template <typename SharedMemory>
+    template<typename SharedMemory>
     RPP_DEVICE constexpr decltype(auto) shared_memory() const noexcept {
         if constexpr (std::is_pointer_v<SharedMemory>) {
             return reinterpret_cast<SharedMemory>(smem_ptr_);
         } else {
-            return *reinterpret_cast<SharedMemory*>(smem_ptr_);
+            return *reinterpret_cast<SharedMemory *>(smem_ptr_);
         }
     }
 
-    template <typename T, typename Fn>
-    RPP_DEVICE static T warp_reduce(T val, Fn&& fn) noexcept {
+    template<typename T, typename Fn>
+    RPP_DEVICE static T warp_reduce(T val, Fn &&fn) noexcept {
         for (unsigned i = Strategy::warp_size / 2; i > 0; i /= 2) {
             val = fn(val, __shfl_down_sync(0xFFFFFFFF, val, i));
         }
         return val;
     }
 
-    template <typename T, typename Fn>
-    RPP_DEVICE T reduce(T val, Fn&& fn) const noexcept {
+    template<typename T, typename Fn>
+    RPP_DEVICE T reduce(T val, Fn &&fn) const noexcept {
         if constexpr (static_block_size == dynamic_block_size || static_block_size >= Strategy::warp_size) {
-            auto& smem = shared_memory<BlockReduceArray>();
+            auto &smem = shared_memory<BlockReduceArray>();
             val = warp_reduce(val, fn);
 
             const auto widx = warp_idx();
@@ -134,7 +134,7 @@ public:
             }
             sync();
 
-            Accum block_sum { 0 };
+            Accum block_sum{0};
             if (widx == 0) {
                 if (wlane < num_warps()) {
                     block_sum = smem[wlane];
@@ -151,8 +151,8 @@ public:
         }
     }
 
-    template <typename Basis>
-    RPP_DEVICE Degree low_range_degree(Basis const& basis) const noexcept {
+    template<typename Basis>
+    RPP_DEVICE Degree low_range_degree(Basis const &basis) const noexcept {
         Degree result = 0;
         const auto threads = static_cast<Index>(num_threads());
         while (result <= basis.depth && basis.start_of_degree(result) < threads) {
@@ -163,33 +163,30 @@ public:
 };
 
 
-template <unsigned BlockSize>
+template<unsigned BlockSize>
 struct BlockSizeHolder {
     static constexpr unsigned static_block_size = BlockSize;
     static constexpr unsigned block_size = BlockSize;
 
-    constexpr BlockSizeHolder(unsigned size) noexcept
-    {}
+    constexpr BlockSizeHolder(unsigned size) noexcept {
+    }
 };
 
-template <>
+template<>
 struct BlockSizeHolder<dynamic_block_size> {
     static constexpr unsigned static_block_size = dynamic_block_size;
     unsigned block_size;
 
     constexpr BlockSizeHolder(unsigned size) noexcept
-        : block_size(size)
-    {}
+        : block_size(size) {
+    }
 };
-
-
-
 } // namespace detail
 
 
-
-template <typename Accum_, unsigned BlockSize=dynamic_block_size, unsigned MaxBlockSize=256, typename Architecture_=arch::DefaultArchitecture>
-struct BlockStrategy : public detail::BlockSizeHolder<BlockSize>{
+template<typename Accum_, unsigned BlockSize = dynamic_block_size, unsigned MaxBlockSize = 256, typename Architecture_=
+    arch::DefaultArchitecture>
+struct BlockStrategy : public detail::BlockSizeHolder<BlockSize> {
     using Accum = Accum_;
     using Architecture = Architecture_;
     using Size = typename Architecture::Size;
@@ -199,6 +196,7 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize>{
     using Degree = typename Architecture::Degree;
 
     using Context = detail::BlockContext<BlockStrategy>;
+    using LaunchConfig = DeviceLaunchConfig;
 
     using detail::BlockSizeHolder<BlockSize>::block_size;
     using detail::BlockSizeHolder<BlockSize>::static_block_size;
@@ -216,7 +214,7 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize>{
         && block_size <= max_block_size
         && (block_size % warp_size) == 0,
         "invalid block configuration: block size must be a power of 2, within max block size, and divisible by warp size"
-        );
+    );
 
     using BlockReduceArray = Accum[max_warp_count];
 
@@ -243,22 +241,52 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize>{
         }
     }
 
-    RPP_DEVICE static constexpr Context make_context(std::byte* smem_bytes) noexcept {
+    RPP_DEVICE static constexpr Context make_context(std::byte *smem_bytes) noexcept {
         if constexpr (BlockSize < MaxBlockSize) {
-            return Context { smem_bytes + threadIdx.x / block_size };
+            return Context{smem_bytes + threadIdx.x / block_size};
         } else {
-            return Context { smem_bytes };
+            return Context{smem_bytes};
         }
     }
 
+
+    template<typename Op, typename Batches, typename Bases, typename... Extras>
+    RPP_HOST Error<char const *> launch(
+        LaunchConfig &&config,
+        Batches &&batches,
+        Bases &&bases,
+        Index batch_size,
+        Extras... extras
+    ) noexcept;
 };
 
 
-template <typename Accum, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
-inline constexpr bool is_block_strategy_v<BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture>> = true;
+template<typename Accum, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
+inline constexpr bool is_block_strategy_v<BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture> > = true;
 
 
+template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture_>
+template<typename Op, typename Batches, typename Bases, typename... Extras>
+Error<char const *> BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture_>::launch(LaunchConfig &&launch_config,
+    Batches &&batches, Bases &&bases, Index batch_size, Extras ... extras) noexcept {
+    constexpr auto kernel = block::kernel<Op, Batches, Bases, Extras...>;
+
+    cudaLaunchConfig_t config{};
+    config.blockDim = dim3{block_size};
+    config.stream = launch_config.stream;
+
+    const auto num_objects = objects_per_block();
+    config.gridDim = dim3{(batch_size + num_objects - 1) / num_objects};
+
+    config.dynamicSmemBytes = Op::scratch_space_size(*this, bases);
+
+    config.attrs = launch_config.launch_attributes.data();
+    config.numAttrs = static_cast<unsigned int>(launch_config.launch_attributes.size());
+
+    auto err = cudaLaunchKernelEx(&config, kernel, batches, bases, extras...);
+    return map_cuda_error(err);
 }
+} // namespace rpp::gpu::strategies
 
 
 #endif //RPP_GPU_OPERATIONS_BLOCK_STRATEGY_HPP

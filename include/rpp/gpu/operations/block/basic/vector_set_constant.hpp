@@ -22,6 +22,8 @@ class VectorSetConstant<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlo
 
 public:
 
+    static constexpr bool is_implemented = true;
+
     template <typename Vector, typename Value>
     RPP_DEVICE void operator()(Context const& ctx, Vector& vec, Value const& value) const noexcept {
         using Scalar = typename Vector::value_type;

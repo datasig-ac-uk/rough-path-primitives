@@ -20,6 +20,8 @@ class SparseMatrixVectorProduct : public BaseOperation<Strategy> {
     using MatrixView = typename sparse::MatrixView<Format, Args...>::type;
 
 public:
+    static constexpr bool is_implemented = false;
+
     template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
     RPP_HOST_DEVICE
     void operator()(

@@ -22,6 +22,8 @@ public:
     using Architecture_ = typename Strategy::Architecture;
     using Index = typename Strategy::Index;
 
+    static constexpr bool is_implemented = true;
+
 
     template<typename VectorOut, typename VectorArg>
     RPP_DEVICE void operator()(Context const &ctx, VectorOut &out, VectorArg const &arg) const noexcept {

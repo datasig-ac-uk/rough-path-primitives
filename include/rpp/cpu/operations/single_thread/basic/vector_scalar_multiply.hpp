@@ -20,6 +20,8 @@ class VectorScalarMultiply<cpu::strategies::SingleThreadStrategy<Accum_, Archite
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     using Context = typename Strategy::Context;
 
     template<typename Vector>

@@ -22,6 +22,8 @@ class VectorSetConstant<cpu::strategies::SingleThreadStrategy<Accum_, Architectu
     using Context = typename Strategy::Context;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename Vector, typename Value>
     void operator()(Context const& ctx, Vector& vec, Value const& value) const noexcept {
         std::fill(vec.begin(), vec.end(), value);

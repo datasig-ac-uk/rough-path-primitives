@@ -26,6 +26,8 @@ private:
     SetConstant set_constant;
 public:
 
+    static constexpr bool is_implemented = true;
+
 
 
     template <typename Tensor>

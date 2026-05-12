@@ -15,6 +15,8 @@ class STInplaceFma : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 public:
+    static constexpr bool is_implemented = false;
+
     template <typename TensorA, typename TensorB, typename TensorC>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorA& a, TensorB const& b, TensorC const& c, Accum alpha=Accum{1}, Accum beta=Accum{1}) const noexcept {

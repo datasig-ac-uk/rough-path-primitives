@@ -14,6 +14,8 @@ template <typename Strategy, typename=void>
 class STAdjMul : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 public:
+    static constexpr bool is_implemented = false;
+
     template <typename TensorOut, typename TensorOp, typename TensorArg>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {

@@ -22,6 +22,8 @@ class TensorSetIdentity<cpu::strategies::SingleThreadStrategy<Accum_, Architectu
     using Accum = typename Strategy::Accum;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename Tensor>
     void operator()(Context const& ctx, Tensor& tensor, Accum scalar = Accum{1}) const noexcept {
         tensor[0] = scalar;

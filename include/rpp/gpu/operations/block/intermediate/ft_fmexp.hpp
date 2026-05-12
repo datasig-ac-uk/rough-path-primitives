@@ -29,6 +29,8 @@ class FTFMExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Ar
     Assign assign;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename Basis>
     static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
         return std::max(InplaceFMA123::scratch_space_size(strategy, basis), Assign::scratch_space_size(strategy, basis));

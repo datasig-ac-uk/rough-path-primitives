@@ -63,6 +63,8 @@ class STFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : publi
     }
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
     void operator()(
         Context const& ctx,

@@ -32,6 +32,8 @@ class FTExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Arch
     AddIdentity add_identity;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename Basis>
     static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
         return std::max(InplaceMul::scratch_space_size(strategy, basis),

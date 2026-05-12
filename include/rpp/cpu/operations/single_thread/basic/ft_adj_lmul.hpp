@@ -21,6 +21,9 @@ class FTAdjLMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture> > : 
     using Degree = typename Strategy::Degree;
 
 public:
+    static constexpr bool is_implemented = true;
+
+
     template<typename TensorOut, typename TensorOp, typename TensorArg>
     void operator()(Context const &ctx, TensorOut &out, TensorOp const &op, TensorArg const &arg) const noexcept {
         /*

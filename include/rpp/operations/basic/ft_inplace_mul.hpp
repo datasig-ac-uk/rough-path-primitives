@@ -15,6 +15,8 @@ class FTInplaceMul : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 public:
+    static constexpr bool is_implemented = false;
+
     template <typename TensorLhs, typename TensorRhs>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, TensorLhs& lhs, TensorRhs const& rhs, Accum beta=Accum{1}) const noexcept {

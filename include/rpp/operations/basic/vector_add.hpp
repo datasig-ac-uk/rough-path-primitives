@@ -16,6 +16,7 @@ class VectorAdd : public BaseOperation<Strategy> {
 
 public:
     using Context = typename Strategy::Context;
+    static constexpr bool is_implemented = false;
 
     template<typename VectorOut, typename VectorLhs, typename VectorRhs> RPP_HOST_DEVICE
     void operator()(Context const &ctx, VectorOut &out, VectorLhs const &lhs, VectorRhs const &rhs,

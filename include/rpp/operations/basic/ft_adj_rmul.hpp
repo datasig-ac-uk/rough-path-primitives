@@ -14,6 +14,8 @@ namespace rpp::ops {
 template <typename Strategy, typename=void>
 class FTAdjRMul : public BaseOperation<Strategy> {
 public:
+    static constexpr bool is_implemented = false;
+
     using Context = typename Strategy::Context;
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>

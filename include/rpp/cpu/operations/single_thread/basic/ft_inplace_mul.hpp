@@ -25,6 +25,8 @@ class FTInplaceMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> 
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename TensorLhs, typename TensorRhs>
     void operator()(Context const& ctx, TensorLhs& lhs, TensorRhs const& rhs, Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorLhs::value_type;

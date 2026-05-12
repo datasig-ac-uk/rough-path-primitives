@@ -19,6 +19,8 @@ template <typename Strategy, TensorAntipodeSigningPolicy Policy, typename=void>
 class TensorGeneralisedAntipode : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 public:
+    static constexpr bool is_implemented = false;
+
     template <typename TensorOut, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
         static_assert(

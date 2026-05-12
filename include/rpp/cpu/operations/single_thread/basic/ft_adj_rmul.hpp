@@ -40,6 +40,8 @@ class FTAdjRMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : p
     }
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename Basis>
     static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
         ignore_unused(strategy);

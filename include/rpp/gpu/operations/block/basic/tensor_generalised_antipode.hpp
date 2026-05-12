@@ -21,6 +21,8 @@ class TensorGeneralisedAntipode<gpu::strategies::BlockStrategy<Accum_, BlockSize
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
 
 public:
+    static constexpr bool is_implemented = true;
+
     using Context = typename Strategy::Context;
 
     template <typename TensorOut, typename TensorArg>

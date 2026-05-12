@@ -22,6 +22,8 @@ class VectorScalarMultiply<gpu::strategies::BlockStrategy<Accum_, BlockSize, Max
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename Vector>
     RPP_DEVICE void operator()(Context const &ctx, Vector &vec, Accum scalar) const noexcept {
         using Scalar = typename Vector::value_type;

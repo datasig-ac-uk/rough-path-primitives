@@ -24,6 +24,8 @@ class VectorInplaceAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architectur
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename VectorLhs, typename VectorRhs>
     void operator()(Context const& ctx, VectorLhs& lhs, VectorRhs const& rhs, Accum alpha = Accum{1}) const noexcept {
         using Scalar = typename VectorLhs::value_type;

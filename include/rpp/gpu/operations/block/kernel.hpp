@@ -5,26 +5,20 @@
 #include <tuple>
 #include <utility>
 
+#include <cuda_runtime.h>
+
 #include <rpp/config.h>
+#include <rpp/support/error.hpp>
 
 #include <rpp/basis/basis_pack.hpp>
 
-#include <rpp/gpu/operations/block/strategy.hpp>
+#include <rpp/gpu/device.hpp>
+
+#include <rpp/operations/base_operation.hpp>
 
 namespace rpp::gpu::block {
 namespace detail {
-template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename... Extras, size_t... Is>
-void invoke_impl(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
-                 Extras &&... extras, std::index_sequence<Is...>) {
-    op(ctx, batch_mapper(std::get<Is>(batches))..., std::forward<Extras>(extras)...);
-}
 
-
-template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename... Extras>
-void invoke(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
-            Extras &&... extras) {
-    invoke_impl(op, ctx, batch_mapper, batches, extras..., std::make_index_sequence<std::tuple_size_v<BatchTuple> >());
-}
 } // namespace detail
 
 template<
@@ -33,17 +27,13 @@ template<
     typename... BatchArgs,
     typename... Extras
 >
-RPP_KERNEL void block_kernel(
-    const BasisPack<Bases...> bases,
+RPP_KERNEL void kernel(
     const std::tuple<BatchArgs...> batches,
+    const BasisPack<Bases...> bases,
     const typename Op::Index batch_size,
     const Extras... extras
 ) {
     using Strategy = typename Op::Strategy;
-
-    static_assert(strategies::is_block_strategy_v<Strategy>,
-                  "this kernel is for block strategies only");
-
 
     extern __shared__ std::byte smem_bytes[];
 
@@ -54,10 +44,30 @@ RPP_KERNEL void block_kernel(
     const auto work_idx = Strategy::object_index(blockIdx.x, threadIdx.x);
     if (work_idx >= batch_size) { return; }
 
-    detail::invoke(Op{}, ctx, [&](auto const &batch) { return batch.view(work_idx, bases); }, batches, extras...);
+    ops::invoke(Op{}, ctx, [&](auto const &batch) { return batch.view(work_idx, bases); }, batches, extras...);
 
     Op::destroy_scratch_mem(ctx, bases);
 }
+
+
+template<
+    typename Op,
+    typename BasisPack,
+    typename BatchTuple,
+    typename... Extras
+>
+Error<char const *> block_impl(
+    typename Op::Strategy const &strategy,
+    DeviceLaunchConfig launch_config,
+    BatchTuple const &batches,
+    BasisPack const &bases,
+    typename Op::Strategy::Index batch_size,
+    Extras... extras) noexcept {
+    constexpr auto kernel = block_kernel<Op, BasisPack, BatchTuple, Extras...>;
+    using Strategy = typename Op::Strategy;
+
+}
+
 } // namespace rpp::gpu::block
 
 #endif //RPP_GPU_OPERATIONS_BLOCK_KERNEL_HPP

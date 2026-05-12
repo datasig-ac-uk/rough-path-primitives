@@ -15,6 +15,8 @@ class VectorSetConstant : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 public:
+    static constexpr bool is_implemented = false;
+
     template <typename Vector>
     RPP_HOST_DEVICE
     void operator()(Context const& ctx, Vector& vec, Accum const& value=Accum{}) const noexcept {

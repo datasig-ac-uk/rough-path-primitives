@@ -30,6 +30,8 @@ class ops::FTFMExp<cpu::strategies::SingleThreadStrategy<Accum_,
     FTInplaceMul<Strategy> inplace_mul;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename TensorOut, typename TensorMultiplier, typename TensorExponent>
     void operator()(Context const &ctx, TensorOut &out, TensorMultiplier const &multiplier,
                     TensorExponent const &exponent) const noexcept {

@@ -28,6 +28,8 @@ class STAdjMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : pu
     using Bitmask = typename Strategy::Bitmask;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename TensorOut, typename TensorOp, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
         using Scalar = typename TensorOut::value_type;

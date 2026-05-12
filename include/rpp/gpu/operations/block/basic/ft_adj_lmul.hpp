@@ -27,6 +27,8 @@ class FTAdjLMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize,
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename Basis>
     static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
         ignore_unused(strategy, basis);
@@ -119,7 +121,11 @@ RPP_KERNEL void ft_adj_lmul_kernel(
     auto arg = batch_arg.view(my_index, basis);
     op(ctx, out, op_tensor, arg);
 }
-}
+
+
+
+
+} // namespace gpu::block
 } // namespace rpp
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_ADJ_LMUL_HPP

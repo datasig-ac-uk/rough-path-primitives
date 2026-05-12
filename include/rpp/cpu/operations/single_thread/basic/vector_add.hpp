@@ -21,6 +21,8 @@ class VectorAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>> : 
 
 
 public:
+    static constexpr bool is_implemented = true;
+
     using Context = typename Strategy::Context;
 
     template<typename VectorOut, typename VectorLhs, typename VectorRhs> RPP_HOST_DEVICE

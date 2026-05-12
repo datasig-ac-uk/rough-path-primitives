@@ -22,6 +22,8 @@ class TensorGeneralisedAntipode<cpu::strategies::SingleThreadStrategy<Accum_, Ar
     using Context = typename Strategy::Context;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename TensorOut, typename TensorArg>
     void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
 

@@ -58,6 +58,8 @@ class FTInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>, 
     using Degree = typename Strategy::Degree;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename TensorA, typename TensorB, typename TensorC>
     void operator()(
         Context const &ctx,

@@ -20,6 +20,8 @@ class TensorPairing<gpu::strategies::BlockStrategy<Accum, BlockSize, MaxBlockSiz
     using Context = typename Strategy::Context;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename Basis>
     static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
         ignore_unused(strategy, basis);

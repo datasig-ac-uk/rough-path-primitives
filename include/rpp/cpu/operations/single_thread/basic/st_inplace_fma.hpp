@@ -63,6 +63,8 @@ class STInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> 
     }
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename TensorA, typename TensorB, typename TensorC>
     void operator()(
         Context const& ctx,

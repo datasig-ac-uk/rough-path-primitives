@@ -15,6 +15,8 @@ class TensorPairing : public BaseOperation<Strategy> {
 public:
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
+    static constexpr bool is_implemented = false;
+
 
     template <typename Scalar, typename TensorFunc, typename TensorArg>
     RPP_HOST_DEVICE

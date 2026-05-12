@@ -31,6 +31,8 @@ class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Ar
     using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template <typename VectorOut, typename DataIter, typename IndexIter, typename OffsetsIter, typename VectorArg>
        void operator()(
            Context const& ctx,

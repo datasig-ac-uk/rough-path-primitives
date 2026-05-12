@@ -21,6 +21,8 @@ class FTMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Arch
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename TensorOut, typename TensorLhs, typename TensorRhs>
     RPP_DEVICE void operator()(Context const &ctx, TensorOut &out, TensorLhs const &lhs, TensorRhs const &rhs,
                                Accum beta = Accum{1}) const noexcept {

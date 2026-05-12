@@ -13,8 +13,7 @@
 #include <rpp/operations/basic/tensor_set_identity.hpp>
 
 namespace rpp::ops {
-
-template <typename Strategy, typename=void>
+template<typename Strategy, typename=void>
 class FTExp : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -29,18 +28,21 @@ class FTExp : public BaseOperation<Strategy> {
     AddIdentity add_identity;
 
 public:
-    template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+    static constexpr bool is_implemented = InplaceMul::is_implemented && SetIdentity::is_implemented &&
+                                           AddIdentity::is_implemented;
+
+    template<typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
         return std::max(InplaceMul::scratch_space_size(strategy, basis),
-            std::max(SetIdentity::scratch_space_size(strategy, basis),
-                        AddIdentity::scratch_space_size(strategy, basis)));
+                        std::max(SetIdentity::scratch_space_size(strategy, basis),
+                                 AddIdentity::scratch_space_size(strategy, basis)));
     }
 
-    template <typename TensorOut, typename TensorArg>
+    template<typename TensorOut, typename TensorArg>
     RPP_HOST_DEVICE
-    void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
-        auto const& basis = out.basis();
-        const Accum one { 1 };
+    void operator()(Context const &ctx, TensorOut &out, TensorArg const &arg) const noexcept {
+        auto const &basis = out.basis();
+        const Accum one{1};
 
         set_identity(ctx, out);
 
@@ -56,7 +58,6 @@ public:
         }
     }
 };
-
 } // namespace rpp::ops
 
 

@@ -22,6 +22,8 @@ class FTInplaceFma<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSiz
     using Index = typename Strategy::Index;
 
 public:
+    static constexpr bool is_implemented = true;
+
     template<typename TensorA, typename TensorB, typename TensorC>
     RPP_DEVICE void operator()(
         Context const &ctx,
