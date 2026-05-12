@@ -43,7 +43,7 @@ auto ft_adj_lmul(
     BatchOp const& op,
     BatchArg const& arg,
     Basis const& basis,
-    typename Strategy::Index batch_size
+    typename Strategy::Index num_batches
     ) noexcept {
     using Op = FTAdjLMul<Strategy>;
 
@@ -60,8 +60,8 @@ auto ft_adj_lmul(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(out, op, arg),
-        basis,
-        batch_size
+        make_basis_pack(basis),
+        num_batches
         );
 }
 

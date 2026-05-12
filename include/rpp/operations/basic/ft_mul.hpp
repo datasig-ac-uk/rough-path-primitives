@@ -44,7 +44,7 @@ auto ft_mul(
     BatchLhs const& lhs,
     BatchRhs const& rhs,
     Basis const& basis,
-    typename Strategy::Index batch_size,
+    typename Strategy::Index num_batches,
     typename Strategy::Accum beta = typename Strategy::Accum{1}
     ) noexcept {
     using Op = FTMul<Strategy>;
@@ -62,8 +62,8 @@ auto ft_mul(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(out, lhs, rhs),
-        basis,
-        batch_size,
+        make_basis_pack(basis),
+        num_batches,
         beta
         );
 }

@@ -38,7 +38,7 @@ auto st_inplace_fma(
     BatchB const& b,
     BatchC const& c,
     Basis const& basis,
-    typename Strategy::Index batch_size,
+    typename Strategy::Index num_batches,
     typename Strategy::Accum alpha = typename Strategy::Accum{1},
     typename Strategy::Accum beta = typename Strategy::Accum{1}
     ) noexcept {
@@ -57,8 +57,8 @@ auto st_inplace_fma(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(a, b, c),
-        basis,
-        batch_size,
+        make_basis_pack(basis),
+        num_batches,
         alpha,
         beta
         );

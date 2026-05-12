@@ -52,15 +52,22 @@ public:
     }
 };
 
-template <typename Strategy, typename TensorBatchOut, typename LieBatchIn, typename Matrix, typename Bases>
+template <typename Strategy,
+    typename TensorBatchOut,
+    typename LieBatchIn,
+    typename Matrix,
+    typename TensorBasis,
+    typename LieBasis
+>
 auto lie_to_tensor(
     Strategy const& strategy,
     typename Strategy::LaunchConfig config,
     TensorBatchOut const& out,
     LieBatchIn const& arg,
-    Matrix const& matrix,
-    Bases const& bases,
-    typename Strategy::Index batch_size
+    TensorBasis const& tensor_basis,
+    LieBasis const& lie_basis,
+    typename Strategy::Index num_batches,
+    Matrix const& matrix
     ) noexcept {
     static constexpr auto implementation = sparse::matrix_format_v<Matrix> == sparse::MatrixFormat::CSR
         ? L2TImplementationType::CSRSparseMatrix
@@ -80,8 +87,8 @@ auto lie_to_tensor(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(out, arg),
-        bases,
-        batch_size,
+        make_basis_pack(tensor_basis, lie_basis),
+        num_batches,
         matrix
         );
 }

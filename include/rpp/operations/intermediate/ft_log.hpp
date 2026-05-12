@@ -72,7 +72,7 @@ auto ft_log(
     BatchOut const& out,
     BatchArg const& arg,
     Basis const& basis,
-    typename Strategy::Index batch_size
+    typename Strategy::Index num_batches
     ) noexcept {
     using Op = FTLog<Strategy>;
 
@@ -89,8 +89,8 @@ auto ft_log(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(out, arg),
-        basis,
-        batch_size
+        make_basis_pack(basis),
+        num_batches
         );
 }
 } // namespace rpp::ops

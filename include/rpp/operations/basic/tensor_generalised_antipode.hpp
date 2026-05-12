@@ -40,7 +40,7 @@ auto tensor_generalised_antipode(
     BatchOut const &out,
     BatchArg const &arg,
     Basis const &basis,
-    typename Strategy::Index batch_size
+    typename Strategy::Index num_batches
 ) noexcept {
     using Op = TensorGeneralisedAntipode<Strategy, Policy>;
 
@@ -58,8 +58,8 @@ auto tensor_generalised_antipode(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(out, arg),
-        basis,
-        batch_size
+        make_basis_pack(basis),
+        num_batches
     );
 }
 

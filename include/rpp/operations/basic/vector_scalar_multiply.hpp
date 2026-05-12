@@ -37,7 +37,7 @@ auto vector_scalar_multiply(
     typename Strategy::LaunchConfig config,
     BatchVector const& vec,
     Basis const& basis,
-    typename Strategy::Index batch_size,
+    typename Strategy::Index num_batches,
     typename Strategy::Accum scalar
     ) noexcept {
     using Op = VectorScalarMultiply<Strategy>;
@@ -56,8 +56,8 @@ auto vector_scalar_multiply(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(vec),
-        basis,
-        batch_size,
+        make_basis_pack(basis),
+        num_batches,
         scalar
         );
 }

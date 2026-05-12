@@ -65,7 +65,7 @@ auto ft_fmexp(
     BatchMultiplier const& multiplier,
     BatchExponent const& exponent,
     Basis const& basis,
-    typename Strategy::Index batch_size
+    typename Strategy::Index num_batches
     ) noexcept {
     using Op = FTFMExp<Strategy>;
 
@@ -82,8 +82,8 @@ auto ft_fmexp(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(out, multiplier, exponent),
-        basis,
-        batch_size
+        make_basis_pack(basis),
+        num_batches
         );
 }
 

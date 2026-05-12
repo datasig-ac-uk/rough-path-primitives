@@ -39,7 +39,7 @@ auto tensor_pairing(
     FunctionalBatch const& functional,
     ArgBatch const& arg,
     Basis const& basis,
-    typename Strategy::Index batch_size
+    typename Strategy::Index num_batches
     ) noexcept {
     using Op = TensorPairing<Strategy>;
 
@@ -56,8 +56,8 @@ auto tensor_pairing(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(result, functional, arg),
-        basis,
-        batch_size
+        make_basis_pack(basis),
+        num_batches
         );
 }
 

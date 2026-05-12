@@ -41,15 +41,22 @@ public:
     }
 };
 
-template <typename Strategy, typename BatchOut, typename BatchArg, typename Matrix, typename Bases>
+template <typename Strategy,
+          typename BatchOut,
+          typename BatchArg,
+          typename Matrix,
+          typename OutBasis,
+          typename ArgBasis
+          >
 auto sparse_matrix_vector_product(
     Strategy const& strategy,
     typename Strategy::LaunchConfig config,
     BatchOut const& out,
     BatchArg const& arg,
+    OutBasis const& out_basis,
+    ArgBasis const& arg_basis,
+    typename Strategy::Index num_batches,
     Matrix const& matrix,
-    Bases const& bases,
-    typename Strategy::Index batch_size,
     typename Strategy::Accum alpha = typename Strategy::Accum{1}
     ) noexcept {
     static constexpr auto format = sparse::matrix_format_v<Matrix>;
@@ -69,8 +76,8 @@ auto sparse_matrix_vector_product(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(out, arg),
-        bases,
-        batch_size,
+        make_basis_pack(out_basis, arg_basis),
+        num_batches,
         matrix,
         alpha
         );

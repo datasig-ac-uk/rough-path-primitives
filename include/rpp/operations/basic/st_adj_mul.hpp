@@ -37,7 +37,7 @@ auto st_adj_mul(
     BatchOp const& op,
     BatchArg const& arg,
     Basis const& basis,
-    typename Strategy::Index batch_size
+    typename Strategy::Index num_batches
     ) noexcept {
     using Op = STAdjMul<Strategy>;
 
@@ -54,8 +54,8 @@ auto st_adj_mul(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(out, op, arg),
-        basis,
-        batch_size
+        make_basis_pack(basis),
+        num_batches
         );
 }
 

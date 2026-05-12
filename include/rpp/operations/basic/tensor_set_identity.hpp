@@ -37,7 +37,7 @@ auto tensor_set_identity(
     typename Strategy::LaunchConfig config,
     BatchTensor const& tensor,
     Basis const& basis,
-    typename Strategy::Index batch_size,
+    typename Strategy::Index num_batches,
     typename Strategy::Accum scalar = typename Strategy::Accum{1}
     ) noexcept {
     using Op = TensorSetIdentity<Strategy>;
@@ -56,8 +56,8 @@ auto tensor_set_identity(
     return strategy.template launch<Op>(
         std::move(config),
         std::make_tuple(tensor),
-        basis,
-        batch_size,
+        make_basis_pack(basis),
+        num_batches,
         scalar
         );
 }
