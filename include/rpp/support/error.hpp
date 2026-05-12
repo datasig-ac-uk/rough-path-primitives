@@ -203,6 +203,21 @@ public:
 
 
 
+template <typename Fn>
+RPP_NODISCARD Error<std::string> catch_exceptions(Fn&& fn) {
+    using Error = Error<std::string>;
+    try {
+        fn();
+        return Error{ErrorCode::Ok};
+    } catch (std::invalid_argument& err) {
+        return Error{ ErrorCode::InvalidArgument, err.what() };
+    } catch (std::out_of_range& err) {
+        return Error{ ErrorCode::OutOfBounds, err.what() };
+    } catch (std::exception& err) {
+        return Error{ ErrorCode::Internal, err.what() };
+    }
+}
+
 
 } // namespace rpp
 

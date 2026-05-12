@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <utility>
+#include <type_traits>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -34,6 +36,19 @@ public:
     }
 };
 
+namespace detail {
+template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename... Extras, size_t... Is>
+void invoke_impl(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
+                 Extras &&... extras, std::index_sequence<Is...>) {
+    op(ctx, batch_mapper(std::get<Is>(batches))..., std::forward<Extras>(extras)...);
+}
+}
+
+template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename... Extras>
+void invoke(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
+            Extras &&... extras) {
+    detail::invoke_impl(op, ctx, batch_mapper, batches, extras..., std::make_index_sequence<std::tuple_size_v<BatchTuple> >());
+}
 
 } // namespace rpp::ops
 

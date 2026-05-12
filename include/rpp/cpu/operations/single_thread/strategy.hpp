@@ -3,8 +3,16 @@
 
 #include <cstddef>
 #include <type_traits>
+#include <utility>
+#include <tuple>
+#include <vector>
+#include <string>
 
 #include <rpp/config.h>
+
+#include <rpp/support/error.hpp>
+#include <rpp/operations/base_operation.hpp>
+#include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
 
 namespace rpp::cpu::strategies {
 
@@ -46,6 +54,9 @@ public:
         }
     }
 
+};
+
+struct LaunchConfig {
 
 };
 
@@ -59,17 +70,45 @@ struct SingleThreadStrategy {
     using Index = typename Architecture::Index;
     using Letter = typename Architecture::Letter;
     using Bitmask = typename Architecture::Bitmask;
+    using LaunchConfig = detail::LaunchConfig;
 
     using Context = detail::ThreadContext<SingleThreadStrategy<Accum_, Architecture_>>;
 
     static constexpr Context make_context(std::byte* scratch_bytes) noexcept {
         return Context(scratch_bytes);
     }
+
+
+
+    template <typename Op, typename Batches, typename Bases, typename... Extras>
+    RPP_HOST Error<std::string> launch(
+        LaunchConfig launch_config,
+        Batches batches,
+        Bases bases,
+        Index batch_size,
+        Extras... extras
+        ) noexcept;
+
 };
 
 
+template<typename Accum_, typename Architecture_>
+template<typename Op, typename Batches, typename Bases, typename ... Extras>
+Error<std::string> SingleThreadStrategy<Accum_, Architecture_>::launch(
+    LaunchConfig launch_config RPP_MAYBE_UNUSED,
+    Batches batches,
+    Bases bases, Index batch_size, Extras... extras) noexcept {
 
+    const auto scratch_size = Op::scratch_space_size(*this, bases);
+    std::vector<std::byte> scratch_bytes(scratch_size);
+    const auto ctx = make_context(scratch_bytes.data());
 
+    return catch_exceptions([&, op=Op{}] {
+        for (Index idx=0; idx<batch_size; ++idx) {
+            ops::invoke(op, ctx, [&](auto const& batch) { return batch.view(idx, bases); }, batches, extras...);
+        }
+    });
+}
 } // namespace rpp::cpu::strategies
 
 #endif //RPP_CPU_OPERATIONS_SINGLE_THREAD_STRATEGY_HPP

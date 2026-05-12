@@ -172,11 +172,13 @@ if (RPP_ENABLE_CUDA)
             basic/detail/ft_adjoint_multiply.hpp
             basic/detail/ft_multiply.hpp
             basic/detail/st_multiply.hpp
+            kernel.hpp
     )
 
     set(RPP_GPU_SOURCES
             include/rpp/gpu/architecture.hpp
             include/rpp/gpu/strategies.hpp
+            include/rpp/gpu/device.hpp
             ${RPP_GPU_BLOCK_OPS}
     )
 
