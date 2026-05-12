@@ -2,6 +2,8 @@
 #define RPP_OPERATIONS_BASIC_FT_MUL_HPP
 
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -33,6 +35,38 @@ public:
         fma(ctx, out, lhs, rhs, Accum{0}, beta);
     }
 };
+
+template <typename Strategy, typename BatchOut, typename BatchLhs, typename BatchRhs, typename Basis>
+auto ft_mul(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    BatchOut const& out,
+    BatchLhs const& lhs,
+    BatchRhs const& rhs,
+    Basis const& basis,
+    typename Strategy::Index batch_size,
+    typename Strategy::Accum beta = typename Strategy::Accum{1}
+    ) noexcept {
+    using Op = FTMul<Strategy>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"FTMul\" that implements \"ft_mul\" "
+        "is not implemented. This either means that the Strategy object is invalid, "
+        "or that the necessary specialisation headers have not been included. "
+        "For example, you may need to add the following include directive to "
+        "bring in the single-threaded CPU implementation of this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/basic/ft_mul.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(out, lhs, rhs),
+        basis,
+        batch_size,
+        beta
+        );
+}
 
 
 

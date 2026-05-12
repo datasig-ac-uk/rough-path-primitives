@@ -2,6 +2,8 @@
 #define RPP_OPERATIONS_BASIC_TENSOR_TO_LIE_HPP
 
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -45,6 +47,40 @@ public:
         impl(ctx, out, arg, matrix);
     }
 };
+
+template <typename Strategy, typename LieBatchOut, typename TensorBatchIn, typename Matrix, typename Bases>
+auto tensor_to_lie(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    LieBatchOut const& out,
+    TensorBatchIn const& arg,
+    Matrix const& matrix,
+    Bases const& bases,
+    typename Strategy::Index batch_size
+    ) noexcept {
+    static constexpr auto implementation = sparse::matrix_format_v<Matrix> == sparse::MatrixFormat::CSR
+        ? T2LImplementationType::CSRSparseMatrix
+        : T2LImplementationType::CSCSparseMatrix;
+    using Op = TensorToLie<Strategy, implementation>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"TensorToLie\" that implements \"tensor_to_lie\" "
+        "is not implemented. This either means that the Strategy object is invalid, "
+        "or that the necessary specialisation headers have not been included. "
+        "For example, you may need to add the following include directive to "
+        "bring in the single-threaded CPU implementation of this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/basic/tensor_to_lie.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(out, arg),
+        bases,
+        batch_size,
+        matrix
+        );
+}
 
 
 } // namespace rpp::ops

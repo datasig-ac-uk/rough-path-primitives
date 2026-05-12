@@ -2,6 +2,8 @@
 #define RPP_OPERATIONS_BASIC_VECTOR_ADD_HPP
 
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -28,6 +30,40 @@ public:
         );
     }
 };
+
+template <typename Strategy, typename BatchOut, typename BatchLhs, typename BatchRhs, typename Basis>
+auto vector_add(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    BatchOut const& out,
+    BatchLhs const& lhs,
+    BatchRhs const& rhs,
+    Basis const& basis,
+    typename Strategy::Index batch_size,
+    typename Strategy::Accum alpha = typename Strategy::Accum{1},
+    typename Strategy::Accum beta = typename Strategy::Accum{1}
+    ) noexcept {
+    using Op = VectorAdd<Strategy>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"VectorAdd\" that implements \"vector_add\" "
+        "is not implemented. This either means that the Strategy object is invalid, "
+        "or that the necessary specialisation headers have not been included. "
+        "For example, you may need to add the following include directive to "
+        "bring in the single-threaded CPU implementation of this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/basic/vector_add.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(out, lhs, rhs),
+        basis,
+        batch_size,
+        alpha,
+        beta
+        );
+}
 
 } // namespace rpp::ops
 

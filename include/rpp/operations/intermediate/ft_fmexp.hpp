@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -54,6 +56,36 @@ public:
         }
     }
 };
+
+template <typename Strategy, typename BatchOut, typename BatchMultiplier, typename BatchExponent, typename Basis>
+auto ft_fmexp(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    BatchOut const& out,
+    BatchMultiplier const& multiplier,
+    BatchExponent const& exponent,
+    Basis const& basis,
+    typename Strategy::Index batch_size
+    ) noexcept {
+    using Op = FTFMExp<Strategy>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"FTFMExp\" that implements \"ft_fmexp\" "
+        "is not implemented. This either means that the Strategy object is invalid, "
+        "or that the necessary specialisation headers have not been included. "
+        "For example, you may need to add the following include directive to "
+        "bring in the single-threaded CPU implementation of this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/intermediate/ft_fmexp.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(out, multiplier, exponent),
+        basis,
+        batch_size
+        );
+}
 
 } // namespace rpp::ops
 

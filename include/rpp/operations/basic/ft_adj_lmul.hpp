@@ -2,6 +2,8 @@
 #define RPP_OPERATIONS_BASIC_FT_ADJ_LMUL_HPP
 
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -29,6 +31,39 @@ public:
         );
     }
 };
+
+
+
+
+template <typename Strategy, typename BatchOut, typename BatchOp, typename BatchArg, typename Basis>
+auto ft_adj_lmul(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    BatchOut const& out,
+    BatchOp const& op,
+    BatchArg const& arg,
+    Basis const& basis,
+    typename Strategy::Index batch_size
+    ) noexcept {
+    using Op = FTAdjLMul<Strategy>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"FTAdjLMul\" that implements \"ft_adj_lmul\" "
+        "is not implemented. This either means that the Strategy object is invalid, "
+        "or that the necessary specialisation headers have not been included. "
+        "For example, you may need to add the following include directive to "
+        "bring in the single-threaded CPU implementation of this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/basic/ft_adj_lmul.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(out, op, arg),
+        basis,
+        batch_size
+        );
+}
 
 } // namespace rpp::ops
 

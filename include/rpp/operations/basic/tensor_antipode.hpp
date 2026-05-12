@@ -1,6 +1,42 @@
 #ifndef RPP_OPERATIONS_BASIC_TENSOR_ANTIPODE_HPP
 #define RPP_OPERATIONS_BASIC_TENSOR_ANTIPODE_HPP
 
+#include <tuple>
+#include <utility>
+
 #include <rpp/operations/basic/tensor_generalised_antipode.hpp>
+
+namespace rpp::ops {
+
+template <typename Strategy, typename BatchOut, typename BatchArg, typename Basis>
+auto tensor_antipode(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    BatchOut const& out,
+    BatchArg const& arg,
+    Basis const& basis,
+    typename Strategy::Index batch_size
+    ) noexcept {
+    using Op = TensorAntipode<Strategy>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"TensorAntipode\" that implements \"tensor_antipode\" "
+        "is not implemented. This either means that the Strategy object is invalid, "
+        "or that the necessary specialisation headers have not been included. "
+        "For example, you may need to add the following include directive to "
+        "bring in the single-threaded CPU implementation of this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/basic/tensor_antipode.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(out, arg),
+        basis,
+        batch_size
+        );
+}
+
+} // namespace rpp::ops
 
 #endif //RPP_OPERATIONS_BASIC_TENSOR_ANTIPODE_HPP

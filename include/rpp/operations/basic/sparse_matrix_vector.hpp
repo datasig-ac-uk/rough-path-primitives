@@ -2,6 +2,8 @@
 #define RPP_OPERATIONS_BASIC_SPARSE_MATRIX_VECTOR_HPP
 
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -38,6 +40,41 @@ public:
         );
     }
 };
+
+template <typename Strategy, typename BatchOut, typename BatchArg, typename Matrix, typename Bases>
+auto sparse_matrix_vector_product(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    BatchOut const& out,
+    BatchArg const& arg,
+    Matrix const& matrix,
+    Bases const& bases,
+    typename Strategy::Index batch_size,
+    typename Strategy::Accum alpha = typename Strategy::Accum{1}
+    ) noexcept {
+    static constexpr auto format = sparse::matrix_format_v<Matrix>;
+    using Op = SparseMatrixVectorProduct<Strategy, format>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"SparseMatrixVectorProduct\" that implements "
+        "\"sparse_matrix_vector_product\" is not implemented. This either means "
+        "that the Strategy object is invalid, or that the necessary specialisation "
+        "headers have not been included. For example, you may need to add the "
+        "following include directive to bring in the single-threaded CPU "
+        "implementation of this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/basic/sparse_matrix_vector.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(out, arg),
+        bases,
+        batch_size,
+        matrix,
+        alpha
+        );
+}
 
 
 } // namespace rpp::ops

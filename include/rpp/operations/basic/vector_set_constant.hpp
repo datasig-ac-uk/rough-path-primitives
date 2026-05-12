@@ -2,6 +2,8 @@
 #define RPP_OPERATIONS_BASIC_VECTOR_SET_CONSTANT_HPP
 
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -27,6 +29,37 @@ public:
         );
     }
 };
+
+template <typename Strategy, typename BatchVector, typename Basis>
+auto vector_set_constant(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    BatchVector const& vec,
+    Basis const& basis,
+    typename Strategy::Index batch_size,
+    typename Strategy::Accum value = typename Strategy::Accum{}
+    ) noexcept {
+    using Op = VectorSetConstant<Strategy>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"VectorSetConstant\" that implements "
+        "\"vector_set_constant\" is not implemented. This either means that the "
+        "Strategy object is invalid, or that the necessary specialisation headers "
+        "have not been included. For example, you may need to add the following "
+        "include directive to bring in the single-threaded CPU implementation of "
+        "this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/basic/vector_set_constant.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(vec),
+        basis,
+        batch_size,
+        value
+        );
+}
 
 } // namespace rpp::ops
 

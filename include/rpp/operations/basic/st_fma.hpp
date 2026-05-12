@@ -2,6 +2,8 @@
 #define RPP_OPERATIONS_BASIC_ST_FMA_HPP
 
 #include <cstddef>
+#include <tuple>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -28,6 +30,41 @@ public:
         );
     }
 };
+
+template <typename Strategy, typename BatchOut, typename BatchA, typename BatchB, typename BatchC, typename Basis>
+auto st_fma(
+    Strategy const& strategy,
+    typename Strategy::LaunchConfig config,
+    BatchOut const& out,
+    BatchA const& a,
+    BatchB const& b,
+    BatchC const& c,
+    Basis const& basis,
+    typename Strategy::Index batch_size,
+    typename Strategy::Accum alpha = typename Strategy::Accum{1},
+    typename Strategy::Accum beta = typename Strategy::Accum{1}
+    ) noexcept {
+    using Op = STFma<Strategy>;
+
+    static_assert(
+        Op::is_implemented,
+        "The operation object \"STFma\" that implements \"st_fma\" "
+        "is not implemented. This either means that the Strategy object is invalid, "
+        "or that the necessary specialisation headers have not been included. "
+        "For example, you may need to add the following include directive to "
+        "bring in the single-threaded CPU implementation of this operation:\n\n"
+        "    #include <rpp/cpu/operations/single_thread/basic/st_fma.hpp>"
+        );
+
+    return strategy.template launch<Op>(
+        std::move(config),
+        std::make_tuple(out, a, b, c),
+        basis,
+        batch_size,
+        alpha,
+        beta
+        );
+}
 
 }// namespace rpp::ops
 

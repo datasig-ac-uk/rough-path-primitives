@@ -23,13 +23,13 @@ namespace detail {
 
 template<
     typename Op,
-    typename... Bases,
-    typename... BatchArgs,
+    typename BatchArgs,
+    typename BasisPack,
     typename... Extras
 >
 RPP_KERNEL void kernel(
-    const std::tuple<BatchArgs...> batches,
-    const BasisPack<Bases...> bases,
+    const BatchArgs batches,
+    const BasisPack bases,
     const typename Op::Index batch_size,
     const Extras... extras
 ) {
@@ -49,24 +49,6 @@ RPP_KERNEL void kernel(
     Op::destroy_scratch_mem(ctx, bases);
 }
 
-
-template<
-    typename Op,
-    typename BasisPack,
-    typename BatchTuple,
-    typename... Extras
->
-Error<char const *> block_impl(
-    typename Op::Strategy const &strategy,
-    DeviceLaunchConfig launch_config,
-    BatchTuple const &batches,
-    BasisPack const &bases,
-    typename Op::Strategy::Index batch_size,
-    Extras... extras) noexcept {
-    constexpr auto kernel = block_kernel<Op, BasisPack, BatchTuple, Extras...>;
-    using Strategy = typename Op::Strategy;
-
-}
 
 } // namespace rpp::gpu::block
 
