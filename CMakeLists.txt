@@ -139,7 +139,10 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/basis/tensor_basis.hpp
         include/rpp/config/compiler.h
         include/rpp/config/target.h
+        include/rpp/support/arch_tagged_pointer.hpp
+        include/rpp/support/data_mapping.hpp
         include/rpp/support/error.hpp
+        include/rpp/support/iterator_traits.hpp
         include/rpp/support/span.hpp
         include/rpp/support/strided_iterator.hpp
         include/rpp/dense/batch.hpp
@@ -154,6 +157,7 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/operations.hpp
         include/rpp/utility.hpp
         include/rpp/cpu/strategies.hpp
+        include/rpp/cpu/device.hpp
         ${RPP_OPS}
         ${RPP_CPU_ST_OPS}
 )

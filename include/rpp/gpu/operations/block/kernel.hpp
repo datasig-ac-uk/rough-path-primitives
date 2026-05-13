@@ -25,13 +25,13 @@ template<
     typename Op,
     typename BatchArgs,
     typename BasisPack,
-    typename... Extras
+    typename ExtrasTuple
 >
 RPP_KERNEL void kernel(
     const BatchArgs batches,
     const BasisPack bases,
     const typename Op::Index batch_size,
-    const Extras... extras
+    const ExtrasTuple extras
 ) {
     using Strategy = typename Op::Strategy;
 
@@ -44,7 +44,7 @@ RPP_KERNEL void kernel(
     const auto work_idx = Strategy::object_index(blockIdx.x, threadIdx.x);
     if (work_idx >= batch_size) { return; }
 
-    ops::invoke(Op{}, ctx, [&](auto const &batch) { return batch.view(work_idx, bases); }, batches, extras...);
+    ops::invoke(Op{}, ctx, [&](auto const &batch) { return batch.view(work_idx, bases); }, batches, extras);
 
     Op::destroy_scratch_mem(ctx, bases);
 }

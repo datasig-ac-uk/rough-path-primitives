@@ -3,6 +3,7 @@
 
 #include <rpp/architecture.hpp>
 #include <rpp/config.h>
+#include <rpp/support/arch_tagged_pointer.hpp>
 
 namespace rpp {
 
@@ -16,9 +17,13 @@ struct GradedBasis {
 
     Degree width;
     Degree depth;
-    Index const *degree_begin;
+    Ptr<Index const, Architecture> degree_begin;
 
     GradedBasis(Degree width_, Degree depth_, Index const *degree_begin_) noexcept
+        : width(width_), depth(depth_), degree_begin(degree_begin_) {
+    }
+
+    GradedBasis(Degree width_, Degree depth_, Ptr<Index, Architecture> degree_begin_) noexcept
         : width(width_), depth(depth_), degree_begin(degree_begin_) {
     }
 
@@ -70,6 +75,24 @@ struct GradedBasis {
             ++result;
         }
         return result - 1;
+    }
+
+    template <typename DataMapper>
+    RPP_NODISCARD
+    friend typename DataMapper::template Result<GradedBasis<typename DataMapper::Architecture, Tag_>>
+    map_data(GradedBasis const& basis, DataMapper& mapper) noexcept {
+        if constexpr (std::is_same_v<Architecture_, typename DataMapper::Architecture>) {
+            return basis;
+        } else {
+            using TgtIndex = typename DataMapper::Architecture::Index;
+
+            auto mapped_db = mapper.template copy_n<TgtIndex>(basis.degree_begin, basis.depth + 2);
+            if (!mapped_db) { return std::move(mapped_db).error(); }
+
+            return GradedBasis<typename DataMapper::Architecture, Tag_>{
+                mapped_db.width, mapped_db.depth, mapped_db.value()
+            };
+        }
     }
 
 };

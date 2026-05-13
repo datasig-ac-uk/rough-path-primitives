@@ -4,12 +4,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <iterator>
 
 namespace rpp::arch {
 
 template <typename Size_>
 struct Architecture {
-    using Size = Size_;
+    using Size = std::make_unsigned_t<Size_>;
     using Index = std::make_signed_t<Size>;
 
     using Degree = int32_t;
@@ -20,6 +21,14 @@ using NativeArchitecture = Architecture<std::size_t>;
 using Architecture32 = Architecture<std::uint32_t>;
 using Architecture64 = Architecture<std::uint64_t>;
 
-}
+
+
+
+
+} // namespace rpp::arch
+
+
+
+
 
 #endif // RPP_ARCHITECTURE_HPP

@@ -9,8 +9,10 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 #include <rpp/support/error.hpp>
+#include <rpp/support/data_mapping.hpp>
 
 #include <rpp/gpu/architecture.hpp>
+#include <rpp/gpu/device.hpp>
 #include <rpp/gpu/operations/block/kernel.hpp>
 
 namespace rpp::gpu::strategies {
@@ -218,6 +220,15 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize> {
 
     using BlockReduceArray = Accum[max_warp_count];
 
+    RPP_HOST RPP_NODISCARD
+    constexpr unsigned launch_block_size() const noexcept {
+        if constexpr (BlockSize < MaxBlockSize) {
+            return MaxBlockSize;
+        } else {
+            return block_size;
+        }
+    }
+
     RPP_HOST_DEVICE RPP_NODISCARD
     static constexpr Index objects_per_block() noexcept {
         if constexpr (BlockSize < MaxBlockSize) {
@@ -269,10 +280,16 @@ template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Ar
 template<typename Op, typename Batches, typename Bases, typename... Extras>
 Error<char const *> BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture_>::launch(LaunchConfig &&launch_config,
     Batches &&batches, Bases &&bases, Index batch_size, Extras ... extras) noexcept {
-    constexpr auto kernel = block::kernel<Op, Batches, Bases, Extras...>;
+
+    DataMapper<Architecture> mapper(launch_config.stream);
+    auto mapped_extras = map_data_args<std::tuple>(mapper, extras...);
+    if (!mapped_extras) {
+        return std::move(mapped_extras).error();
+    }
+    constexpr auto kernel = block::kernel<Op, Batches, Bases, typename decltype(mapped_extras)::value_type>;
 
     cudaLaunchConfig_t config{};
-    config.blockDim = dim3{block_size};
+    config.blockDim = dim3{launch_block_size()};
     config.stream = launch_config.stream;
 
     const auto num_objects = objects_per_block();

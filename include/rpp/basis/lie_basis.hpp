@@ -132,6 +132,27 @@ struct LieBasis : GradedBasis<Architecture_, LieBasisTag>, Ordering {
 
         return 0;
     }
+
+    template <typename DataMapper>
+    RPP_NODISCARD
+    friend typename DataMapper::template Result<LieBasis<typename DataMapper::Architecture, Ordering>>
+    map_data(LieBasis const& basis, DataMapper& mapper) noexcept {
+        if constexpr (std::is_same_v<Architecture_, typename DataMapper::Architecture>) {
+            return basis;
+        } else {
+            using TgtIndex = typename DataMapper::Architecture::Index;
+
+            auto mapped_db = mapper.template copy_n<TgtIndex>(basis.degree_begin, basis.depth + 2);
+            if (!mapped_db) { return std::move(mapped_db).error(); }
+
+            auto mapped_data = mapper.template copy_n<TgtIndex>(basis.data, mapped_db.size());
+            if (!mapped_data) { return std::move(mapped_data).error(); }
+
+            return LieBasis<typename DataMapper::Architecture, Ordering>{
+                mapped_db.width, mapped_db.depth, mapped_db.value(), mapped_data.value()
+            };
+        }
+    }
 };
 
 using StandardLieBasis = LieBasis<arch::NativeArchitecture>;

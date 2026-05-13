@@ -10,6 +10,7 @@
 #include <variant>
 
 #include <rpp/config.h>
+#include <rpp/utility.hpp
 
 namespace rpp {
 /**
@@ -36,25 +37,24 @@ enum class ErrorCode : unsigned char {
 };
 
 namespace error_detail {
-
-template <typename Payload>
+template<typename Payload>
 struct PayloadHolder;
 
-template <>
+template<>
 struct PayloadHolder<void> {
     static constexpr bool has_payload = false;
 };
 
-template <>
+template<>
 struct PayloadHolder<std::string> {
     static constexpr bool has_payload = true;
     std::string message;
 };
 
-template <>
-struct PayloadHolder<const char*> {
+template<>
+struct PayloadHolder<const char *> {
     static constexpr bool has_payload = true;
-    const char* message;
+    const char *message = nullptr;
 };
 
 /**
@@ -89,7 +89,6 @@ constexpr std::string_view default_message(ErrorCode code) noexcept {
     }
     return "Unknown error";
 }
-
 } // namespace error_detail
 
 /**
@@ -116,17 +115,21 @@ constexpr std::string_view default_message(ErrorCode code) noexcept {
  *       of returned error instances, and it inherits from @ref error_detail::PayloadHolder
  *       to manage payload storage and default‑message fallback.
  */
-template <typename Payload = void>
+template<typename Payload = void>
 class RPP_NODISCARD Error : error_detail::PayloadHolder<Payload> {
     using Holder = error_detail::PayloadHolder<Payload>;
     ErrorCode code_;
 
 public:
-    explicit Error(ErrorCode code) : code_(code) {}
+    explicit Error(ErrorCode code) : code_(code) {
+    }
 
-    template <typename... Args>
-    explicit Error(ErrorCode code, Args&&... args)
-        : Holder{std::forward<Args>(args)...}, code_(code) {}
+    template<typename... Args>
+    explicit Error(ErrorCode code, Args &&... args)
+        : Holder{std::forward<Args>(args)...}, code_(code) {
+    }
+
+    static constexpr Error success() noexcept { return Error{ErrorCode::Ok}; }
 
     constexpr explicit operator bool() const noexcept { return code_ != ErrorCode::Ok; }
 
@@ -158,29 +161,40 @@ public:
  * @tparam T The type of the successful result value.
  * @tparam E The type used to represent an error condition.
  */
-template <typename T, typename E = Error<>>
+template<typename T, typename E = Error<> >
 class Result {
     std::variant<T, E> stored_;
+
 public:
+    using value_type = T;
+    using error_type = E;
 
-    constexpr Result() noexcept : stored_(std::in_place_type<void>) {}
-    constexpr Result(Result const& other) : stored_(other.stored_) {}
-    constexpr Result(Result&& other) noexcept : stored_(std::move(other.stored_)) {}
+    constexpr Result() noexcept : stored_(std::in_place_type<void>) {
+    }
 
-    template <typename U, typename=std::enable_if_t<!std::is_same_v<std::remove_cv_t<U>, Result>>>
+    constexpr Result(Result const &other) : stored_(other.stored_) {
+    }
+
+    constexpr Result(Result &&other) noexcept : stored_(std::move(other.stored_)) {
+    }
+
+    template<typename U, typename=std::enable_if_t<!std::is_same_v<std::remove_cv_t<U>, Result>> >
     // ReSharper disable once CppNonExplicitConvertingConstructor
-    constexpr Result(U&& v) noexcept : stored_(std::in_place_type<U>, std::forward<U>(v)) {}
+    constexpr Result(U &&v) noexcept : stored_(std::in_place_type<U>, std::forward<U>(v)) {
+    }
 
     // ReSharper disable once CppNonExplicitConvertingConstructor
-    constexpr Result(E err) noexcept : stored_(std::in_place_type<E>, std::move(err)) {}
+    constexpr Result(E err) noexcept : stored_(std::in_place_type<E>, std::move(err)) {
+    }
 
-    constexpr Result& operator=(Result const& other) noexcept {
+    constexpr Result &operator=(Result const &other) noexcept {
         if (&other != this) {
             stored_ = other.stored_;
         }
         return *this;
     }
-    constexpr Result& operator=(Result&& other) noexcept {
+
+    constexpr Result &operator=(Result &&other) noexcept {
         if (&other != this) {
             stored_ = std::move(other.stored_);
         }
@@ -189,36 +203,74 @@ public:
 
     RPP_NODISCARD
     constexpr bool ok() const noexcept { return std::holds_alternative<T>(stored_); }
+
     constexpr explicit operator bool() const noexcept { return ok(); }
     constexpr bool operator!() const noexcept { return !ok(); }
 
-    constexpr T const& value() const& { return std::get<T>(stored_); }
-    constexpr T& value() & { return std::get<T>(stored_); }
-    constexpr T&& value() && { return std::get<T>(std::move(stored_)); }
+    constexpr T const &value() const & { return std::get<T>(stored_); }
+    constexpr T &value() & { return std::get<T>(stored_); }
+    constexpr T &&value() && { return std::get<T>(std::move(stored_)); }
 
-    constexpr E const& error() const& { return std::get<E>(stored_); }
-    constexpr E& error() & { return std::get<E>(stored_); }
-    constexpr E&& error() && { return std::get<E>(std::move(stored_)); }
+    constexpr E const &error() const & { return std::get<E>(stored_); }
+    constexpr E &error() & { return std::get<E>(stored_); }
+    constexpr E &&error() && { return std::get<E>(std::move(stored_)); }
 };
 
 
-
-template <typename Fn>
-RPP_NODISCARD Error<std::string> catch_exceptions(Fn&& fn) {
+template<typename Fn>
+RPP_NODISCARD Error<std::string> catch_exceptions(Fn &&fn) {
     using Error = Error<std::string>;
     try {
         fn();
         return Error{ErrorCode::Ok};
-    } catch (std::invalid_argument& err) {
-        return Error{ ErrorCode::InvalidArgument, err.what() };
-    } catch (std::out_of_range& err) {
-        return Error{ ErrorCode::OutOfBounds, err.what() };
-    } catch (std::exception& err) {
-        return Error{ ErrorCode::Internal, err.what() };
+    } catch (std::invalid_argument &err) {
+        return Error{ErrorCode::InvalidArgument, err.what()};
+    } catch (std::out_of_range &err) {
+        return Error{ErrorCode::OutOfBounds, err.what()};
+    } catch (std::exception &err) {
+        return Error{ErrorCode::Internal, err.what()};
     }
 }
 
 
+namespace detail {
+template<typename Error, size_t N, size_t I = 0, typename Tuple>
+constexpr auto check_all_error_states(Tuple const &args) noexcept {
+    if constexpr (I < N) {
+        if (!std::get<I>(args)) {
+            return std::move(std::get<I>(args).error());
+        }
+        return check_all_error_states<Error, N, I + 1>(args);
+    } else {
+        return Error::success();
+    }
+}
+} // namespace detail
+
+
+template<typename T, typename E, typename Fn>
+constexpr auto map_value(Result<T, E> result, Fn &&fn) noexcept -> Result<decltype(fn(result.value())), E> {
+    if (!result) {
+        return std::move(result).error();
+    }
+    return fn(std::move(result).value());
+}
+
+template<typename T, typename E, typename Fn>
+constexpr auto map_err(Result<T, E> result, Fn &&fn) noexcept -> Result<T, decltype(fn(result.error()))> {
+    if (!result) {
+        return fn(std::move(result).error());
+    }
+    return std::move(result).value();
+}
+
+template<template <typename...> class Tuple, typename Error, typename... Ts>
+constexpr Result<std::tuple<Ts...>, Error> map_result_tuple(Tuple<Result<Ts..., Error> > args) noexcept {
+    if (auto err = detail::check_all_error_states<Error, sizeof...(Ts)>(args)) {
+        return std::move(err);
+    }
+    return map_tuple(args, [](auto &&arg) { return std::forward<decltype(arg)>(arg).value(); });
+}
 } // namespace rpp
 
 #endif // INCLUDE_RPP_SUPPORT_ERROR_HPP

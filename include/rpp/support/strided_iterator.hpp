@@ -6,22 +6,14 @@
 
 #include <rpp/config.h>
 
+#include <rpp/support/iterator_traits.hpp>
+
 namespace rpp {
-
-namespace detail {
-template <typename It>
-inline constexpr bool is_random_access_v = std::is_base_of_v<
-    std::random_access_iterator_tag,
-    typename std::iterator_traits<It>::value_type
->;
-
-
-} // namespace detail
 
 
 template <typename It>
 class StridedIterator {
-    static_assert(detail::is_random_access_v<It>, "base iterator must support random access");
+    static_assert(traits::is_random_access_v<It>, "base iterator must support random access");
 
     using Traits = std::iterator_traits<It>;
     It base_;
@@ -215,7 +207,13 @@ public:
 
 };
 
+namespace traits {
 
+template <typename It>
+struct IteratorTraits<StridedIterator<It>> : IteratorTraits<It> {
+};
+
+}
 
 
 } // namespace rpp

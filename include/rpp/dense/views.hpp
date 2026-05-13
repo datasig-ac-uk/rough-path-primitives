@@ -6,6 +6,7 @@
 #include <iterator>
 
 #include <rpp/config.h>
+#include <rpp/support/iterator_traits.hpp>
 
 namespace rpp::dense {
 namespace detail {
@@ -22,7 +23,7 @@ namespace detail {
  */
 template<typename It_>
 class VectorFragment {
-    using Traits = std::iterator_traits<It_>;
+    using Traits = traits::IteratorTraits<It_>;
     using Index = typename Traits::difference_type;
 
     It_ data_;
@@ -31,6 +32,7 @@ class VectorFragment {
 public:
     using value_type = typename Traits::value_type;
     using reference = typename Traits::reference;
+    using Architecture = typename Traits::Architecture;
 
     RPP_HOST_DEVICE
     constexpr VectorFragment(It_ data, Index size)
@@ -63,7 +65,7 @@ public:
  */
 template<typename It_, typename Basis_>
 class DenseGradedVectorView {
-    using Traits = std::iterator_traits<It_>;
+    using Traits = traits::IteratorTraits<It_>;
 
 public:
     using value_type = typename Traits::value_type;
@@ -71,6 +73,7 @@ public:
     using iterator = It_;
     using Scalar = value_type;
 
+    using Architecture = typename Traits::Architecture;
     using Index = typename Traits::difference_type;
     using Basis = Basis_;
     using Degree = typename Basis::Degree;
@@ -143,6 +146,7 @@ public:
         const auto end = basis_.end_of_degree(degree);
         return { data() + begin, end - begin };
     }
+
 };
 
 
