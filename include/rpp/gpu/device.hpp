@@ -26,7 +26,7 @@ Error<char const *> map_cuda_error(cudaError_t err) {
     switch (err) {
         case cudaSuccess:
             // code = ErrorCode::Ok;
-            return Error<char const *>{ErrorCode::Ok, nullptr};
+            return Error<char const *>{ErrorCode::Success, nullptr};
             break;
 
         case cudaErrorInvalidValue:
