@@ -49,8 +49,8 @@ void invoke(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchT
             ExtrasTuple &&extras) {
     auto views = map_tuple(batches, std::forward<BatchMapper>(batch_mapper));
     detail::invoke_impl(op, ctx, views, std::forward<ExtrasTuple>(extras),
-                        std::make_index_sequence<std::tuple_size_v<BatchTuple> >(),
-                        std::make_index_sequence<std::tuple_size_v<ExtrasTuple> >()
+                        std::make_index_sequence<std::tuple_size_v<std::decay_t<BatchTuple>> >(),
+                        std::make_index_sequence<std::tuple_size_v<std::decay_t<ExtrasTuple>> >()
     );
 }
 } // namespace rpp::ops
