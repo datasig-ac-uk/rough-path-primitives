@@ -36,18 +36,19 @@ public:
 };
 
 namespace detail {
-template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename ExtrasTuple, size_t... Is,
+template<typename Op, typename Context, typename ViewTuple, typename ExtrasTuple, size_t... Is,
     size_t... Js>
-void invoke_impl(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
+void invoke_impl(Op const &op, Context const &ctx, ViewTuple const &views,
                  ExtrasTuple &&extras, std::index_sequence<Is...>, std::index_sequence<Js...>) {
-    op(ctx, batch_mapper(std::get<Is>(batches))..., std::get<Js>(std::forward<ExtrasTuple>(extras))...);
+    op(ctx, std::get<Is>(views)..., std::get<Js>(std::forward<ExtrasTuple>(extras))...);
 }
 }
 
 template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename ExtrasTuple>
 void invoke(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
             ExtrasTuple &&extras) {
-    detail::invoke_impl(op, ctx, std::forward<BatchMapper>(batch_mapper), batches, std::forward<ExtrasTuple>(extras),
+    auto views = map_tuple(batches, std::forward<BatchMapper>(batch_mapper));
+    detail::invoke_impl(op, ctx, views, std::forward<ExtrasTuple>(extras),
                         std::make_index_sequence<std::tuple_size_v<BatchTuple> >(),
                         std::make_index_sequence<std::tuple_size_v<ExtrasTuple> >()
     );
