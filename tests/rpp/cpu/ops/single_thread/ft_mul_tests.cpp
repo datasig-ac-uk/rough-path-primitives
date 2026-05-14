@@ -285,7 +285,7 @@ TEST_F(FreeTensorMulTests, KernelWrapperMatchesDirectOperation)
     auto const lhs = Wrapper::make_batch('a', basis);
     auto const rhs = Wrapper::make_batch('b', basis);
 
-    rpp::ops::ft_mul(
+    auto const error = rpp::ops::ft_mul(
         strategy,
         Wrapper::Strategy::LaunchConfig{},
         Wrapper::tensor_batch(actual, basis),
@@ -295,6 +295,7 @@ TEST_F(FreeTensorMulTests, KernelWrapperMatchesDirectOperation)
         Wrapper::tensor_count,
         beta
     );
+    EXPECT_TRUE(static_cast<bool>(error));
     Wrapper::apply_direct<rpp::ops::FTMul<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

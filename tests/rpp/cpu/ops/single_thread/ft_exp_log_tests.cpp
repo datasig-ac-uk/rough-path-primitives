@@ -178,13 +178,25 @@ TEST_F(FreeTensorExpLogTests, ExpKernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const arg = Wrapper::make_batch('x', basis);
 
-    rpp::cpu::single_thread::ft_exp_kernel(
+    // rpp::cpu::single_thread::ft_exp_kernel(
+    //     Wrapper::tensor_batch(actual, basis),
+    //     Wrapper::tensor_batch(arg, basis),
+    //     basis,
+    //     strategy,
+    //     Wrapper::tensor_count
+    // );
+
+    const auto err = rpp::ops::ft_exp(
+        strategy,
+        typename Strategy::LaunchConfig{},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(arg, basis),
         basis,
-        strategy,
         Wrapper::tensor_count
-    );
+        );
+
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
+
     Wrapper::apply_direct<rpp::ops::FTExp<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
@@ -209,13 +221,17 @@ TEST_F(FreeTensorExpLogTests, LogKernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const arg = Wrapper::make_batch('x', basis);
 
-    rpp::cpu::single_thread::ft_log_kernel(
+    const auto err = rpp::ops::ft_log(
+        strategy,
+        typename Strategy::LaunchConfig{},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(arg, basis),
         basis,
-        strategy,
         Wrapper::tensor_count
-    );
+        );
+
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
+
     Wrapper::apply_direct<rpp::ops::FTLog<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

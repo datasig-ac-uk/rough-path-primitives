@@ -140,14 +140,17 @@ TEST_F(FreeTensorInplaceMulTests, KernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const rhs = Wrapper::make_batch('b', basis);
 
-    rpp::cpu::single_thread::ft_inplace_mul_kernel(
+    const auto err = rpp::ops::ft_inplace_mul(
+        strategy,
+        {},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(rhs, basis),
         basis,
-        strategy,
         Wrapper::tensor_count,
         beta
-    );
+        );
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
+
     Wrapper::apply_direct<rpp::ops::FTInplaceMul<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

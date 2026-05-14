@@ -274,17 +274,22 @@ TEST_F(FreeTensorFmaTests, KernelWrapperMatchesDirectOperation)
     auto const b = Wrapper::make_batch('b', basis);
     auto const c = Wrapper::make_batch('c', basis);
 
-    rpp::cpu::single_thread::ft_fma_kernel(
+
+    const auto err = rpp::ops::ft_fma(
+        strategy,
+        {},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(a, basis),
         Wrapper::tensor_batch(b, basis),
         Wrapper::tensor_batch(c, basis),
         basis,
-        strategy,
         Wrapper::tensor_count,
         alpha,
         beta
-    );
+        );
+
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
+
     Wrapper::apply_direct<rpp::ops::FTFma<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

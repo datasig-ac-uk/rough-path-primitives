@@ -179,14 +179,17 @@ TEST_F(FreeTensorFMExpTests, KernelWrapperMatchesDirectOperation)
     auto const multiplier = Wrapper::make_batch('m', basis);
     auto const exponent = Wrapper::make_batch('x', basis);
 
-    rpp::cpu::single_thread::ft_fmexp_kernel(
+    const auto err = rpp::ops::ft_fmexp(
+        strategy,
+        {},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(multiplier, basis),
         Wrapper::tensor_batch(exponent, basis),
         basis,
-        strategy,
         Wrapper::tensor_count
-    );
+        );
+    EXPECT_TRUE(static_cast<bool>(err));
+
     Wrapper::apply_direct<rpp::ops::FTFMExp<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

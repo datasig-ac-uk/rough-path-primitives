@@ -157,18 +157,19 @@ TEST_F(FreeTensorInplaceFmaTests, KernelWrapperMatchesDirectOperation)
     auto const b = Wrapper::make_batch('b', basis);
     auto const c = Wrapper::make_batch('c', basis);
 
-    rpp::cpu::single_thread::ft_inplace_fma_kernel<
-        rpp::ops::FTInplaceFMAType::AEqualsBCPlusA
-    >(
+    const auto err = rpp::ops::ft_inplace_fma<rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(
+        strategy,
+        {},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(b, basis),
         Wrapper::tensor_batch(c, basis),
         basis,
-        strategy,
         Wrapper::tensor_count,
         alpha,
         beta
-    );
+        );
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
+
     Wrapper::apply_direct<rpp::ops::FTInplaceFma231<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

@@ -325,15 +325,17 @@ TEST_F(ShuffleTensorMulTests, KernelWrapperMatchesDirectOperation)
     auto const lhs = Wrapper::make_batch('a', basis);
     auto const rhs = Wrapper::make_batch('b', basis);
 
-    rpp::cpu::single_thread::st_mul_kernel(
+    auto const error = rpp::ops::st_mul(
+        strategy,
+        Wrapper::Strategy::LaunchConfig{},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(lhs, basis),
         Wrapper::tensor_batch(rhs, basis),
         basis,
-        strategy,
         Wrapper::tensor_count,
         beta
     );
+    EXPECT_TRUE(static_cast<bool>(error));
     Wrapper::apply_direct<rpp::ops::STMul<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
