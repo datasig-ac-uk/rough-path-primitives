@@ -7,6 +7,8 @@
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
+#include <rpp/basis/basis_pack.hpp>
+#include <rpp/dense/batch.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/sparse/matrix.hpp>
@@ -75,8 +77,8 @@ auto sparse_matrix_vector_product(
 
     return strategy.template launch<Op>(
         std::move(config),
-        std::make_tuple(out, arg),
-        make_basis_pack(out_basis, arg_basis),
+        std::make_tuple(tag_batch(out, OutputBasisTagger{}), tag_batch(arg, InputBasisTagger{})),
+        make_basis_pack(basis::out(out_basis), basis::in(arg_basis)),
         num_batches,
         matrix,
         alpha
