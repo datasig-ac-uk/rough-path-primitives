@@ -24,7 +24,7 @@ namespace rpp {
  * various failure modes such as cancellation, timeouts, or contract violations.
  */
 enum class ErrorCode : unsigned char {
-    Ok = 0,
+    Success = 0,
     Cancelled = 1,
     Unknown = 2,
     InvalidArgument = 3,
@@ -66,7 +66,7 @@ struct PayloadHolder<const char *> {
 RPP_NODISCARD
 constexpr std::string_view default_message(ErrorCode code) noexcept {
     switch (code) {
-        case ErrorCode::Ok:
+        case ErrorCode::Success:
             return "Success";
         case ErrorCode::Cancelled:
             return "Operation cancelled";
@@ -129,11 +129,11 @@ public:
         : Holder{std::forward<Args>(args)...}, code_(code) {
     }
 
-    static constexpr Error success() noexcept { return Error{ErrorCode::Ok}; }
+    static constexpr Error success() noexcept { return Error{ErrorCode::Success}; }
 
-    constexpr explicit operator bool() const noexcept { return code_ != ErrorCode::Ok; }
+    constexpr explicit operator bool() const noexcept { return code_ == ErrorCode::Success; }
 
-    constexpr bool operator!() const noexcept { return code_ == ErrorCode::Ok; }
+    constexpr bool operator!() const noexcept { return code_ != ErrorCode::Success; }
 
     RPP_NODISCARD
     constexpr ErrorCode code() const noexcept { return code_; }
@@ -222,7 +222,7 @@ RPP_NODISCARD Error<std::string> catch_exceptions(Fn &&fn) {
     using Error = Error<std::string>;
     try {
         fn();
-        return Error{ErrorCode::Ok};
+        return Error{ErrorCode::Success};
     } catch (std::invalid_argument &err) {
         return Error{ErrorCode::InvalidArgument, err.what()};
     } catch (std::out_of_range &err) {
@@ -279,7 +279,7 @@ constexpr auto map_err(Result<T, E> result, Fn &&fn) noexcept -> Result<T, declt
 
 template<template <typename...> class Tuple, typename Error, typename... Ts>
 constexpr Result<std::tuple<Ts...>, Error> map_result_tuple(Tuple<Result<Ts, Error>... >&& args) noexcept {
-    if (auto err = detail::check_all_error_states<Error, sizeof...(Ts)>(args)) {
+    if (auto err = detail::check_all_error_states<Error, sizeof...(Ts)>(args); !err) {
         return std::move(err);
     }
     return map_tuple(std::move(args), detail::ResultUnpacker{});
