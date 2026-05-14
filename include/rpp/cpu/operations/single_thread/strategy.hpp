@@ -108,7 +108,7 @@ Error<std::string> SingleThreadStrategy<Accum_, Architecture_>::launch(
     auto result = catch_exceptions([&, op=Op{}] {
         for (Index idx = 0; idx < batch_size; ++idx) {
             ops::invoke(op, ctx, [&](auto &batch) { return batch.view(idx, bases); }, batches,
-                        std::move(extras_mapped).value());
+                        extras_mapped.value());
         }
     });
 
