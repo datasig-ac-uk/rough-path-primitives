@@ -37,6 +37,24 @@ struct IndexedBasisTag : Tag {
 template <size_t Index, typename Tag>
 inline constexpr bool is_basis_tag_v<IndexedBasisTag<Index, Tag>> = true;
 
+struct InputBasisTagger {
+    template <typename T>
+    using tagger = std::conditional_t<is_basis_tag_v<T>, OutputBasisTag<T>, T>;
+};
+
+struct OutputBasisTagger {
+    template <typename T>
+    using tagger = std::conditional_t<is_basis_tag_v<T>, OutputBasisTag<T>, T>;
+};
+
+template <size_t Index>
+struct IndexBasisTagger {
+    template <typename T>
+    using tagger = std::conditional_t<is_basis_tag_v<T>, IndexedBasisTag<Index, T>, T>;
+};
+
+template<typename Tagger, typename T>
+using apply_tagger = typename Tagger::template tagger<T>;
 
 
 } // namespace rpp
