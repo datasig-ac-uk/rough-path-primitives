@@ -10,7 +10,7 @@
 #include <variant>
 
 #include <rpp/config.h>
-#include <rpp/utility.hpp
+#include <rpp/utility.hpp>
 
 namespace rpp {
 /**
@@ -235,7 +235,7 @@ RPP_NODISCARD Error<std::string> catch_exceptions(Fn &&fn) {
 
 namespace detail {
 template<typename Error, size_t N, size_t I = 0, typename Tuple>
-constexpr auto check_all_error_states(Tuple const &args) noexcept {
+constexpr auto check_all_error_states(Tuple& args) noexcept {
     if constexpr (I < N) {
         if (!std::get<I>(args)) {
             return std::move(std::get<I>(args).error());
@@ -245,6 +245,19 @@ constexpr auto check_all_error_states(Tuple const &args) noexcept {
         return Error::success();
     }
 }
+
+struct ResultUnpacker {
+
+    template <typename T, typename E>
+    constexpr auto operator()(Result<T, E>&& result) const noexcept {
+        return std::move(result).value();
+    }
+
+    template <typename T, typename E>
+    constexpr auto operator()(Result<T, E> const& result) const noexcept {
+        return result.value();
+    }
+};
 } // namespace detail
 
 
@@ -265,11 +278,19 @@ constexpr auto map_err(Result<T, E> result, Fn &&fn) noexcept -> Result<T, declt
 }
 
 template<template <typename...> class Tuple, typename Error, typename... Ts>
-constexpr Result<std::tuple<Ts...>, Error> map_result_tuple(Tuple<Result<Ts..., Error> > args) noexcept {
+constexpr Result<std::tuple<Ts...>, Error> map_result_tuple(Tuple<Result<Ts, Error>... >&& args) noexcept {
     if (auto err = detail::check_all_error_states<Error, sizeof...(Ts)>(args)) {
         return std::move(err);
     }
-    return map_tuple(args, [](auto &&arg) { return std::forward<decltype(arg)>(arg).value(); });
+    return map_tuple(std::move(args), detail::ResultUnpacker{});
+}
+
+template<template <typename...> class Tuple, typename Error, typename... Ts>
+constexpr Result<std::tuple<Ts...>, Error> map_result_tuple(Tuple<Result<Ts, Error>... > const& args) noexcept {
+    if (auto err = detail::check_all_error_states<Error, sizeof...(Ts)>(args)) {
+        return std::move(err);
+    }
+    return map_tuple(args, detail::ResultUnpacker{});
 }
 } // namespace rpp
 

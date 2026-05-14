@@ -80,8 +80,8 @@ struct SingleThreadStrategy {
         Batches batches,
         Bases bases,
         Index batch_size,
-        Extras... extras
-    ) noexcept;
+        Extras&&... extras
+    ) const noexcept;
 };
 
 
@@ -90,23 +90,25 @@ template<typename Op, typename Batches, typename Bases, typename... Extras>
 Error<std::string> SingleThreadStrategy<Accum_, Architecture_>::launch(
     LaunchConfig launch_config RPP_MAYBE_UNUSED,
     Batches batches,
-    Bases bases, Index batch_size, Extras... extras) noexcept {
+    Bases bases, Index batch_size, Extras&&... extras) const noexcept {
+
+    DataMapper<Architecture> mapper;
+    auto extras_mapped = map_data_args<std::tuple>(mapper, std::forward<Extras>(extras)...);
+    if (!extras_mapped) {
+        return std::move(extras_mapped).error();
+    }
+
     const auto scratch_size = Op::scratch_space_size(*this, bases);
     std::vector<std::byte> scratch_bytes(scratch_size);
     const auto ctx = make_context(scratch_bytes.data());
 
     Op::init_scratch_space(ctx, bases);
 
-    DataMapper<Architecture> mapper;
-    auto extras_mapped = map_data_args<std::tuple>(mapper, extras...);
-    if (!extras_mapped) {
-        return std::move(extras_mapped).error();
-    }
 
     auto result = catch_exceptions([&, op=Op{}] {
         for (Index idx = 0; idx < batch_size; ++idx) {
-            ops::invoke(op, ctx, [&](auto const &batch) { return batch.view(idx, bases); }, batches,
-                        extras_mapped.value());
+            ops::invoke(op, ctx, [&](auto &batch) { return batch.view(idx, bases); }, batches,
+                        std::move(extras_mapped).value());
         }
     });
 

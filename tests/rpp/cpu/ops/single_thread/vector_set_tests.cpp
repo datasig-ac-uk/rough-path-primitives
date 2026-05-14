@@ -14,16 +14,17 @@ TEST(VectorSetConstantWrapperTests, MatchesDirectOperation)
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
     auto const& basis = basis_data.basis;
-    auto const strategy = Wrapper::Strategy{};
+    auto strategy = Wrapper::Strategy{};
     auto const value = Wrapper::make_scalar({{{{'v', 1}}, 5, 3}});
 
     auto actual = Wrapper::make_batch('a', basis);
     auto expected = actual;
 
-    rpp::cpu::single_thread::vector_set_constant_kernel(
+    rpp::ops::vector_set_constant(
+        strategy,
+        Wrapper::Strategy::LaunchConfig{},
         Wrapper::vector_batch(actual, basis),
         basis,
-        strategy,
         Wrapper::tensor_count,
         value
     );

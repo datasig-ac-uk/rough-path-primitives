@@ -31,7 +31,7 @@ public:
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>
     RPP_HOST_DEVICE
-    void operator()(Context const& ctx, TensorOut& out, TensorLhs const& lhs, TensorRhs& rhs, Accum beta=Accum{1}) const noexcept {
+    void operator()(Context const& ctx, TensorOut& out, TensorLhs const& lhs, TensorRhs const& rhs, Accum beta=Accum{1}) const noexcept {
         fma(ctx, out, lhs, rhs, Accum{0}, beta);
     }
 };

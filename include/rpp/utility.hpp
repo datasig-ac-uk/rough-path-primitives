@@ -131,7 +131,13 @@ namespace detail {
 template <template <typename...> class Tuple, typename... Ts, typename Fn, size_t... Is>
 constexpr auto map_tuple(Tuple<Ts...> const& arg, Fn&& fn, std::index_sequence<Is...>) noexcept {
     using RetType = Tuple<decltype(fn(std::get<Is>(arg)))...>;
-    return RetType(fn(std::get<Is>(arg).value())...);
+    return RetType(fn(std::get<Is>(arg))...);
+}
+
+template <template <typename...> class Tuple, typename... Ts, typename Fn, size_t... Is>
+constexpr auto map_tuple(Tuple<Ts...>&& arg, Fn&& fn, std::index_sequence<Is...>) noexcept {
+    using RetType = Tuple<decltype(fn(std::get<Is>(std::move(arg))))...>;
+    return RetType(fn(std::get<Is>(std::move(arg)))...);
 }
 
 } // namespace detail
@@ -140,11 +146,15 @@ template <template <typename...> class Tuple, typename... Ts, typename Fn>
 constexpr auto map_tuple(Tuple<Ts...> const& arg, Fn&& fn) noexcept {
     return detail::map_tuple(arg, std::forward<Fn>(fn), std::index_sequence_for<Ts...>{});
 }
+template <template <typename...> class Tuple, typename... Ts, typename Fn>
+constexpr auto map_tuple(Tuple<Ts...> && arg, Fn&& fn) noexcept {
+    return detail::map_tuple(std::move(arg), std::forward<Fn>(fn), std::index_sequence_for<Ts...>{});
+}
 
 template <template <typename...> class Tuple, typename... Ts, typename Fn>
 constexpr auto map_to_tuple(Fn&& fn, Ts... args) noexcept {
-    using RetType = Tuple<decltype(fn(args))...>;
-    return RetType(fn(args)...);
+    using RetType = Tuple<decltype(fn(std::move(args)))...>;
+    return RetType(fn(std::move(args))...);
 }
 
 

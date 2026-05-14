@@ -97,8 +97,6 @@ struct IteratorTraits<Ptr<T, Arch>, void> : public std::iterator_traits<Ptr<T *,
     using Architecture = Arch;
 };
 
-template <typename T, typename Arch>
-inline constexpr bool is_pointer_v<Ptr<T, Arch>> = true;
 
 template <typename Ptr>
 inline constexpr bool is_arch_ptr_v = false;

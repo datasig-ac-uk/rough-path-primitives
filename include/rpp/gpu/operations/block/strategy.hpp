@@ -268,7 +268,7 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize> {
         Bases &&bases,
         Index batch_size,
         Extras... extras
-    ) noexcept;
+    ) const noexcept;
 };
 
 
@@ -279,7 +279,7 @@ inline constexpr bool is_block_strategy_v<BlockStrategy<Accum, BlockSize, MaxBlo
 template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture_>
 template<typename Op, typename Batches, typename Bases, typename... Extras>
 Error<char const *> BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture_>::launch(LaunchConfig &&launch_config,
-    Batches &&batches, Bases &&bases, Index batch_size, Extras ... extras) noexcept {
+    Batches &&batches, Bases &&bases, Index batch_size, Extras ... extras) const noexcept {
 
     DataMapper<Architecture> mapper(launch_config.stream);
     auto mapped_extras = map_data_args<std::tuple>(mapper, extras...);

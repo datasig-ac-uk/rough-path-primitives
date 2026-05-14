@@ -3,15 +3,18 @@
 
 
 #include <algorithm>
+#include <cstddef>
 #include <new>
 #include <memory>
 #include <string>
 #include <functional>
+#include <vector>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 #include <rpp/support/error.hpp>
 #include <rpp/support/arch_tagged_pointer.hpp>
+#include <rpp/support/span.hpp>
 
 namespace rpp::cpu {
 
@@ -29,10 +32,10 @@ class DataMapper {
 public:
     using Architecture = Architecture_;
 
-    using Error = Error<std::string>;
+    using Error = rpp::Error<std::string>;
 
     template <typename T>
-    using Result = Result<T, Error>;
+    using Result = rpp::Result<T, Error>;
 
     template <typename T>
     using ArchPtr = Ptr<T, Architecture>;

@@ -39,18 +39,18 @@ namespace detail {
 template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename ExtrasTuple, size_t... Is,
     size_t... Js>
 void invoke_impl(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
-                 ExtrasTuple extras, std::index_sequence<Is...>, std::index_sequence<Js...>) {
-    op(ctx, batch_mapper(std::get<Is>(batches))..., std::get<Js>(extras)...);
+                 ExtrasTuple &&extras, std::index_sequence<Is...>, std::index_sequence<Js...>) {
+    op(ctx, batch_mapper(std::get<Is>(batches))..., std::get<Js>(std::forward<ExtrasTuple>(extras))...);
 }
 }
 
 template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename ExtrasTuple>
 void invoke(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
-            ExtrasTuple extras) {
-    detail::invoke_impl(op, ctx, std::forward<BatchMapper>(batch_mapper), batches, extras,
+            ExtrasTuple &&extras) {
+    detail::invoke_impl(op, ctx, std::forward<BatchMapper>(batch_mapper), batches, std::forward<ExtrasTuple>(extras),
                         std::make_index_sequence<std::tuple_size_v<BatchTuple> >(),
                         std::make_index_sequence<std::tuple_size_v<ExtrasTuple> >()
-                        );
+    );
 }
 } // namespace rpp::ops
 

@@ -277,7 +277,7 @@ TEST_F(FreeTensorMulTests, KernelWrapperMatchesDirectOperation)
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
     auto const& basis = basis_data.basis;
-    auto const strategy = Wrapper::Strategy{};
+    auto strategy = Wrapper::Strategy{};
     auto const beta = Wrapper::make_scalar({{{{'q', 2}}, 5, 3}});
 
     auto actual = Wrapper::make_batch('o', basis);
@@ -285,12 +285,13 @@ TEST_F(FreeTensorMulTests, KernelWrapperMatchesDirectOperation)
     auto const lhs = Wrapper::make_batch('a', basis);
     auto const rhs = Wrapper::make_batch('b', basis);
 
-    rpp::cpu::single_thread::ft_mul_kernel(
+    rpp::ops::ft_mul(
+        strategy,
+        Wrapper::Strategy::LaunchConfig{},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(lhs, basis),
         Wrapper::tensor_batch(rhs, basis),
         basis,
-        strategy,
         Wrapper::tensor_count,
         beta
     );
