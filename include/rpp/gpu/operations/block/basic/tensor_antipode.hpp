@@ -5,7 +5,7 @@
 #include <rpp/utility.hpp>
 #include <rpp/dense/batch.hpp>
 
-
+#include <rpp/operations/basic/tensor_antipode.hpp>
 #include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/tensor_generalised_antipode.hpp>
 

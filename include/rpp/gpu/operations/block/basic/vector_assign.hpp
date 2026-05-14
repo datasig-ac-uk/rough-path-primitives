@@ -19,6 +19,7 @@ class VectorAssign<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSiz
 public:
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
     using Architecture_ = typename Strategy::Architecture;
     using Index = typename Strategy::Index;
 

@@ -7,13 +7,12 @@
 
 #include <rpp/architecture.hpp>
 
-#include "rpp/architecture.hpp"
 
 namespace rpp::traits {
 
 template <typename Iterator, typename = void>
 struct IteratorTraits : std::iterator_traits<Iterator> {
-    using Architecture = arch::Architecture<typename std::iterator_traits<Iterator>::difference_type>;
+    using Architecture = arch::Architecture<std::make_unsigned_t<typename std::iterator_traits<Iterator>::difference_type>>;
 };
 
 

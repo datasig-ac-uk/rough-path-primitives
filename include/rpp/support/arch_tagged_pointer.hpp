@@ -12,8 +12,7 @@ class Ptr {
 
 public:
     using Architecture = Arch;
-    using value_type = std::remove_cv_t<T>;
-    using element_type = T;
+    using value_type = T;
     using pointer = T *;
     using reference = T &;
     using const_pointer = std::add_const_t<T> *;

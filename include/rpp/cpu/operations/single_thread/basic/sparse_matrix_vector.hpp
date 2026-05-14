@@ -89,6 +89,7 @@ class SparseMatrixVectorProduct<cpu::strategies::SingleThreadStrategy<Accum_, Ar
     using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSC, D, I, O>;
 
 public:
+    static constexpr bool is_implemented = true;
 
     template <typename Basis>
     static constexpr std::size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {

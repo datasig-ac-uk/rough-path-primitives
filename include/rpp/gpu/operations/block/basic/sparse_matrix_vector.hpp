@@ -11,6 +11,7 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/sparse_matrix_vector.hpp>
 
+#include <rpp/gpu/operations/block/kernel.hpp>
 #include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
 
@@ -19,6 +20,7 @@ template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Ar
 class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>,
             sparse::MatrixFormat::CSR> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize,
             MaxBlockSize, Architecture> > {
+public:
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -71,6 +73,7 @@ template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Ar
 class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>,
             sparse::MatrixFormat::CSC> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize,
             MaxBlockSize, Architecture> > {
+public:
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -83,8 +86,8 @@ class SparseMatrixVectorProduct<gpu::strategies::BlockStrategy<Accum_, BlockSize
     using GradedMatrix = sparse::GradedMatrixView<sparse::MatrixFormat::CSC, D, I, O>;
 
     VectorSetConstant<Strategy> set_constant;
-
 public:
+    static constexpr bool is_implemented = true;
     template<typename Basis>
     static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
         ignore_unused(basis);

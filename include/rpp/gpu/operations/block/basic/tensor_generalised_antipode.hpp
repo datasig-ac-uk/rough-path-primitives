@@ -18,12 +18,13 @@ template <typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename A
 class TensorGeneralisedAntipode<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>, Policy, void>
     : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
 
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
-
 public:
-    static constexpr bool is_implemented = true;
-
+    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
+    using Index = typename Strategy::Index;
+
+    static constexpr bool is_implemented = true;
 
     template <typename TensorOut, typename TensorArg>
     RPP_DEVICE void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {

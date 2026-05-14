@@ -7,6 +7,8 @@
 
 #include <rpp/config.h>
 #include <rpp/architecture.hpp>
+#include <rpp/support/iterator_traits.hpp>
+#include <rpp/support/arch_tagged_pointer.hpp>
 
 #include <rpp/basis/basis_pack.hpp>
 #include <rpp/basis/basis_tags.hpp>
@@ -22,7 +24,52 @@ inline constexpr bool has_matching_basis_tag_v = false;
 template<typename T, typename Tag>
 inline constexpr bool has_matching_basis_tag_v<T, Tag, std::void_t<typename T::Tag> >
         = std::is_base_of_v<typename T::Tag, Tag>;
+
+template <typename Architecture, typename T>
+class ScalarView {
+    Ptr<T, Architecture> ptr_;
+
+public:
+    RPP_HOST_DEVICE
+    constexpr ScalarView(T& val) noexcept : ptr_(std::addressof(val)) {}
+
+    RPP_HOST_DEVICE
+    constexpr operator T& () noexcept {
+        return *ptr_;
+    }
+
+};
+
 } // namespace detail
+
+
+template <typename It_>
+class ScalarBatch {
+    using Traits = traits::IteratorTraits<It_>;
+    using Architecture = typename Traits::Architecture;
+    using View = detail::ScalarView<Architecture, std::remove_reference_t<decltype(*std::declval<It_>())>>;
+    using Index = typename Architecture::Index;
+
+    It_ data_;
+
+public:
+
+    RPP_HOST_DEVICE
+    constexpr explicit ScalarBatch(It_ data) noexcept : data_(data) {}
+
+    RPP_HOST_DEVICE
+    constexpr decltype(auto) data() const noexcept {
+        return data_;
+    }
+
+
+    template <typename Bases>
+    constexpr View view(Index index, Bases const& bases RPP_MAYBE_UNUSED) const noexcept {
+        return View(data_[index]);
+    }
+
+};
+
 
 template<typename It_, typename Stride, typename MinDegree, typename MaxDegree, typename TagOrBasis>
 class VectorBatch {

@@ -16,10 +16,11 @@ namespace rpp::ops {
 template<typename Accum, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
 class TensorPairing<gpu::strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture> > : public
         BaseOperation<gpu::strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture> > {
+public:
     using Strategy = gpu::strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
+    using Index = typename Strategy::Index;
 
-public:
     static constexpr bool is_implemented = true;
 
     template<typename Basis>

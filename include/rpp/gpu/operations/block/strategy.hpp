@@ -286,21 +286,26 @@ Error<char const *> BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture_
     if (!mapped_extras) {
         return std::move(mapped_extras).error();
     }
-    constexpr auto kernel = block::kernel<Op, Batches, Bases, typename decltype(mapped_extras)::value_type>;
+
+    using BatchesT = std::remove_cv_t<std::remove_reference_t<Batches>>;
+    using BasesT = std::remove_cv_t<std::remove_reference_t<Bases>>;
+    using ExtrasT = typename std::remove_cv_t<std::remove_reference_t<decltype(mapped_extras)>>::value_type;
+
+    constexpr auto kernel = block::kernel<Op, BatchesT, BasesT, ExtrasT>;
 
     cudaLaunchConfig_t config{};
     config.blockDim = dim3{launch_block_size()};
     config.stream = launch_config.stream;
 
     const auto num_objects = objects_per_block();
-    config.gridDim = dim3{(batch_size + num_objects - 1) / num_objects};
+    config.gridDim = dim3{static_cast<unsigned>((batch_size + num_objects - 1) / num_objects)};
 
     config.dynamicSmemBytes = Op::scratch_space_size(*this, bases);
 
     config.attrs = launch_config.launch_attributes.data();
     config.numAttrs = static_cast<unsigned int>(launch_config.launch_attributes.size());
 
-    auto err = cudaLaunchKernelEx(&config, kernel, batches, bases, extras...);
+    auto err = cudaLaunchKernelEx(&config, kernel, batches, bases, batch_size, mapped_extras.value());
     return map_cuda_error(err);
 }
 } // namespace rpp::gpu::strategies

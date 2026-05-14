@@ -39,14 +39,14 @@ RPP_KERNEL void kernel(
 
     const auto ctx = Strategy::make_context(smem_bytes);
 
-    Op::init_scratch_mem(ctx, bases);
+    Op::init_scratch_space(ctx, bases);
 
     const auto work_idx = Strategy::object_index(blockIdx.x, threadIdx.x);
     if (work_idx >= batch_size) { return; }
 
     ops::invoke(Op{}, ctx, [&](auto const &batch) { return batch.view(work_idx, bases); }, batches, extras);
 
-    Op::destroy_scratch_mem(ctx, bases);
+    Op::destroy_scratch_space(ctx, bases);
 }
 
 

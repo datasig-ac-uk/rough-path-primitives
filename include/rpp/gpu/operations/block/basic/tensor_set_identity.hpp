@@ -19,7 +19,7 @@ public:
     using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
-
+    using Index = typename Strategy::Index;
 
 private:
     using SetConstant = VectorSetConstant<Strategy>;
