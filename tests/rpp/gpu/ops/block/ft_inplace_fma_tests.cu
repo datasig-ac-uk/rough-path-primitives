@@ -32,22 +32,21 @@ TEST(GpuBlockFtInplaceFmaTests, AEqualsBCPlusAMatchesCpuForSingleElementBatches)
         Helper::DeviceVector<Helper::Scalar> device_c(c);
         Helper::DeviceBasis device_basis(basis_data);
 
-    rpp::gpu::block::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsBCPlusA><<<
-        Helper::tensor_count,
-        gpu_strategy.block_size,
-        Helper::shared_memory_size<GpuOp>(basis)
-    >>>(
-        Helper::device_tensor_batch(device_actual, basis),
-        Helper::device_tensor_batch(device_b, basis),
-        Helper::device_tensor_batch(device_c, basis),
-        device_basis.basis,
-        gpu_strategy,
-        Helper::tensor_count,
-        alpha,
-        beta
-    );
-    RPP_CUDA_ASSERT(cudaGetLastError());
-    RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::ft_inplace_fma<rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(
+            gpu_strategy,
+            std::move(launch_config),
+            Helper::device_tensor_batch(device_actual, basis),
+            Helper::device_tensor_batch(device_b, basis),
+            Helper::device_tensor_batch(device_c, basis),
+            basis,
+            Helper::tensor_count,
+            alpha,
+            beta
+        );
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
+        RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
     rpp::cpu::single_thread::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(
             Helper::host_tensor_batch(expected, basis),
@@ -91,21 +90,20 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference)
         Helper::DeviceVector<Helper::Scalar> device_c(c);
         Helper::DeviceBasis device_basis(basis_data);
 
-        rpp::gpu::block::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsABPlusC><<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            Helper::shared_memory_size<GpuABOp>(basis)
-        >>>(
+        rpp::gpu::DeviceLaunchConfig launch_config_ab;
+        launch_config_ab.stream = nullptr;
+        auto const err_ab = rpp::ops::ft_inplace_fma<rpp::ops::FTInplaceFMAType::AEqualsABPlusC>(
+            gpu_strategy,
+            std::move(launch_config_ab),
             Helper::device_tensor_batch(device_ab, basis),
             Helper::device_tensor_batch(device_b, basis),
             Helper::device_tensor_batch(device_c, basis),
-            device_basis.basis,
-            gpu_strategy,
+            basis,
             Helper::tensor_count,
             alpha,
             beta
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err_ab)) << err_ab.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         rpp::cpu::single_thread::ft_fma_kernel(
@@ -127,21 +125,20 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference)
         auto actual_ba = initial_a;
         Helper::DeviceVector<Helper::Scalar> device_ba(actual_ba);
 
-        rpp::gpu::block::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsBAPlusC><<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            Helper::shared_memory_size<GpuBAOp>(basis)
-        >>>(
+        rpp::gpu::DeviceLaunchConfig launch_config_ba;
+        launch_config_ba.stream = nullptr;
+        auto const err_ba = rpp::ops::ft_inplace_fma<rpp::ops::FTInplaceFMAType::AEqualsBAPlusC>(
+            gpu_strategy,
+            std::move(launch_config_ba),
             Helper::device_tensor_batch(device_ba, basis),
             Helper::device_tensor_batch(device_b, basis),
             Helper::device_tensor_batch(device_c, basis),
-            device_basis.basis,
-            gpu_strategy,
+            basis,
             Helper::tensor_count,
             alpha,
             beta
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err_ba)) << err_ba.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         rpp::cpu::single_thread::ft_fma_kernel(

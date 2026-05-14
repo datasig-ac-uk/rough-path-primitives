@@ -33,22 +33,21 @@ TEST(GpuBlockStFmaTests, MatchesCpuForSingleElementBatches)
         Helper::DeviceVector<Helper::Scalar> device_c(c);
         Helper::DeviceBasis device_basis(basis_data);
 
-        rpp::gpu::block::st_fma_kernel<<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            Helper::shared_memory_size<GpuOp>(basis)
-        >>>(
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::st_fma(
+            gpu_strategy,
+            std::move(launch_config),
             Helper::device_tensor_batch(device_actual, basis),
             Helper::device_tensor_batch(device_a, basis),
             Helper::device_tensor_batch(device_b, basis),
             Helper::device_tensor_batch(device_c, basis),
-            device_basis.basis,
-            gpu_strategy,
+            basis,
             Helper::tensor_count,
             alpha,
             beta
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         rpp::cpu::single_thread::st_fma_kernel(

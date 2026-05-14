@@ -25,18 +25,17 @@ TEST(GpuBlockTensorAddIdentityTests, MatchesCpuForSingleElementBatches)
         Helper::DeviceVector<Helper::Scalar> device_actual(actual);
         Helper::DeviceBasis device_basis(basis_data);
 
-        rpp::gpu::block::tensor_add_identity_kernel<<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            0
-        >>>(
-            Helper::device_tensor_batch(device_actual, basis),
-            device_basis.basis,
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::tensor_add_identity(
             gpu_strategy,
+            std::move(launch_config),
+            Helper::device_tensor_batch(device_actual, basis),
+            basis,
             Helper::tensor_count,
             scalar
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         rpp::cpu::single_thread::tensor_add_identity_kernel(

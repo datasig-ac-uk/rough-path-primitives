@@ -25,18 +25,17 @@ TEST(GpuBlockVectorSetConstantTests, MatchesCpuForSingleElementBatches)
         Helper::DeviceVector<Helper::Scalar> device_actual(actual);
         Helper::DeviceBasis device_basis(basis_data);
 
-        rpp::gpu::block::vector_set_constant_kernel<<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            0
-        >>>(
-            Helper::device_vector_batch(device_actual, basis),
-            device_basis.basis,
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::vector_set_constant(
             gpu_strategy,
+            std::move(launch_config),
+            Helper::device_vector_batch(device_actual, basis),
+            basis,
             Helper::tensor_count,
             value
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         rpp::cpu::single_thread::vector_set_constant_kernel(
@@ -69,18 +68,17 @@ TEST(GpuBlockVectorSetZeroTests, MatchesCpuForSingleElementBatches)
         Helper::DeviceVector<Helper::Scalar> device_actual(actual);
         Helper::DeviceBasis device_basis(basis_data);
 
-        rpp::gpu::block::vector_set_constant_kernel<<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            0
-        >>>(
-            Helper::device_vector_batch(device_actual, basis),
-            device_basis.basis,
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::vector_set_constant(
             gpu_strategy,
+            std::move(launch_config),
+            Helper::device_vector_batch(device_actual, basis),
+            basis,
             Helper::tensor_count,
             Helper::Scalar{0}
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         rpp::cpu::single_thread::vector_set_constant_kernel(

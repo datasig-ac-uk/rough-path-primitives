@@ -53,7 +53,7 @@ struct GpuBlockTestHelper {
     using GpuArchitecture = gpu::arch::Architecture32;
     using Degree = typename GpuArchitecture::Degree;
     using Index = typename GpuArchitecture::Index;
-    using Basis = TensorBasis<Degree, Index>;
+    using Basis = TensorBasis<GpuArchitecture>;
 
     template <typename T>
     using HostVector = thrust::host_vector<T>;

@@ -75,21 +75,20 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CsrMatchesCpuForSingleElementBatche
         basis.size()
     );
 
-    rpp::gpu::block::sparse_matrix_vector_product_kernel<<<
-        Helper::tensor_count,
-        gpu_strategy.block_size,
-        0
-    >>>(
+    rpp::gpu::DeviceLaunchConfig launch_config;
+    launch_config.stream = nullptr;
+    auto const err = rpp::ops::sparse_matrix_vector_product(
+        gpu_strategy,
+        std::move(launch_config),
         Helper::device_vector_batch(device_actual, basis),
         Helper::device_vector_batch(device_arg, basis),
-        device_matrix,
-        device_basis.basis,
-        device_basis.basis,
-        gpu_strategy,
+        basis,
+        basis,
         Helper::tensor_count,
+        device_matrix,
         alpha
     );
-    RPP_CUDA_ASSERT(cudaGetLastError());
+    ASSERT_TRUE(static_cast<bool>(err)) << err.message();
     RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
     rpp::cpu::single_thread::sparse_matrix_vector_product_kernel(
@@ -151,21 +150,20 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
     using Op = rpp::ops::SparseMatrixVectorProduct<Helper::GpuStrategy, rpp::sparse::CSCMatrix>;
     auto smem_bytes = Op::scratch_space_size(gpu_strategy, basis);
 
-    rpp::gpu::block::sparse_matrix_vector_product_kernel<<<
-        Helper::tensor_count,
-        gpu_strategy.block_size,
-        smem_bytes
-    >>>(
+    rpp::gpu::DeviceLaunchConfig launch_config;
+    launch_config.stream = nullptr;
+    auto const err = rpp::ops::sparse_matrix_vector_product(
+        gpu_strategy,
+        std::move(launch_config),
         Helper::device_vector_batch(device_actual, basis),
         Helper::device_vector_batch(device_arg, basis),
-        device_matrix,
-        device_basis.basis,
-        device_basis.basis,
-        gpu_strategy,
+        basis,
+        basis,
         Helper::tensor_count,
+        device_matrix,
         alpha
     );
-    RPP_CUDA_ASSERT(cudaGetLastError());
+    ASSERT_TRUE(static_cast<bool>(err)) << err.message();
     RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
     rpp::cpu::single_thread::sparse_matrix_vector_product_kernel(

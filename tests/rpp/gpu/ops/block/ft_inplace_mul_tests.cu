@@ -50,19 +50,18 @@ TEST(GpuBlockFtInplaceMulTests, MatchesCpuForSingleElementBatches)
         Helper::DeviceVector<Helper::Scalar> device_rhs(rhs);
         Helper::DeviceBasis device_basis(basis_data);
 
-        rpp::gpu::block::ft_inplace_mul_kernel<<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            Helper::shared_memory_size<GpuOp>(basis)
-        >>>(
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::ft_inplace_mul(
+            gpu_strategy,
+            std::move(launch_config),
             Helper::device_tensor_batch(device_actual, basis),
             Helper::device_tensor_batch(device_rhs, basis),
-            device_basis.basis,
-            gpu_strategy,
+            basis,
             Helper::tensor_count,
             beta
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         rpp::cpu::single_thread::ft_inplace_mul_kernel(
@@ -100,19 +99,28 @@ TEST(GpuBlockFtInplaceMulTests, ZerosUnitCoefficientWhenRhsHasNoUnitTerm)
         Helper::DeviceVector<Helper::Scalar> device_rhs(rhs);
         Helper::DeviceBasis device_basis(basis_data);
 
-        ft_inplace_mul_truncated_rhs_kernel<<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            Helper::shared_memory_size<GpuOp>(basis)
-        >>>(
-            Helper::device_tensor_batch(device_actual, basis),
-            Helper::device_tensor_batch(device_rhs, basis),
-            device_basis.basis,
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+
+        auto const rhs_batch = Helper::device_tensor_batch(device_rhs, basis);
+        auto const rhs_truncated = rpp::dense::make_tensor_batch(
+            rhs_batch.data(),
+            rhs_batch.stride(),
+            1,
+            basis.depth,
+            rhs_batch.basis_or_tag()
+        );
+
+        auto const err = rpp::ops::ft_inplace_mul(
             gpu_strategy,
+            std::move(launch_config),
+            Helper::device_tensor_batch(device_actual, basis),
+            rhs_truncated,
+            basis,
             Helper::tensor_count,
             beta
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const cpu_ctx = Helper::CpuStrategy::make_context(nullptr);

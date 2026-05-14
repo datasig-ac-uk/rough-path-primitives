@@ -26,18 +26,17 @@ TEST(GpuBlockVectorAssignTests, MatchesCpuForSingleElementBatches)
         Helper::DeviceVector<Helper::Scalar> device_arg(arg);
         Helper::DeviceBasis device_basis(basis_data);
 
-        rpp::gpu::block::vector_assign_kernel<<<
-            Helper::tensor_count,
-            gpu_strategy.block_size,
-            0
-        >>>(
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::vector_assign(
+            gpu_strategy,
+            std::move(launch_config),
             Helper::device_vector_batch(device_actual, basis),
             Helper::device_vector_batch(device_arg, basis),
-            device_basis.basis,
-            gpu_strategy,
+            basis,
             Helper::tensor_count
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         rpp::cpu::single_thread::vector_assign_kernel(

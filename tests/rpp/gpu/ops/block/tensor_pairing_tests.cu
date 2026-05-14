@@ -7,23 +7,6 @@
 
 namespace {
 
-template <typename BatchFunctional, typename BatchArg, typename Basis, typename Strategy>
-__global__ void tensor_pairing_kernel(
-    typename Strategy::Accum* out,
-    BatchFunctional batch_functional,
-    BatchArg batch_arg,
-    Basis basis,
-    Strategy strategy
-)
-{
-    extern __shared__ std::byte smem_bytes[];
-    auto const ctx = strategy.make_context(smem_bytes);
-    auto functional = batch_functional.view(0, basis);
-    auto arg = batch_arg.view(0, basis);
-
-    rpp::ops::TensorPairing<Strategy> op;
-    op(ctx, out[0], functional, arg);
-}
 
 TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
 {
@@ -51,18 +34,18 @@ TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
         Helper::DeviceVector<Helper::Scalar> device_actual(1);
         Helper::DeviceBasis device_basis(basis_data);
 
-        tensor_pairing_kernel<<<
-            1,
-            gpu_strategy.block_size,
-            Helper::shared_memory_size<GpuOp>(basis)
-        >>>(
-            Helper::device_data(device_actual),
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::tensor_pairing(
+            gpu_strategy,
+            std::move(launch_config),
+            rpp::dense::ScalarBatch(rpp::tag_pointer<typename Helper::GpuArchitecture>(Helper::device_data(device_actual))),
             Helper::device_tensor_batch(device_functional, basis),
             Helper::device_tensor_batch(device_arg, basis),
-            device_basis.basis,
-            gpu_strategy
+            basis,
+            1
         );
-        RPP_CUDA_ASSERT(cudaGetLastError());
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const actual = Helper::copy_to_host(device_actual);
