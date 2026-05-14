@@ -21,9 +21,13 @@ map_data(T&& arg, DataMapper& mapper) noexcept -> typename DataMapper::template 
 
 template <template <typename...> class Tuple, typename DataMapper, typename... Ts>
 constexpr auto map_data_args(DataMapper& mapper, Ts&&... args) noexcept {
-    return map_result_tuple(map_to_tuple<Tuple>( [&](auto&& arg) {
-        return map_data(std::forward<decltype(arg)>(arg), mapper);
-    }, std::forward<Ts>(args)...));
+    if constexpr (sizeof...(Ts) == 0) {
+        return Result<std::tuple<>, typename DataMapper::Error>(std::make_tuple());
+    } else {
+        return map_result_tuple(map_to_tuple<Tuple>( [&](auto&& arg) {
+            return map_data(std::forward<decltype(arg)>(arg), mapper);
+        }, std::forward<Ts>(args)...));
+    }
 }
 
 
