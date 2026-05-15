@@ -190,6 +190,7 @@ if (RPP_ENABLE_CUDA)
         ${RPP_GPU_SOURCES}
     )
     set_source_files_properties(${RPP_GPU_SOURCES} PROPERTIES LANGUAGE CUDA)
+    target_compile_options(RPP INTERFACE $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CUDA>>:-G>)
 endif()
 
 if (RPP_ENABLE_TESTS)
