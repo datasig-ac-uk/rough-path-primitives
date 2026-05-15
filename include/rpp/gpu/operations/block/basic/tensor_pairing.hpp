@@ -31,7 +31,7 @@ public:
 
     template<typename Scalar, typename TensorFunc, typename TensorArg>
     RPP_DEVICE void operator()(Context const &ctx, Scalar &out, const TensorFunc &functional,
-                               const TensorArg &arg) noexcept {
+                               const TensorArg &arg) const noexcept {
         auto const &basis = functional.basis();
         const auto min_deg = std::max(functional.min_degree(), arg.min_degree());
         const auto max_deg = std::min(functional.max_degree(), arg.max_degree());
@@ -55,4 +55,4 @@ public:
 };
 } // namespace rpp::ops
 
-#endif //INCLUDE_RPP_GPU_OPERATIONS_BLOCK_TENSOR_PAIRING_HPP
+#endif //RPP_GPU_OPERATIONS_BLOCK_BASIC_TENSOR_PAIRING_HPP
