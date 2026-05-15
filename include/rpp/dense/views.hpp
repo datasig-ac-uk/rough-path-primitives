@@ -123,12 +123,12 @@ public:
 
     template<typename Index_>
     RPP_HOST_DEVICE RPP_NODISCARD constexpr reference operator[](Index_ i) noexcept {
-        return *(data_ + i);
+        return data_[i];
     }
 
     template<typename Index_>
     RPP_HOST_DEVICE RPP_NODISCARD constexpr reference operator[](Index_ i) const noexcept {
-        return *(data_ + i);
+        return data_[i];
     }
 
     RPP_HOST_DEVICE RPP_NODISCARD Index size() const noexcept {
