@@ -87,6 +87,13 @@ RPP_HOST_DEVICE constexpr auto minimum(I... elements) noexcept {
     return minimum(vals);
 }
 
+
+template <typename I>
+RPP_HOST_DEVICE constexpr bool in_range(I arg, I lower, I upper) noexcept {
+    return (arg >= lower) && (arg < upper);
+}
+
+
 namespace traits {
 namespace detail {
 template<typename... Ts>
