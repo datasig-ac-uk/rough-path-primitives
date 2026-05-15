@@ -58,7 +58,7 @@ public:
         if constexpr (static_small_block) {
             return static_block_size;
         } else {
-            return static_block_size;
+            return blockDim.x;
         }
     }
 
@@ -79,7 +79,11 @@ public:
     }
 
     RPP_DEVICE static constexpr Index warp_idx() noexcept {
-        return threadIdx.x / Strategy::warp_size;
+        if constexpr (static_small_block) {
+            return 0;
+        } else  {
+            return threadIdx.x / Strategy::warp_size;
+        }
     }
 
     RPP_DEVICE RPP_NODISCARD static constexpr unsigned num_warps() noexcept {
@@ -222,7 +226,7 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize> {
 
     RPP_HOST RPP_NODISCARD
     constexpr unsigned launch_block_size() const noexcept {
-        if constexpr (BlockSize < MaxBlockSize) {
+        if constexpr (BlockSize < warp_size) {
             return MaxBlockSize;
         } else {
             return block_size;
@@ -231,7 +235,7 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize> {
 
     RPP_HOST_DEVICE RPP_NODISCARD
     static constexpr Index objects_per_block() noexcept {
-        if constexpr (BlockSize < MaxBlockSize) {
+        if constexpr (BlockSize < warp_size) {
             return MaxBlockSize / block_size;
         } else {
             return 1;
@@ -245,7 +249,7 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize> {
 
     RPP_HOST_DEVICE RPP_NODISCARD
     static constexpr Index object_index(unsigned block_index, unsigned thread_index) noexcept {
-        if constexpr (BlockSize < MaxBlockSize) {
+        if constexpr (BlockSize < warp_size) {
             return static_cast<Index>(block_index) * objects_per_block() + thread_index / block_size;
         } else {
             return static_cast<Index>(block_index);
@@ -253,7 +257,7 @@ struct BlockStrategy : public detail::BlockSizeHolder<BlockSize> {
     }
 
     RPP_DEVICE static constexpr Context make_context(std::byte *smem_bytes) noexcept {
-        if constexpr (BlockSize < MaxBlockSize) {
+        if constexpr (BlockSize < warp_size) {
             return Context{smem_bytes + threadIdx.x / block_size};
         } else {
             return Context{smem_bytes};
