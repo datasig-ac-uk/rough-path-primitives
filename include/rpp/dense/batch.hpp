@@ -34,7 +34,7 @@ public:
     constexpr ScalarView(T& val) noexcept : ptr_(std::addressof(val)) {}
 
     RPP_HOST_DEVICE
-    constexpr operator T& () noexcept {
+    constexpr operator T& () const noexcept {
         return *ptr_;
     }
 
