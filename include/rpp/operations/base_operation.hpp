@@ -39,10 +39,13 @@ public:
 };
 
 namespace detail {
+
+
+
 template<typename Op, typename Context, typename ViewTuple, typename ExtrasTuple, size_t... Is,
     size_t... Js>
 RPP_HOST_DEVICE
-void invoke_impl(Op const &op, Context const &ctx, ViewTuple const &views,
+constexpr void invoke_impl(Op const &op, Context const &ctx, ViewTuple &&views,
                  ExtrasTuple &&extras, std::index_sequence<Is...>, std::index_sequence<Js...>) {
     op(ctx, std::get<Is>(views)..., std::get<Js>(std::forward<ExtrasTuple>(extras))...);
 }
@@ -50,12 +53,12 @@ void invoke_impl(Op const &op, Context const &ctx, ViewTuple const &views,
 
 template<typename Op, typename Context, typename BatchMapper, typename BatchTuple, typename ExtrasTuple>
 RPP_HOST_DEVICE
-void invoke(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
+constexpr void invoke(Op const &op, Context const &ctx, BatchMapper &&batch_mapper, BatchTuple const &batches,
             ExtrasTuple &&extras) {
-    auto views = map_tuple(batches, std::forward<BatchMapper>(batch_mapper));
-    detail::invoke_impl(op, ctx, views, std::forward<ExtrasTuple>(extras),
-                        std::make_index_sequence<std::tuple_size_v<std::decay_t<BatchTuple>> >(),
-                        std::make_index_sequence<std::tuple_size_v<std::decay_t<ExtrasTuple>> >()
+    detail::invoke_impl(op, ctx, map_tuple(batches, std::forward<BatchMapper>(batch_mapper)),
+                        std::forward<ExtrasTuple>(extras),
+                        std::make_index_sequence<std::tuple_size_v<std::decay_t<BatchTuple> > >(),
+                        std::make_index_sequence<std::tuple_size_v<std::decay_t<ExtrasTuple> > >()
     );
 }
 } // namespace rpp::ops
