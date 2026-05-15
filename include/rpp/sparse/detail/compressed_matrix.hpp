@@ -135,6 +135,11 @@ public:
     RPP_HOST_DEVICE
     constexpr Offset offset(difference_type index) const noexcept { return offsets_[index]; }
 
+    RPP_HOST_DEVICE
+    constexpr auto offsets(difference_type inner_dim) const noexcept {
+        return std::tie(offsets_[inner_dim], offsets_[inner_dim+1]);
+    }
+
     template <typename DataMapper>
     RPP_NODISCARD
     friend typename DataMapper::template Result<CompressedMatrix<
