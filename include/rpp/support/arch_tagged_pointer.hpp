@@ -92,7 +92,7 @@ Ptr<T, Arch> tag_pointer(T* ptr) {
 namespace traits {
 
 template <typename T, typename Arch>
-struct IteratorTraits<Ptr<T, Arch>, void> : public std::iterator_traits<Ptr<T *, Arch>> {
+struct IteratorTraits<Ptr<T, Arch>, void> : public std::iterator_traits<Ptr<T, Arch>> {
     using Architecture = Arch;
 };
 
