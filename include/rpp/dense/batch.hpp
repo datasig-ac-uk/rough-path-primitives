@@ -44,6 +44,13 @@ public:
         return *this;
     }
 
+    template <typename U>
+    RPP_HOST_DEVICE
+    constexpr ScalarView& operator=(U&& new_val) noexcept {
+        *ptr_ = static_cast<T>(std::forward<U>(new_val));
+        return *this;
+    }
+
 };
 
 } // namespace detail
