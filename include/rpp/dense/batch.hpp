@@ -38,6 +38,12 @@ public:
         return *ptr_;
     }
 
+    RPP_HOST_DEVICE
+    constexpr ScalarView& operator=(T const& new_val) noexcept {
+        *ptr_ = new_val;
+        return *this;
+    }
+
 };
 
 } // namespace detail
