@@ -177,15 +177,15 @@ struct GpuBlockTestHelper {
     }
 
     template <typename T>
-    [[nodiscard]] static T* device_data(DeviceVector<T>& data)
+    [[nodiscard]] static auto device_data(DeviceVector<T>& data)
     {
-        return thrust::raw_pointer_cast(data.data());
+        return rpp::tag_pointer<GpuArchitecture>(thrust::raw_pointer_cast(data.data()));
     }
 
     template <typename T>
-    [[nodiscard]] static T const* device_data(DeviceVector<T> const& data)
+    [[nodiscard]] static auto device_data(DeviceVector<T> const& data)
     {
-        return thrust::raw_pointer_cast(data.data());
+        return rpp::tag_pointer<GpuArchitecture>(thrust::raw_pointer_cast(data.data()));
     }
 
     template <typename T>
