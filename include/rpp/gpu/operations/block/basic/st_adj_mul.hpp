@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_OPERATIONS_BLOCK_BASIC_ST_ADJ_MUL_HPP
 #define RPP_GPU_OPERATIONS_BLOCK_BASIC_ST_ADJ_MUL_HPP
 
+#include <cuda/atomic>
+
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 #include <rpp/dense/batch.hpp>
@@ -29,6 +31,7 @@ public:
 
     SetConstant set_constant;
 
+    using AtomicRef = cuda::atomic_ref<Accum>;
 public:
     static constexpr bool is_implemented = true;
 
@@ -67,7 +70,8 @@ public:
                 out_idx += basis.start_of_degree(out_deg);
 
                 if (out.has_degree(out_deg) && op.has_degree(op_deg)) {
-                    atomicAdd(out.data() + out_idx, static_cast<Scalar>(arg_val * Accum{op[op_idx]}));
+                    AtomicRef out_ref{out[out_idx]};
+                    out_ref += static_cast<Scalar>(arg_val * Accum{op[op_idx]});
                 }
             }
         }
