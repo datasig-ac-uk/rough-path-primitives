@@ -139,6 +139,7 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/basis/tensor_basis.hpp
         include/rpp/config/compiler.h
         include/rpp/config/target.h
+        include/rpp/support/algorithm.hpp
         include/rpp/support/arch_tagged_pointer.hpp
         include/rpp/support/data_mapping.hpp
         include/rpp/support/error.hpp
