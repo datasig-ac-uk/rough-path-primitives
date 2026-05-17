@@ -12,9 +12,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-if(NOT DEFINED CMAKE_CUDA_HOST_COMPILER)
+if (NOT DEFINED CMAKE_CUDA_HOST_COMPILER)
     set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
-endif()
+endif ()
 
 
 option(RPP_ENABLE_CUDA "Enable cuda support" OFF)
@@ -24,14 +24,16 @@ option(RPP_ADD_STUB_TARGET "Add a stub target that includes all headers" ${PROJE
 
 
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 
 add_library(RPP INTERFACE)
 add_library(RPP::RPP ALIAS RPP)
 
-target_include_directories(RPP INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+target_include_directories(RPP
+        INTERFACE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 #add_library(RPPStub STATIC src/stub.cpp)
@@ -82,41 +84,41 @@ function(rpp_make_op_file_list _out)
     set(_missing)
     if (ARG_PRIMARY)
         set(_prefix "include/rpp/operations")
-    else()
+    else ()
         set(_prefix "include/rpp/${ARG_PLATFORM}/operations/${ARG_STRATEGY}")
-    endif()
-    foreach(op IN LISTS RPP_BASIC_OPS)
+    endif ()
+    foreach (op IN LISTS RPP_BASIC_OPS)
         set(_path "${_prefix}/basic/${op}.hpp")
         message(TRACE "Adding operation header file: ${_path}")
-        if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
+        if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
             list(APPEND _missing "${_path}")
-        endif()
+        endif ()
         list(APPEND _working ${_path})
-    endforeach()
+    endforeach ()
 
-    foreach(op IN LISTS RPP_INTERMEDIATE_OPS)
+    foreach (op IN LISTS RPP_INTERMEDIATE_OPS)
         set(_path "${_prefix}/intermediate/${op}.hpp")
         message(TRACE "Adding operation header file: ${_path}")
-        if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
+        if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
             list(APPEND _missing "${_path}")
-        endif()
+        endif ()
         list(APPEND _working ${_path})
-    endforeach()
+    endforeach ()
 
-    foreach(addition IN LISTS ARG_ADDITIONAL)
+    foreach (addition IN LISTS ARG_ADDITIONAL)
         set(_path "${_prefix}/${addition}")
         message(TRACE "Adding additional operation header: ${_path}")
-        if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
+        if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
             list(APPEND _missing "${_path}")
-        endif()
+        endif ()
         list(APPEND _working ${_path})
-    endforeach()
+    endforeach ()
 
     if (NOT "${_missing}" STREQUAL "")
         list(JOIN _missing "\n" _missing_paths)
         message(WARNING
                 "The following operation files could not be found:\n${_missing_paths}")
-    endif()
+    endif ()
 
     set(${_out} ${_working} PARENT_SCOPE)
 endfunction()
@@ -124,7 +126,7 @@ endfunction()
 
 rpp_make_op_file_list(RPP_OPS PRIMARY ADDITIONAL base_operation.hpp)
 rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread
-    ADDITIONAL
+        ADDITIONAL
         basic/detail/ft_multiply.hpp
         detail/batch_wrapper.hpp
 )
@@ -164,6 +166,45 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
 )
 
 
+add_library(RPP_GPU INTERFACE)
+add_library(RPP::GPU ALIAS RPP_GPU)
+target_link_libraries(RPP_GPU
+        INTERFACE
+            RPP::RPP
+            CUDA::cudart
+)
+
+
+rpp_make_op_file_list(RPP_GPU_BLOCK_OPS PLATFORM gpu STRATEGY block
+        ADDITIONAL
+        strategy.hpp
+        basic/detail/ft_adjoint_multiply.hpp
+        basic/detail/ft_multiply.hpp
+        basic/detail/st_multiply.hpp
+        kernel.hpp
+)
+
+set(RPP_GPU_SOURCES
+        include/rpp/gpu/architecture.hpp
+        include/rpp/gpu/strategies.hpp
+        include/rpp/gpu/device.hpp
+        ${RPP_GPU_BLOCK_OPS}
+)
+
+target_sources(RPP_GPU INTERFACE
+        FILE_SET HEADERS
+        BASE_DIRS include
+        FILES ${RPP_GPU_SOURCES}
+)
+
+target_compile_definitions(RPP_GPU
+        INTERFACE
+            RPP_GPU_ENABLED=1
+)
+
+target_compile_options(RPP_GPU
+        INTERFACE
+        $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CUDA>>:-G>)
 
 
 
@@ -171,59 +212,88 @@ if (RPP_ENABLE_CUDA)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
 
-    rpp_make_op_file_list(RPP_GPU_BLOCK_OPS PLATFORM gpu STRATEGY block
-            ADDITIONAL
-            strategy.hpp
-            basic/detail/ft_adjoint_multiply.hpp
-            basic/detail/ft_multiply.hpp
-            basic/detail/st_multiply.hpp
-            kernel.hpp
-    )
 
-    set(RPP_GPU_SOURCES
-            include/rpp/gpu/architecture.hpp
-            include/rpp/gpu/strategies.hpp
-            include/rpp/gpu/device.hpp
-            ${RPP_GPU_BLOCK_OPS}
-    )
-
-    target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
-        ${RPP_GPU_SOURCES}
-    )
     set_source_files_properties(${RPP_GPU_SOURCES} PROPERTIES LANGUAGE CUDA)
-    target_compile_options(RPP INTERFACE $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CUDA>>:-G>)
-endif()
+endif ()
 
 if (RPP_ENABLE_TESTS)
     enable_testing()
     add_subdirectory(tests)
-endif()
+endif ()
 
 if (RPP_ENABLE_BENCHMARKS)
     add_subdirectory(benchmarks)
-endif()
+endif ()
 
 
-if(RPP_ADD_STUB_TARGET)
+if (RPP_ADD_STUB_TARGET)
     add_library(RPP_Stub STATIC)
     target_link_libraries(RPP_Stub PRIVATE RPP)
 
     get_target_property(_headers RPP HEADER_SET)
     set(_include)
 
-    foreach(_hdr IN LISTS _headers)
+    foreach (_hdr IN LISTS _headers)
         cmake_path(RELATIVE_PATH _hdr BASE_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/include")
         list(APPEND _include "#include <${_hdr}>")
-    endforeach()
+    endforeach ()
     list(JOIN _include "\n" _include_str)
 
-    if(RPP_ENABLE_CUDA)
+    if (RPP_ENABLE_CUDA)
         file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/stub.cu" "${_include_str}")
         target_sources(RPP_Stub PRIVATE
                 ${CMAKE_CURRENT_BINARY_DIR}/stub.cu)
-    else()
+    else ()
         file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/stub.cpp" "${_include_str}")
         target_sources(RPP_Stub PRIVATE
-            ${CMAKE_CURRENT_BINARY_DIR}/stub.cpp)
-    endif()
-endif()
+                ${CMAKE_CURRENT_BINARY_DIR}/stub.cpp)
+    endif ()
+endif ()
+
+
+if (PROJECT_IS_TOP_LEVEL)
+    install(TARGETS
+                RPP
+            EXPORT RoughPathPrimitivesTargets
+            FILE_SET HEADERS
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+
+    install(TARGETS RPP_GPU
+            EXPORT RoughPathPrimitivesTargets_GPU
+            FILE_SET HEADERS
+    )
+
+    set(RPP_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/RoughPathPrimitives")
+    install(EXPORT RoughPathPrimitivesTargets
+            FILE RoughPathPrimitiveTargets.cmake
+            NAMESPACE RPP::
+            DESTINATION ${RPP_CMAKE_INSTALL_DIR})
+
+    install(EXPORT RoughPathPrimitivesTargets_GPU
+            FILE RoughPathPrimitive_GPU.cmake
+            NAMESPACE RPP::
+            DESTINATION ${RPP_CMAKE_INSTALL_DIR})
+
+    configure_package_config_file(
+            cmake/RoughPathPrimitivesConfig.cmake.in
+            ${CMAKE_CURRENT_BINARY_DIR}/RoughPathPrimitivesConfig.cmake
+            INSTALL_DESTINATION ${RPP_CMAKE_INSTALL_DIR}
+            NO_SET_AND_CHECK_MACRO
+            NO_CHECK_REQUIRED_COMPONENTS_MACRO
+    )
+
+    write_basic_package_version_file(
+            ${CMAKE_CURRENT_BINARY_DIR}/RoughPathPrimitivesVersion.cmake
+            VERSION ${PROJECT_VERSION}
+            COMPATIBILITY SameMajorVersion
+    )
+
+    install(FILES
+            ${CMAKE_CURRENT_BINARY_DIR}/RoughPathPrimitivesConfig.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/RoughPathPrimitivesVersion.cmake
+            cmake/RoughPathPrimitivesDependencies.cmake
+            DESTINATION ${RPP_CMAKE_INSTALL_DIR}
+    )
+
+endif ()
