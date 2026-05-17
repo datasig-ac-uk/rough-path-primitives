@@ -26,7 +26,7 @@ function(rpp_add_gpu_benchmark target)
     )
 
 endfunction()
-
-rpp_add_gpu_benchmark(gpu_sparse_matrix_vector_product_bench
-        sparse_matrix_vector_product_bench.cu
-)
+#
+#rpp_add_gpu_benchmark(gpu_sparse_matrix_vector_product_bench
+#        sparse_matrix_vector_product_bench.cu
+#)

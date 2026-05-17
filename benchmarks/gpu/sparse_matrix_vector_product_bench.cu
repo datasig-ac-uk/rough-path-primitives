@@ -15,7 +15,7 @@
 #include <rpp/gpu/architecture.hpp>
 #include <rpp/gpu/operations/block/basic/sparse_matrix_vector.hpp>
 #include <rpp/gpu/strategies.hpp>
-#include <rpp/sparse/compressed_matrix.hpp>
+#include <rpp/sparse/matrix.hpp>
 
 namespace {
 
@@ -23,7 +23,7 @@ using Scalar = float;
 using Architecture = rpp::gpu::arch::Architecture32;
 using Degree = typename Architecture::Degree;
 using Index = typename Architecture::Index;
-using Basis = rpp::TensorBasis<Degree, Index>;
+using Basis = rpp::TensorBasis<Architecture>;
 using Strategy = rpp::gpu::strategies::BlockStrategy<Scalar, 256, Architecture>;
 using Op = rpp::ops::SparseMatrixVectorProduct<Strategy>;
 
@@ -36,7 +36,7 @@ using DeviceCsrMatrix = rpp::sparse::OwnedCompressedMatrix<
     DeviceScalarVector,
     DeviceIndexVector,
     DeviceIndexVector,
-    rpp::sparse::CompressedFormat::CSR
+    rpp::sparse::MatrixFormat::CSR
 >;
 using DeviceCscMatrix = rpp::sparse::OwnedCompressedMatrix<
     DeviceScalarVector,
