@@ -8,7 +8,19 @@
 
 #include <rpp/architecture.hpp>
 
-namespace rpp::gpu::arch {
+namespace rpp::gpu {
+
+enum class MemoryLocation {
+    GlobalMemory,
+    SharedMemory,
+};
+
+template <MemoryLocation=MemoryLocation::GlobalMemory>
+struct GPUMemoryLocation {
+    static constexpr auto memory_location = MemoryLocation::GlobalMemory;
+};
+
+namespace arch {
 
 namespace detail {
 
@@ -18,7 +30,7 @@ template <unsigned MaxDepth>
 inline constexpr size_t kBitmaskArraySize = (MaxDepth + 8*sizeof(BitmaskBase) - 1) / (8*sizeof(BitmaskBase));
 
 
-}
+} // namespace detail
 
 template <typename Size_, typename Letter_=uint8_t, unsigned MaxDepth=30>
 struct GPUArchitecture : public ::rpp::arch::Architecture<Size_> {
@@ -30,6 +42,17 @@ struct GPUArchitecture : public ::rpp::arch::Architecture<Size_> {
     static constexpr unsigned max_width = std::numeric_limits<Letter>::max();
     static constexpr unsigned max_depth = MaxDepth;
     static constexpr unsigned sector_alignment = 128;
+
+
+    template <typename T>
+    using GMemPtr = ::rpp::TaggedPtr<T, tags::ArchTag<GPUArchitecture>, tags::LocationTag<GPUMemoryLocation<MemoryLocation::GlobalMemory>>>;
+    template <typename T>
+    using SMemPtr = ::rpp::TaggedPtr<T, tags::ArchTag<GPUArchitecture>, tags::LocationTag<GPUMemoryLocation<MemoryLocation::SharedMemory>>>;
+
+
+    template <typename T>
+    using Ptr = GMemPtr<T>;
+
 };
 
 using NativeArchitecture = GPUArchitecture<std::size_t>;
@@ -38,8 +61,7 @@ using Architecture64 = GPUArchitecture<std::uint64_t>;
 
 
 using DefaultArchitecture = Architecture32;
-
-
-};
+} // namespace arch
+} // namespace rpp::gpu
 
 #endif // RPP_GPU_ARCHITECTURE_HPP

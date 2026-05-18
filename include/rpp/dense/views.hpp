@@ -6,6 +6,7 @@
 #include <iterator>
 
 #include <rpp/config.h>
+#include <rpp/architecture.hpp>
 #include <rpp/support/iterator_traits.hpp>
 
 namespace rpp::dense {
@@ -32,7 +33,7 @@ class VectorFragment {
 public:
     using value_type = typename Traits::value_type;
     using reference = typename Traits::reference;
-    using Architecture = typename Traits::Architecture;
+    using Architecture = traits::arch_of_t<It_>;
 
     RPP_HOST_DEVICE
     constexpr VectorFragment(It_ data, Index size)
@@ -73,7 +74,7 @@ public:
     using iterator = It_;
     using Scalar = value_type;
 
-    using Architecture = typename Traits::Architecture;
+    using Architecture = traits::arch_of_t<It_>;
     using Index = typename Traits::difference_type;
     using Basis = Basis_;
     using Degree = typename Basis::Degree;

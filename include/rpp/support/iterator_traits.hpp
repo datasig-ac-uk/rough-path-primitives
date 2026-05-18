@@ -5,14 +5,11 @@
 
 #include <rpp/config.h>
 
-#include <rpp/architecture.hpp>
-
 
 namespace rpp::traits {
 
 template <typename Iterator, typename = void>
 struct IteratorTraits : std::iterator_traits<Iterator> {
-    using Architecture = arch::Architecture<std::make_unsigned_t<typename std::iterator_traits<Iterator>::difference_type>>;
 };
 
 
@@ -46,10 +43,6 @@ inline constexpr bool is_forward_v = std::is_base_of_v<
     std::forward_iterator_tag,
     typename IteratorTraits<It>::value_type
 >;
-
-
-template <typename Iterator>
-using iter_arch_t = typename IteratorTraits<Iterator>::arch;
 
 
 

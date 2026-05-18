@@ -17,6 +17,10 @@ RPP_HOST_DEVICE
 constexpr void ignore_unused(Args &&... arg RPP_MAYBE_UNUSED) noexcept {
 }
 
+
+template <typename T>
+RPP_HOST_DEVICE constexpr T* raw_pointer_cast(T* ptr) noexcept { return ptr; }
+
 template<typename I>
 RPP_HOST_DEVICE constexpr bool is_pow_2(I val) noexcept {
     return (val > 0) && (val & (val - 1)) == I{0};

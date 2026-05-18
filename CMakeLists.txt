@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.2)
+cmake_minimum_required(VERSION 3.20)
 
 
 project(RoughPathPrimitives
@@ -142,7 +142,7 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/config/compiler.h
         include/rpp/config/target.h
         include/rpp/support/algorithm.hpp
-        include/rpp/support/arch_tagged_pointer.hpp
+        include/rpp/support/tagged_pointer.hpp
         include/rpp/support/data_mapping.hpp
         include/rpp/support/error.hpp
         include/rpp/support/iterator_traits.hpp
@@ -204,7 +204,8 @@ target_compile_definitions(RPP_GPU
 
 target_compile_options(RPP_GPU
         INTERFACE
-        $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CUDA>>:-G>)
+        $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CUDA>>:-G>
+        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
 
 
 

@@ -3,7 +3,7 @@
 
 #include <rpp/architecture.hpp>
 #include <rpp/config.h>
-#include <rpp/support/arch_tagged_pointer.hpp>
+#include <rpp/support/tagged_pointer.hpp>
 
 namespace rpp {
 
@@ -17,13 +17,13 @@ struct GradedBasis {
 
     Degree width;
     Degree depth;
-    Ptr<Index const, Architecture> degree_begin;
+    TaggedPtr<Index const, Architecture> degree_begin;
 
     GradedBasis(Degree width_, Degree depth_, Index const *degree_begin_) noexcept
         : width(width_), depth(depth_), degree_begin(degree_begin_) {
     }
 
-    GradedBasis(Degree width_, Degree depth_, Ptr<Index, Architecture> degree_begin_) noexcept
+    GradedBasis(Degree width_, Degree depth_, TaggedPtr<Index, Architecture> degree_begin_) noexcept
         : width(width_), depth(depth_), degree_begin(degree_begin_) {
     }
 

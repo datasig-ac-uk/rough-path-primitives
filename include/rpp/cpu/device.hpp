@@ -11,10 +11,10 @@
 #include <vector>
 
 #include <rpp/config.h>
-#include <rpp/utility.hpp>
 #include <rpp/support/error.hpp>
-#include <rpp/support/arch_tagged_pointer.hpp>
 #include <rpp/support/span.hpp>
+#include <rpp/support/tagged_pointer.hpp>
+#include <rpp/utility.hpp>
 
 namespace rpp::cpu {
 
@@ -38,7 +38,7 @@ public:
     using Result = rpp::Result<T, Error>;
 
     template <typename T>
-    using ArchPtr = Ptr<T, Architecture>;
+    using ArchPtr = TaggedPtr<T, Architecture>;
 
 private:
     std::vector<AllocEntry> allocations_;

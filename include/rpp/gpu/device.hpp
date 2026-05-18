@@ -8,9 +8,9 @@
 #include <cuda_runtime.h>
 
 #include <rpp/config.h>
-#include <rpp/support/arch_tagged_pointer.hpp>
-#include <rpp/support/span.hpp>
 #include <rpp/support/error.hpp>
+#include <rpp/support/span.hpp>
+#include <rpp/support/tagged_pointer.hpp>
 
 namespace rpp::gpu {
 struct DeviceLaunchConfig {
@@ -150,7 +150,7 @@ public:
     using Result = Result<T, Error>;
 
     template <typename T>
-    using ArchPtr = Ptr<T, Architecture>;
+    using ArchPtr = typename Architecture::template Ptr<T>;
 
 
     explicit constexpr DataMapper(cudaStream_t stream) : stream_(stream) {
@@ -212,7 +212,7 @@ public:
 
         if constexpr (std::is_pointer_v<It> && std::is_same_v<Value, T>) {
             return copy(Span<const T>{ begin, static_cast<size_t>(end - begin) });
-        } else if constexpr (traits::is_arch_ptr_v<It> && std::is_same_v<Value, T>) {
+        } else if constexpr (traits::is_tagged_ptr_for_v<T, It>) {
             return copy(Span<const T>{ begin.raw_ptr(), static_cast<size_t>(end - begin.raw_ptr()) });
         } else {
             std::vector<T> data(begin, end);
