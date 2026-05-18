@@ -9,7 +9,7 @@
 #include <rpp/dense/batch.hpp>
 #include <rpp/sparse/matrix.hpp>
 
-#include <rpp/operations/basic/sparse_matrix_vector.hpp>
+#include <rpp/operations/linalg/sparse_matrix_vector.hpp>
 
 #include <rpp/cpu/operations/single_thread/linalg/vector_set_constant.hpp>
 #include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>

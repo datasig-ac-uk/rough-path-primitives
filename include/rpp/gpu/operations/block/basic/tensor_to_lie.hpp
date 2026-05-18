@@ -10,7 +10,7 @@
 #include <rpp/operations/basic/tensor_to_lie.hpp>
 
 #include <rpp/gpu/operations/block/strategy.hpp>
-#include <rpp/gpu/operations/block/basic/sparse_matrix_vector.hpp>
+#include <rpp/gpu/operations/block/linalg/sparse_matrix_vector.hpp>
 
 namespace rpp::gpu::block {
 

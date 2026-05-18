@@ -9,7 +9,7 @@
 #include <rpp/utility.hpp>
 
 #include <rpp/operations/base_operation.hpp>
-#include <rpp/operations/basic/sparse_matrix_vector.hpp>
+#include <rpp/operations/linalg/sparse_matrix_vector.hpp>
 
 namespace rpp::ops {
 

@@ -39,6 +39,14 @@ target_include_directories(RPP
 #add_library(RPPStub STATIC src/stub.cpp)
 #target_link_libraries(RPPStub PRIVATE RPP)
 
+set(RPP_LINALG_OPS
+        vector_add
+        vector_assign
+        vector_inplace_add
+        vector_scalar_multiply
+        vector_set_constant
+        sparse_matrix_vector
+)
 
 set(RPP_BASIC_OPS
         ft_adj_lmul
@@ -48,7 +56,6 @@ set(RPP_BASIC_OPS
         ft_inplace_mul
         ft_mul
         lie_to_tensor
-        sparse_matrix_vector
         st_adj_mul
         st_fma
         st_inplace_fma
@@ -60,11 +67,6 @@ set(RPP_BASIC_OPS
         tensor_reflect
         tensor_set_identity
         tensor_to_lie
-        vector_add
-        vector_assign
-        vector_inplace_add
-        vector_scalar_multiply
-        vector_set_constant
 )
 
 set(RPP_INTERMEDIATE_OPS
@@ -73,6 +75,17 @@ set(RPP_INTERMEDIATE_OPS
         ft_log
 )
 
+macro(rpp_add_ops_cat _working _missing _comp _prefix _ops)
+
+    foreach (op IN LISTS ${_ops})
+        set(_path "${_prefix}/${_comp}/${op}.hpp")
+        message(TRACE "Adding operation header file: ${_path}")
+        if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
+            list(APPEND ${_missing} "${_path}")
+        endif ()
+        list(APPEND ${_working} ${_path})
+    endforeach ()
+endmacro()
 
 function(rpp_make_op_file_list _out)
     set(options PRIMARY)
@@ -87,23 +100,11 @@ function(rpp_make_op_file_list _out)
     else ()
         set(_prefix "include/rpp/${ARG_PLATFORM}/operations/${ARG_STRATEGY}")
     endif ()
-    foreach (op IN LISTS RPP_BASIC_OPS)
-        set(_path "${_prefix}/basic/${op}.hpp")
-        message(TRACE "Adding operation header file: ${_path}")
-        if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
-            list(APPEND _missing "${_path}")
-        endif ()
-        list(APPEND _working ${_path})
-    endforeach ()
 
-    foreach (op IN LISTS RPP_INTERMEDIATE_OPS)
-        set(_path "${_prefix}/intermediate/${op}.hpp")
-        message(TRACE "Adding operation header file: ${_path}")
-        if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${_path}")
-            list(APPEND _missing "${_path}")
-        endif ()
-        list(APPEND _working ${_path})
-    endforeach ()
+    rpp_add_ops_cat(_working _missing linalg ${_prefix} RPP_LINALG_OPS)
+    rpp_add_ops_cat(_working _missing basic ${_prefix} RPP_BASIC_OPS)
+    rpp_add_ops_cat(_working _missing intermediate ${_prefix} RPP_INTERMEDIATE_OPS)
+
 
     foreach (addition IN LISTS ARG_ADDITIONAL)
         set(_path "${_prefix}/${addition}")

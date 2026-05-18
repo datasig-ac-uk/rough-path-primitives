@@ -5,7 +5,7 @@
  *                           Vector Operations                               *
  *****************************************************************************/
 
-#include <rpp/operations/basic/sparse_matrix_vector.hpp>
+#include <rpp/operations/linalg/sparse_matrix_vector.hpp>
 #include <rpp/operations/linalg/vector_add.hpp>
 #include <rpp/operations/linalg/vector_assign.hpp>
 #include <rpp/operations/linalg/vector_inplace_add.hpp>

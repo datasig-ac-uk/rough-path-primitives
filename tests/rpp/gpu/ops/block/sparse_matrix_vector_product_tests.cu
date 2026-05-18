@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/operations/single_thread/basic/sparse_matrix_vector.hpp>
-#include <rpp/gpu/operations/block/basic/sparse_matrix_vector.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/sparse_matrix_vector.hpp>
+#include <rpp/gpu/operations/block/linalg/sparse_matrix_vector.hpp>
 #include <rpp/sparse/detail/compressed_matrix.hpp>
 
 #include "gpu_block_test_helper.cuh"

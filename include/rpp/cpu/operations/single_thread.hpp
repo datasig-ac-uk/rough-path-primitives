@@ -9,7 +9,7 @@
 #include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
 #include <rpp/cpu/operations/single_thread/basic/ft_mul.hpp>
 
-#include <rpp/cpu/operations/single_thread/basic/sparse_matrix_vector.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/sparse_matrix_vector.hpp>
 
 #include <rpp/cpu/operations/single_thread/basic/st_adj_mul.hpp>
 #include <rpp/cpu/operations/single_thread/basic/st_fma.hpp>

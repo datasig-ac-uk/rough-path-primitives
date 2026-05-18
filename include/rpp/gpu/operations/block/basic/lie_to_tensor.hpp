@@ -9,7 +9,7 @@
 #include <rpp/operations/basic/lie_to_tensor.hpp>
 
 #include <rpp/gpu/operations/block/strategy.hpp>
-#include <rpp/gpu/operations/block/basic/sparse_matrix_vector.hpp>
+#include <rpp/gpu/operations/block/linalg/sparse_matrix_vector.hpp>
 
 namespace rpp::gpu::block {
 template<typename TensorBatchOut, typename LieBatchIn, typename Matrix, typename Accum, unsigned BlockSize, unsigned
