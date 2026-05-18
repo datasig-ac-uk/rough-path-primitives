@@ -6,8 +6,9 @@
 #include <type_traits>
 #include <vector>
 
-#include <rpp/config.h>
 #include <rpp/architecture.hpp>
+#include <rpp/config.h>
+#include <rpp/support/data_mapping.hpp>
 #include <rpp/support/iterator_traits.hpp>
 #include <rpp/utility.hpp>
 
@@ -149,49 +150,39 @@ public:
     }
 
     template <typename DataMapper>
-    RPP_NODISCARD friend typename DataMapper::template Result<CompressedMatrix<
-        typename DataMapper::
-            template ArchPtr<value_type, typename DataMapper::Architecture>,
-        typename DataMapper::template ArchPtr<
-            typename DataMapper::Architecture::Index,
-            typename DataMapper::Architecture>,
-        typename DataMapper::template ArchPtr<
-            typename DataMapper::Architecture::Index,
-            typename DataMapper::Architecture>,
-        Format>>
-    map_data(CompressedMatrix const& matrix, DataMapper& mapper) noexcept {
-        if constexpr (std::is_same_v<typename DataMapper::Architecture,
-                                     Architecture>) {
-            return matrix;
-        }
-        else {
-            auto mapped_data =
-                mapper.template copy_n<value_type>(matrix.data(), matrix.nnz());
-            if (!mapped_data) {
-                return std::move(mapped_data).error();
-            }
-            auto mapped_indices =
-                mapper
-                    .template copy_n<typename DataMapper::Architecture::Index>(
-                        matrix.indices(), matrix.nnz());
-            if (!mapped_indices) {
-                return std::move(mapped_indices).error();
-            }
-            auto mapped_offsets =
-                mapper
-                    .template copy_n<typename DataMapper::Architecture::Index>(
-                        matrix.offsets(), matrix.outer_dim() + 1);
-            if (!mapped_offsets) {
-                return std::move(mapped_offsets).error();
-            }
+    RPP_NODISCARD friend auto map_data(CompressedMatrix const& matrix,
+                                       DataMapper& mapper) noexcept
+        -> traits::data_map_result_t<
+            DataMapper,
+            CompressedMatrix<traits::data_map_value_t<DataMapper, DataIter>,
+                             traits::data_map_index_t<DataMapper, IndexIter>,
+                             traits::data_map_index_t<DataMapper, OffsetsIter>,
+                             Format>> {
 
-            return CompressedMatrix{mapped_data,
-                                    mapped_indices,
-                                    mapped_offsets,
-                                    matrix.nnz(),
-                                    matrix.outer_dim(),
-                                    matrix.inner_dim()};
+        auto mapped_data = map_value_range(mapper, matrix.data(), matrix.nnz());
+        if (!mapped_data) {
+            return std::move(mapped_data).error();
         }
+
+        auto mapped_indices =
+            map_index_range(mapper, matrix.indices(), matrix.nnz());
+        if (!mapped_indices) {
+            return std::move(mapped_indices).error();
+        }
+
+        auto mapped_offsets =
+            map_index_range(mapper, matrix.offsets(), matrix.outer_dim() + 1);
+
+        if (!mapped_offsets) {
+            return std::move(mapped_offsets).error();
+        }
+
+        return {std::move(mapped_data).value(),
+                std::move(mapped_indices).value(),
+                std::move(mapped_offsets).value(),
+                matrix.nnz(),
+                matrix.outer_dim(),
+                matrix.inner_dim()};
     }
 };
 

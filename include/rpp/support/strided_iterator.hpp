@@ -7,6 +7,7 @@
 #include <rpp/config.h>
 
 #include <rpp/support/iterator_traits.hpp>
+#include <rpp/architecture.hpp>
 
 namespace rpp {
 
@@ -15,11 +16,13 @@ template <typename It>
 class StridedIterator {
     static_assert(traits::is_random_access_v<It>, "base iterator must support random access");
 
-    using Traits = std::iterator_traits<It>;
+    using Traits = traits::IteratorTraits<It>;
     It base_;
     typename Traits::difference_type stride_;
 
 public:
+    using Architecture = traits::arch_of_t<It>;
+    using Location = traits::location_of_t<It>;
     using value_type = typename Traits::value_type;
     using difference_type = typename Traits::difference_type;
     using pointer = typename Traits::pointer;

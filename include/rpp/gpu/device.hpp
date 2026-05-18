@@ -11,6 +11,9 @@
 #include <rpp/support/error.hpp>
 #include <rpp/support/span.hpp>
 #include <rpp/support/tagged_pointer.hpp>
+#include <rpp/support/iterator_traits.hpp>
+
+#include <rpp/gpu/architecture.hpp>
 
 namespace rpp::gpu {
 struct DeviceLaunchConfig {
@@ -144,13 +147,16 @@ class DataMapper {
 public:
 
     using Architecture = Architecture_;
+    using Index = typename Architecture::Index;
+    using Degree = typename Architecture::Degree;
+
     using Error = Error<char const *>;
 
     template <typename T>
     using Result = Result<T, Error>;
 
     template <typename T>
-    using ArchPtr = typename Architecture::template Ptr<T>;
+    using Ptr = typename Architecture::template Ptr<T>;
 
 
     explicit constexpr DataMapper(cudaStream_t stream) : stream_(stream) {
@@ -162,9 +168,15 @@ public:
         }
     }
 
+    template <typename It>
+    RPP_NODISCARD
+    static constexpr bool has_data() noexcept {
+        return traits::is_gpu_location_v<traits::location_of_t<It>>;
+    }
+
 private:
     template<typename T=std::byte>
-    Result<ArchPtr<T>> allocate(size_t size) noexcept {
+    Result<Ptr<T>> allocate(size_t size) noexcept {
         T *ptr = nullptr;
         size_t size_bytes = size * sizeof(T);
 
@@ -179,7 +191,7 @@ private:
 
 public:
     template<typename T, size_t N>
-    Result<ArchPtr<T>> copy(Span<const T, N> host_data) noexcept {
+    Result<Ptr<T>> copy(Span<const T, N> host_data) noexcept {
         auto allocation = allocate<T>(host_data.size());
         if (!allocation) {
             return allocation;
@@ -200,13 +212,13 @@ public:
     }
 
     template <typename T, typename S, size_t N, typename=std::enable_if_t<!std::is_same_v<T, std::remove_cv_t<S>>>>
-    Result<ArchPtr<T>> copy(Span<S, N> host_data) noexcept {
+    Result<Ptr<T>> copy(Span<S, N> host_data) noexcept {
         std::vector<T> data(host_data.begin(), host_data.end());
         return copy(data);
     }
 
     template<typename T, typename It>
-    Result<ArchPtr<T>> copy(It begin, It end) noexcept {
+    Result<Ptr<T>> copy(It begin, It end) noexcept {
         using Traits = traits::IteratorTraits<It>;
         using Value = std::remove_cv_t<typename Traits::value_type>;
 
@@ -221,7 +233,7 @@ public:
     }
 
     template <typename T, typename It>
-    Result<ArchPtr<T>> copy_n(It begin, size_t count) noexcept {
+    Result<Ptr<T>> copy_n(It begin, size_t count) noexcept {
         copy(begin, begin + count);
     }
 

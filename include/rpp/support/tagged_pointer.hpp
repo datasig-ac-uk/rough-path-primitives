@@ -12,30 +12,11 @@ namespace rpp {
 
 namespace tags {
 
-struct HostLocation {};
 
 template <typename Loc>
 struct LocationTag {
     using Location = Loc;
 };
-
-
-namespace detail {
-
-template <typename T, typename = void>
-struct LocationOfImpl {
-    using type = HostLocation;
-};
-
-template <typename T>
-struct LocationOfImpl<T, std::void_t<typename T::Location>> {
-    using type = typename T::Location;
-};
-
-} // namespace detail
-
-template <typename T>
-using location_of_t = typename detail::LocationOfImpl<T>::type;
 
 } // namespace tags
 
@@ -73,7 +54,7 @@ public:
         return TaggedPtr<U, Tags...>(ptr_);
     }
 
-    RPP_HOST_DEVICE constexpr pointer raw_ptr() const noexcept { return ptr_; }
+    RPP_HOST_DEVICE constexpr pointer data() const noexcept { return ptr_; }
 
     RPP_HOST_DEVICE constexpr reference operator*() const { return *ptr_; }
     RPP_HOST_DEVICE constexpr pointer operator->() const { return ptr_; }
@@ -175,7 +156,7 @@ TaggedPtr<T, Tags...> tag_pointer(T* ptr, Tags...) {
 template <typename T, typename... Tags>
 RPP_HOST_DEVICE constexpr T*
 raw_pointer_cast(TaggedPtr<T, Tags...> ptr) noexcept {
-    return ptr.raw_ptr();
+    return ptr.data();
 }
 
 

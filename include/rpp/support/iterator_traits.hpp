@@ -6,7 +6,10 @@
 #include <rpp/config.h>
 
 
-namespace rpp::traits {
+namespace rpp {
+struct HostLocation {};
+
+namespace traits {
 
 template <typename Iterator, typename = void>
 struct IteratorTraits : std::iterator_traits<Iterator> {
@@ -45,7 +48,26 @@ inline constexpr bool is_forward_v = std::is_base_of_v<
 >;
 
 
+namespace detail {
 
-} /// namespace rpp::traits
+template <typename T, typename = void>
+struct LocationOfImpl {
+    using type = HostLocation;
+};
+
+template <typename T>
+struct LocationOfImpl<T, std::void_t<typename T::Location>> {
+    using type = typename T::Location;
+};
+
+} // namespace detail
+
+template <typename T>
+using location_of_t = typename detail::LocationOfImpl<T>::type;
+
+
+} // namespace traits
+
+} // namespace rpp
 
 #endif //RPP_SUPPORT_ITERATOR_TRAITS_HPP

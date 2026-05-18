@@ -35,7 +35,7 @@ struct Architecture {
     template <typename T>
     using Ptr = TaggedPtr<T,
                           tags::ArchTag<Architecture>,
-                          tags::LocationTag<tags::HostLocation>>;
+                          tags::LocationTag<HostLocation>>;
 };
 
 
