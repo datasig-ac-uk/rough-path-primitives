@@ -11,7 +11,7 @@
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
-#include <rpp/operations/basic/vector_assign.hpp>
+#include <rpp/operations/linalg/vector_assign.hpp>
 
 namespace rpp::ops {
 

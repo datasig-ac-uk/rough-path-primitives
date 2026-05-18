@@ -49,7 +49,7 @@ auto vector_set_constant(
         "have not been included. For example, you may need to add the following "
         "include directive to bring in the single-threaded CPU implementation of "
         "this operation:\n\n"
-        "    #include <rpp/cpu/operations/single_thread/basic/vector_set_constant.hpp>"
+        "    #include <rpp/cpu/operations/single_thread/linalg/vector_set_constant.hpp>"
         );
 
     return strategy.template launch<Op>(

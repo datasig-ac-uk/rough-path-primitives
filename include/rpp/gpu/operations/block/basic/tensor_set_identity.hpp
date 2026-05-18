@@ -9,7 +9,7 @@
 #include <rpp/operations/basic/tensor_set_identity.hpp>
 
 #include <rpp/gpu/operations/block/strategy.hpp>
-#include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
+#include <rpp/gpu/operations/block/linalg/vector_set_constant.hpp>
 
 namespace rpp::ops {
 

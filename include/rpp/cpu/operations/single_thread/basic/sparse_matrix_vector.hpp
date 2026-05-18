@@ -11,7 +11,7 @@
 
 #include <rpp/operations/basic/sparse_matrix_vector.hpp>
 
-#include <rpp/cpu/operations/single_thread/basic/vector_set_constant.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_set_constant.hpp>
 #include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
 #include <rpp/cpu/operations/single_thread/strategy.hpp>
 

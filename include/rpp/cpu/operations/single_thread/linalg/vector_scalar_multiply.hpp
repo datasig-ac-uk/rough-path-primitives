@@ -6,7 +6,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
-#include <rpp/operations/basic/vector_scalar_multiply.hpp>
+#include <rpp/operations/linalg/vector_scalar_multiply.hpp>
 
 #include <rpp/cpu/operations/single_thread/strategy.hpp>
 

@@ -13,7 +13,7 @@
 #include <rpp/operations/basic/ft_inplace_mul.hpp>
 #include <rpp/operations/basic/ft_mul.hpp>
 #include <rpp/operations/basic/tensor_add_identity.hpp>
-#include <rpp/operations/basic/vector_set_constant.hpp>
+#include <rpp/operations/linalg/vector_set_constant.hpp>
 
 namespace rpp::ops {
 template<typename Strategy, typename=void>

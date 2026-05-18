@@ -10,7 +10,7 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/intermediate/ft_log.hpp>
 
-#include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
+#include <rpp/gpu/operations/block/linalg/vector_set_constant.hpp>
 #include <rpp/gpu/operations/block/basic/ft_inplace_mul.hpp>
 #include <rpp/gpu/operations/block/basic/tensor_add_identity.hpp>
 

@@ -7,7 +7,7 @@
 #include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_add_identity.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_set_identity.hpp>
-#include <rpp/cpu/operations/single_thread/basic/vector_set_constant.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_set_constant.hpp>
 #include <rpp/cpu/operations/single_thread/intermediate/ft_log.hpp>
 #include <rpp/cpu/operations/single_thread/intermediate/ft_exp.hpp>
 

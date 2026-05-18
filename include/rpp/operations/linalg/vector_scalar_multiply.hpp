@@ -50,7 +50,7 @@ auto vector_scalar_multiply(
         "have not been included. For example, you may need to add the following "
         "include directive to bring in the single-threaded CPU implementation of "
         "this operation:\n\n"
-        "    #include <rpp/cpu/operations/single_thread/basic/vector_scalar_multiply.hpp>"
+        "    #include <rpp/cpu/operations/single_thread/linalg/vector_scalar_multiply.hpp>"
         );
 
     return strategy.template launch<Op>(

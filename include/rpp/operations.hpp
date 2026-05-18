@@ -6,11 +6,11 @@
  *****************************************************************************/
 
 #include <rpp/operations/basic/sparse_matrix_vector.hpp>
-#include <rpp/operations/basic/vector_add.hpp>
-#include <rpp/operations/basic/vector_assign.hpp>
-#include <rpp/operations/basic/vector_inplace_add.hpp>
-#include <rpp/operations/basic/vector_scalar_multiply.hpp>
-#include <rpp/operations/basic/vector_set_constant.hpp>
+#include <rpp/operations/linalg/vector_add.hpp>
+#include <rpp/operations/linalg/vector_assign.hpp>
+#include <rpp/operations/linalg/vector_inplace_add.hpp>
+#include <rpp/operations/linalg/vector_scalar_multiply.hpp>
+#include <rpp/operations/linalg/vector_set_constant.hpp>
 
 
 /*****************************************************************************

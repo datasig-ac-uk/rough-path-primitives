@@ -8,7 +8,7 @@
 #include <rpp/utility.hpp>
 
 #include <rpp/operations/base_operation.hpp>
-#include <rpp/operations/basic/vector_set_constant.hpp>
+#include <rpp/operations/linalg/vector_set_constant.hpp>
 
 #include <rpp/gpu/operations/block/strategy.hpp>
 

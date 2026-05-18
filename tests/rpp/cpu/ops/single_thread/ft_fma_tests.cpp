@@ -5,7 +5,7 @@
 
 #include <rpp/cpu/operations/single_thread/basic/ft_fma.hpp>
 #include <rpp/cpu/operations/single_thread/basic/ft_mul.hpp>
-#include <rpp/cpu/operations/single_thread/basic/vector_inplace_add.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_inplace_add.hpp>
 #include <rpp/dense/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"

@@ -10,7 +10,7 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/intermediate/ft_fmexp.hpp>
 
-#include <rpp/gpu/operations/block/basic/vector_assign.hpp>
+#include <rpp/gpu/operations/block/linalg/vector_assign.hpp>
 #include <rpp/gpu/operations/block/basic/ft_inplace_fma.hpp>
 
 namespace rpp::ops {

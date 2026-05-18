@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/operations/single_thread/basic/vector_inplace_add.hpp>
-#include <rpp/gpu/operations/block/basic/vector_inplace_add.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_inplace_add.hpp>
+#include <rpp/gpu/operations/block/linalg/vector_inplace_add.hpp>
 
 #include "gpu_block_test_helper.cuh"
 

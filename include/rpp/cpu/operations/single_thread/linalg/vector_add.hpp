@@ -7,7 +7,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
-#include <rpp/operations/basic/vector_add.hpp>
+#include <rpp/operations/linalg/vector_add.hpp>
 
 #include <rpp/cpu/operations/single_thread/strategy.hpp>
 

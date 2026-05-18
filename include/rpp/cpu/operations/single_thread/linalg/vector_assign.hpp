@@ -7,7 +7,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
-#include <rpp/operations/basic/vector_assign.hpp>
+#include <rpp/operations/linalg/vector_assign.hpp>
 
 #include <rpp/dense/batch.hpp>
 

@@ -11,8 +11,8 @@
 
 #include <rpp/cpu/operations/single_thread/strategy.hpp>
 #include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
-#include <rpp/cpu/operations/single_thread/basic/vector_inplace_add.hpp>
-#include <rpp/cpu/operations/single_thread/basic/vector_assign.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_inplace_add.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_assign.hpp>
 #include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
 
 namespace rpp {

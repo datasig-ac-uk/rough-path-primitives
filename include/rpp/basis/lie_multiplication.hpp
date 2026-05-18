@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <map>
 
 #include <rpp/architecture.hpp>
 #include <rpp/basis/lie_basis.hpp>

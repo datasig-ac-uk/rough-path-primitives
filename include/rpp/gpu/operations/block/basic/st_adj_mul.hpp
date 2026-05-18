@@ -11,7 +11,7 @@
 #include <rpp/operations/basic/st_adj_mul.hpp>
 
 #include <rpp/gpu/operations/block/strategy.hpp>
-#include <rpp/gpu/operations/block/basic/vector_set_constant.hpp>
+#include <rpp/gpu/operations/block/linalg/vector_set_constant.hpp>
 
 namespace rpp::ops {
 template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>

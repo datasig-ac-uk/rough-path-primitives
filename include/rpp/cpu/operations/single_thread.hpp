@@ -23,9 +23,9 @@
 #include <rpp/cpu/operations/single_thread/basic/tensor_reflect.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_set_identity.hpp>
 
-#include <rpp/cpu/operations/single_thread/basic/vector_assign.hpp>
-#include <rpp/cpu/operations/single_thread/basic/vector_set_constant.hpp>
-#include <rpp/cpu/operations/single_thread/basic/vector_inplace_add.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_assign.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_set_constant.hpp>
+#include <rpp/cpu/operations/single_thread/linalg/vector_inplace_add.hpp>
 
 #include <rpp/cpu/operations/single_thread/intermediate/ft_exp.hpp>
 #include <rpp/cpu/operations/single_thread/intermediate/ft_fmexp.hpp>
