@@ -13,9 +13,10 @@
 #include <rpp/basis/tensor_basis.hpp>
 #include <rpp/dense/batch.hpp>
 #include <rpp/gpu/architecture.hpp>
-#include <rpp/gpu/operations/block/basic/sparse_matrix_vector.hpp>
 #include <rpp/gpu/strategies.hpp>
 #include <rpp/sparse/matrix.hpp>
+#include <rpp/gpu/device.hpp>
+#include <rpp/gpu/operations/block/basic/sparse_matrix_vector.hpp>
 
 namespace {
 
@@ -24,40 +25,31 @@ using Architecture = rpp::gpu::arch::Architecture32;
 using Degree = typename Architecture::Degree;
 using Index = typename Architecture::Index;
 using Basis = rpp::TensorBasis<Architecture>;
-using Strategy = rpp::gpu::strategies::BlockStrategy<Scalar, 256, Architecture>;
-using Op = rpp::ops::SparseMatrixVectorProduct<Strategy>;
+using Strategy = rpp::gpu::strategies::BlockStrategy<Scalar, 256, 256, Architecture>;
+using Op = rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::MatrixFormat::CSR>;
 
 using HostScalarVector = thrust::host_vector<Scalar>;
 using HostIndexVector = thrust::host_vector<Index>;
 using DeviceScalarVector = thrust::device_vector<Scalar>;
 using DeviceIndexVector = thrust::device_vector<Index>;
 
-using DeviceCsrMatrix = rpp::sparse::OwnedCompressedMatrix<
+using DeviceCsrMatrix = rpp::sparse::MatrixOwned<rpp::sparse::MatrixFormat::CSR,
     DeviceScalarVector,
     DeviceIndexVector,
-    DeviceIndexVector,
-    rpp::sparse::MatrixFormat::CSR
->;
-using DeviceCscMatrix = rpp::sparse::OwnedCompressedMatrix<
+    DeviceIndexVector>;
+using DeviceCscMatrix = rpp::sparse::MatrixOwned<rpp::sparse::MatrixFormat::CSC,
     DeviceScalarVector,
     DeviceIndexVector,
-    DeviceIndexVector,
-    rpp::sparse::CompressedFormat::CSC
->;
-using DeviceCsrMatrixView = rpp::sparse::CompressedMatrix<
+    DeviceIndexVector>;
+using DeviceCsrMatrixView = rpp::sparse::MatrixView<rpp::sparse::MatrixFormat::CSR,
     typename DeviceCsrMatrix::DataPointer,
     typename DeviceCsrMatrix::IndexPointer,
-    typename DeviceCsrMatrix::OffsetPointer,
-    rpp::sparse::CompressedFormat::CSR
->;
-using DeviceCscMatrixView = rpp::sparse::CompressedMatrix<
+    typename DeviceCsrMatrix::OffsetPointer>;
+using DeviceCscMatrixView = rpp::sparse::MatrixView<rpp::sparse::MatrixFormat::CSC,
     typename DeviceCscMatrix::DataPointer,
     typename DeviceCscMatrix::IndexPointer,
-    typename DeviceCscMatrix::OffsetPointer,
-    rpp::sparse::CompressedFormat::CSC
->;
+    typename DeviceCscMatrix::OffsetPointer>;
 
-constexpr unsigned kBlockSize = 128;
 
 void check_cuda(cudaError_t status, char const* expression)
 {
@@ -253,7 +245,7 @@ private:
 struct GpuSparseCase {
     BasisData basis_data;
     Index tensor_count;
-    Strategy strategy{kBlockSize};
+    Strategy strategy{256};
     SparseStorage storage;
     DeviceScalarVector out;
     DeviceScalarVector arg;
@@ -277,7 +269,8 @@ struct GpuSparseCase {
             thrust::raw_pointer_cast(out.data()),
             basis_data.host_basis.size(),
             Degree{0},
-            basis_data.host_basis.depth
+            basis_data.host_basis.depth,
+                basis_data.host_basis
         );
     }
 
@@ -287,7 +280,8 @@ struct GpuSparseCase {
             thrust::raw_pointer_cast(arg.data()),
             basis_data.host_basis.size(),
             Degree{0},
-            basis_data.host_basis.depth
+            basis_data.host_basis.depth,
+                basis_data.host_basis
         );
     }
 
@@ -301,10 +295,6 @@ struct GpuSparseCase {
         return static_cast<DeviceCscMatrixView>(csc_matrix);
     }
 
-    [[nodiscard]] std::size_t shared_memory_size() const noexcept
-    {
-        return Op::scratch_space_size(strategy, basis_data.host_basis);
-    }
 };
 
 void apply_sparse_configs(benchmark::internal::Benchmark* benchmark)
@@ -337,20 +327,16 @@ void run_sparse_benchmark(benchmark::State& state, MatrixFactory&& make_matrix)
 
         for (auto _ : state) {
             check_cuda(cudaEventRecord(start.get()), "cudaEventRecord(start)");
-            rpp::gpu::block::sparse_matrix_vector_product_kernel<<<
-                static_cast<unsigned>(test_case.tensor_count),
-                test_case.strategy.block_size,
-                test_case.shared_memory_size()
-            >>>(
+            auto err = rpp::ops::sparse_matrix_vector_product(
+                test_case.strategy,
+                rpp::gpu::DeviceLaunchConfig{0, {}},
                 test_case.out_batch(),
-                matrix,
                 test_case.arg_batch(),
                 test_case.basis_data.device_basis,
                 test_case.basis_data.device_basis,
-                test_case.strategy,
-                test_case.tensor_count
-            );
-            check_cuda(cudaGetLastError(), "sparse_matrix_vector_product_kernel");
+                test_case.tensor_count,
+                matrix);
+            if (!err) { throw std::runtime_error(std::string(err.message())); }
             check_cuda(cudaEventRecord(stop.get()), "cudaEventRecord(stop)");
             check_cuda(cudaEventSynchronize(stop.get()), "cudaEventSynchronize(stop)");
 
