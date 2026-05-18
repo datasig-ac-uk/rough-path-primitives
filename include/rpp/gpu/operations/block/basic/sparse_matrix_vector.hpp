@@ -118,7 +118,7 @@ private:
 
         for (Index idx=ctx.thread_rank(), end=matrix.nnz(); idx<end; idx += ctx.num_threads()) {
             auto my_row = matrix.inner_index(idx);
-            auto my_col = algo::index_upper_bound(matrix.offsets(), Index(0), matrix.cols(), idx)-1;
+            auto my_col = algo::index_upper_bound(matrix.offsets(), Index(0), matrix.outer_dim()+1, idx)-1;
 
             const Accum mat_val { matrix.value(idx) };
             Accum arg_val { 0 };

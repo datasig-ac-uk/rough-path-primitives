@@ -56,8 +56,8 @@ struct ArchOfTImpl {
 };
 
 template <typename T>
-struct ArchOfTImpl<T, std::void_t<typename T::Arhictecture>> {
-    using type = typename T::Architecutre;
+struct ArchOfTImpl<T, std::void_t<typename T::Architecture>> {
+    using type = typename T::Architecture;
 };
 
 } // namespace detail
