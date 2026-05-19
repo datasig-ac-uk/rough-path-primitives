@@ -5,6 +5,7 @@
 #include <type_traits>
 
 namespace rpp::basis {
+
 template<typename T>
 inline constexpr bool is_basis_tag_v = false;
 

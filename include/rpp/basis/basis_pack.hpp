@@ -224,25 +224,4 @@ constexpr BasisPack<Bases...> make_basis_pack(Bases... bases) {
 
 } // namespace rpp::basis
 
-namespace rpp {
-
-template <typename... Bases>
-using BasisPack = basis::BasisPack<Bases...>;
-
-using basis::get_basis;
-using basis::in;
-using basis::out;
-using basis::make_basis_pack;
-
-template <size_t Index, typename Basis>
-constexpr auto idx(Basis basis_value) noexcept {
-    return basis::idx<Index>(std::move(basis_value));
-}
-
-namespace detail {
-using basis::detail::check_unique;
-} // namespace detail
-
-} // namespace rpp
-
 #endif //RPP_BASIS_BASIS_PACK_HPP
