@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <iterator>
 #include <limits>
+#include <span>
 #include <type_traits>
 
 #ifdef __cpp_lib_span
@@ -16,7 +17,7 @@
 namespace rpp {
 
 #ifdef __cpp_lib_span
-template <typename T, size_t N>
+template <typename T, size_t N=std::dynamic_extent>
 using Span = std::span<T, N>;
 using std::dynamic_extent;
 #else
