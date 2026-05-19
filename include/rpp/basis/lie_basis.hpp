@@ -159,18 +159,5 @@ using StandardLieBasis = LieBasis<arch::NativeArchitecture>;
 
 } // namespace rpp::basis
 
-namespace rpp {
-
-template <typename Architecture_, typename Ordering= basis::detail::StandardLieBasisOrder>
-using LieBasis = basis::LieBasis<Architecture_, Ordering>;
-
-using StandardLieBasis = basis::StandardLieBasis;
-using LieBasisTag = basis::LieBasisTag;
-
-namespace detail {
-using StandardLieBasisOrder = basis::detail::StandardLieBasisOrder;
-} // namespace detail
-
-} // namespace rpp
 
 #endif // RPP_BASIS_LIE_BASIS_HPP

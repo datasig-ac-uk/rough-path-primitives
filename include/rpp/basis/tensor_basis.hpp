@@ -124,25 +124,4 @@ constexpr Index tensor_degree_size(Width width, Degree degree) noexcept {
 
 } // namespace rpp::basis
 
-namespace rpp {
-
-template <typename Architecture_>
-using TensorBasis = basis::TensorBasis<Architecture_>;
-
-using StandardTensorBasis = basis::StandardTensorBasis;
-
-template <typename Index, typename Width, typename Degree>
-constexpr Index tensor_dimension(Width width, Degree degree) noexcept {
-    return basis::tensor_dimension<Index>(width, degree);
-}
-
-template <typename Index, typename Width, typename Degree>
-constexpr Index tensor_degree_size(Width width, Degree degree) noexcept {
-    return basis::tensor_degree_size<Index>(width, degree);
-}
-
-using TensorBasisTag = basis::TensorBasisTag;
-
-} // namespace rpp
-
 #endif // RPP_BASIS_TENSOR_BASIS_HPP

@@ -98,8 +98,6 @@ struct GradedBasis {
 
 };
 
-
-
 } // namespace rpp::basis
 
 #endif //RPP_BASIS_GRADED_BASIS_HPP

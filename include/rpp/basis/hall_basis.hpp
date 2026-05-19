@@ -87,15 +87,7 @@ void HallBasis<Architecture>::grow() {
         degree_begin_.emplace_back(size);
     }
 }
-
-
 } // namespace rpp::basis
 
-namespace rpp {
-
-template <typename Architecture=arch::NativeArchitecture>
-using HallBasis = basis::HallBasis<Architecture>;
-
-} // namespace rpp
 
 #endif //RPP_BASIS_HALL_BASIS_HPP
