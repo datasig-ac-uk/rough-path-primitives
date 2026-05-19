@@ -39,7 +39,7 @@ TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
         auto const err = rpp::ops::tensor_pairing(
             gpu_strategy,
             std::move(launch_config),
-            rpp::dense::ScalarBatch(Helper::device_data(device_actual)),
+            rpp::ScalarBatch(Helper::device_data(device_actual)),
             Helper::device_tensor_batch(device_functional, basis),
             Helper::device_tensor_batch(device_arg, basis),
             basis,

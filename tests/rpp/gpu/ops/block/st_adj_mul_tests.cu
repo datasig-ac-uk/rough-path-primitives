@@ -43,14 +43,18 @@ TEST(GpuBlockStAdjMulTests, MatchesCpuForSingleElementBatches)
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        rpp::cpu::single_thread::st_adj_mul_kernel(
-            Helper::host_tensor_batch(expected, basis),
-            Helper::host_tensor_batch(op, basis),
-            Helper::host_tensor_batch(arg, basis),
-            basis,
-            cpu_strategy,
-            Helper::tensor_count
-        );
+        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::st_adj_mul(
+                strategy,
+                std::move(config),
+                Helper::host_tensor_batch(expected, basis),
+                Helper::host_tensor_batch(op, basis),
+                Helper::host_tensor_batch(arg, basis),
+                basis,
+                Helper::tensor_count
+            );
+        });
+        ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});

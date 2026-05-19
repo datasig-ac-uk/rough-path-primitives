@@ -5,7 +5,10 @@
 #include <cstddef>
 #include <vector>
 
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
+#include <rpp/views/dense_graded_vector_view.hpp>
+#include <rpp/views/dense_lie_view.hpp>
+#include <rpp/views/dense_tensor_view.hpp>
 
 #include "polynomial_tensor_helper.hpp"
 
@@ -75,7 +78,7 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
         Basis const& basis
     )
     {
-        return dense::make_tensor_batch(
+        return rpp::make_tensor_batch(
             data.data(),
             basis.size(),
             Degree{0},
@@ -88,7 +91,7 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
         Basis const& basis
     )
     {
-        return dense::make_tensor_batch(
+        return rpp::make_tensor_batch(
             data.data(),
             basis.size(),
             Degree{0},
@@ -101,12 +104,12 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
         Basis const& basis
     )
     {
-        return dense::make_vector_batch(
+        return rpp::make_graded_vector_batch(
             data.data(),
             basis.size(),
+            basis,
             Degree{0},
-            basis.depth,
-            typename Basis::Tag{}
+            basis.depth
         );
     }
 
@@ -115,12 +118,12 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
         Basis const& basis
     )
     {
-        return dense::make_vector_batch(
+        return rpp::make_graded_vector_batch(
             data.data(),
             basis.size(),
+            basis,
             Degree{0},
-            basis.depth,
-            typename Basis::Tag{}
+            basis.depth
         );
     }
 
@@ -138,6 +141,12 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
             fn(op, ctx, tensor_idx);
         }
         Op::destroy_scratch_space(ctx, basis);
+    }
+
+    template <typename Fn>
+    [[nodiscard]] static auto launch(Fn&& fn)
+    {
+        return fn(Strategy{}, typename Strategy::LaunchConfig{});
     }
 };
 

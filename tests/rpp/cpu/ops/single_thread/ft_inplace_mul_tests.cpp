@@ -4,7 +4,7 @@
 
 #include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
 #include <rpp/cpu/operations/single_thread/basic/ft_mul.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"

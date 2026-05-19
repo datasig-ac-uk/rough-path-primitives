@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <rpp/cpu/operations/single_thread/linalg/vector_assign.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
@@ -74,13 +74,15 @@ TEST_F(VectorAssignTests, KernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const arg = Wrapper::make_batch('b', basis);
 
-    rpp::cpu::single_thread::vector_assign_kernel(
+    auto const err = rpp::ops::vector_assign(
+        strategy,
+        typename Wrapper::Strategy::LaunchConfig{},
         Wrapper::vector_batch(actual, basis),
         Wrapper::vector_batch(arg, basis),
         basis,
-        strategy,
         Wrapper::tensor_count
     );
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::VectorAssign<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

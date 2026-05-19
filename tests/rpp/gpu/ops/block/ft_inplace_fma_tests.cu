@@ -48,16 +48,20 @@ TEST(GpuBlockFtInplaceFmaTests, AEqualsBCPlusAMatchesCpuForSingleElementBatches)
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-    rpp::cpu::single_thread::ft_inplace_fma_kernel<rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(
-            Helper::host_tensor_batch(expected, basis),
-            Helper::host_tensor_batch(b, basis),
-            Helper::host_tensor_batch(c, basis),
-            basis,
-            cpu_strategy,
-            Helper::tensor_count,
-            alpha,
-            beta
-        );
+        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::ft_inplace_fma<rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(
+                strategy,
+                std::move(config),
+                Helper::host_tensor_batch(expected, basis),
+                Helper::host_tensor_batch(b, basis),
+                Helper::host_tensor_batch(c, basis),
+                basis,
+                Helper::tensor_count,
+                alpha,
+                beta
+            );
+        });
+        ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
@@ -106,17 +110,21 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference)
         ASSERT_TRUE(static_cast<bool>(err_ab)) << err_ab.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        rpp::cpu::single_thread::ft_fma_kernel(
-            Helper::host_tensor_batch(expected_ab, basis),
-            Helper::host_tensor_batch(c, basis),
-            Helper::host_tensor_batch(initial_a, basis),
-            Helper::host_tensor_batch(b, basis),
-            basis,
-            cpu_strategy,
-            Helper::tensor_count,
-            alpha,
-            beta
-        );
+        auto const cpu_err_ab = Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::ft_fma(
+                strategy,
+                std::move(config),
+                Helper::host_tensor_batch(expected_ab, basis),
+                Helper::host_tensor_batch(c, basis),
+                Helper::host_tensor_batch(initial_a, basis),
+                Helper::host_tensor_batch(b, basis),
+                basis,
+                Helper::tensor_count,
+                alpha,
+                beta
+            );
+        });
+        ASSERT_TRUE(static_cast<bool>(cpu_err_ab)) << cpu_err_ab.message();
 
         actual_ab = Helper::copy_to_host(device_ab);
         Helper::expect_near(actual_ab, expected_ab, Helper::Scalar{1.5e-4});
@@ -141,17 +149,21 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference)
         ASSERT_TRUE(static_cast<bool>(err_ba)) << err_ba.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        rpp::cpu::single_thread::ft_fma_kernel(
-            Helper::host_tensor_batch(expected_ba, basis),
-            Helper::host_tensor_batch(c, basis),
-            Helper::host_tensor_batch(b, basis),
-            Helper::host_tensor_batch(initial_a, basis),
-            basis,
-            cpu_strategy,
-            Helper::tensor_count,
-            alpha,
-            beta
-        );
+        auto const cpu_err_ba = Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::ft_fma(
+                strategy,
+                std::move(config),
+                Helper::host_tensor_batch(expected_ba, basis),
+                Helper::host_tensor_batch(c, basis),
+                Helper::host_tensor_batch(b, basis),
+                Helper::host_tensor_batch(initial_a, basis),
+                basis,
+                Helper::tensor_count,
+                alpha,
+                beta
+            );
+        });
+        ASSERT_TRUE(static_cast<bool>(cpu_err_ba)) << cpu_err_ba.message();
 
         actual_ba = Helper::copy_to_host(device_ba);
         Helper::expect_near(actual_ba, expected_ba, Helper::Scalar{1.5e-4});

@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <rpp/cpu/operations/single_thread/basic/st_mul.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"

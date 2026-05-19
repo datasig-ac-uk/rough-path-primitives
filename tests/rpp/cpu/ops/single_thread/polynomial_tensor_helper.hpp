@@ -13,7 +13,7 @@
 
 #include <rpp/basis/tensor_basis.hpp>
 #include <rpp/cpu/strategies.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 namespace rpp::tests {
 
@@ -40,10 +40,10 @@ struct PolynomialTensorHelper {
     using Context = typename Strategy::Context;
 
     template <typename Ptr>
-    using VectorView = dense::DenseGradedVectorView<Ptr, Basis>;
+    using VectorView = DenseGradedVectorView<Ptr, Basis>;
 
     template <typename Ptr>
-    using TensorView = dense::DenseTensorView<Ptr, Basis>;
+    using TensorView = DenseTensorView<Ptr, Basis>;
 
     struct BasisData {
         std::vector<Index> degree_begin;

@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 #include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_add_identity.hpp>

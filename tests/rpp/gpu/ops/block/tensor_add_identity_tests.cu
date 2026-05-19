@@ -38,13 +38,17 @@ TEST(GpuBlockTensorAddIdentityTests, MatchesCpuForSingleElementBatches)
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        rpp::cpu::single_thread::tensor_add_identity_kernel(
-            Helper::host_tensor_batch(expected, basis),
-            basis,
-            cpu_strategy,
-            Helper::tensor_count,
-            scalar
-        );
+        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::tensor_add_identity(
+                strategy,
+                std::move(config),
+                Helper::host_tensor_batch(expected, basis),
+                basis,
+                Helper::tensor_count,
+                scalar
+            );
+        });
+        ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-5});

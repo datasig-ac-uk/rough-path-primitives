@@ -50,17 +50,21 @@ TEST(GpuBlockFtFmaTests, MatchesCpuForSingleElementBatches)
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        rpp::cpu::single_thread::ft_fma_kernel(
-            Helper::host_tensor_batch(expected, basis),
-            Helper::host_tensor_batch(a, basis),
-            Helper::host_tensor_batch(b, basis),
-            Helper::host_tensor_batch(c, basis),
-            basis,
-            cpu_strategy,
-            Helper::tensor_count,
-            alpha,
-            beta
-        );
+        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::ft_fma(
+                strategy,
+                std::move(config),
+                Helper::host_tensor_batch(expected, basis),
+                Helper::host_tensor_batch(a, basis),
+                Helper::host_tensor_batch(b, basis),
+                Helper::host_tensor_batch(c, basis),
+                basis,
+                Helper::tensor_count,
+                alpha,
+                beta
+            );
+        });
+        ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});

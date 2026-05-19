@@ -5,7 +5,7 @@
 #include <rpp/cpu/operations/single_thread/basic/st_adj_mul.hpp>
 #include <rpp/cpu/operations/single_thread/basic/st_fma.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_pairing.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
@@ -149,14 +149,16 @@ TEST_F(ShuffleTensorAdjointMulTests, KernelWrapperMatchesDirectOperation)
     auto const op_arg = Wrapper::make_batch('a', basis);
     auto const arg = Wrapper::make_batch('x', basis);
 
-    rpp::cpu::single_thread::st_adj_mul_kernel(
+    auto const err = rpp::ops::st_adj_mul(
+        strategy,
+        typename Wrapper::Strategy::LaunchConfig{},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(op_arg, basis),
         Wrapper::tensor_batch(arg, basis),
         basis,
-        strategy,
         Wrapper::tensor_count
     );
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::STAdjMul<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

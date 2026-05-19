@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <rpp/cpu/operations/single_thread/linalg/vector_inplace_add.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
@@ -90,14 +90,16 @@ TEST_F(VectorInplaceAddTests, KernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const rhs = Wrapper::make_batch('b', basis);
 
-    rpp::cpu::single_thread::vector_inplace_add_kernel(
+    auto const err = rpp::ops::vector_inplace_add(
+        strategy,
+        typename Wrapper::Strategy::LaunchConfig{},
         Wrapper::vector_batch(actual, basis),
         Wrapper::vector_batch(rhs, basis),
         basis,
-        strategy,
         Wrapper::tensor_count,
         alpha
     );
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::VectorInplaceAdd<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

@@ -11,7 +11,7 @@
 #include <rpp/basis/tensor_basis.hpp>
 #include <rpp/cpu/operations/single_thread.hpp>
 #include <rpp/cpu/strategies.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 #include <rpp/sparse/matrix.hpp>
 
 namespace rpp::benchmarks::cpu {
@@ -33,10 +33,10 @@ struct BenchmarkArchitecture {
 using Strategy = rpp::cpu::strategies::SingleThreadStrategy<Scalar, BenchmarkArchitecture>;
 using Context = Strategy::Context;
 
-using VectorView = dense::DenseGradedVectorView<Scalar*, Basis>;
-using ConstVectorView = dense::DenseGradedVectorView<Scalar const*, Basis>;
-using TensorView = dense::DenseTensorView<Scalar*, Basis>;
-using ConstTensorView = dense::DenseTensorView<Scalar const*, Basis>;
+using VectorView = DenseGradedVectorView<Scalar*, Basis>;
+using ConstVectorView = DenseGradedVectorView<Scalar const*, Basis>;
+using TensorView = DenseTensorView<Scalar*, Basis>;
+using ConstTensorView = DenseTensorView<Scalar const*, Basis>;
 
 [[nodiscard]] inline std::vector<Index> make_degree_begin(Degree width, Degree depth)
 {

@@ -91,16 +91,20 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CsrMatchesCpuForSingleElementBatche
     ASSERT_TRUE(static_cast<bool>(err)) << err.message();
     RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-    rpp::cpu::single_thread::sparse_matrix_vector_product_kernel(
-        Helper::host_vector_batch(expected, basis),
-        Helper::host_vector_batch(arg, basis),
-        host_matrix,
-        basis,
-        basis,
-        cpu_strategy,
-        Helper::tensor_count,
-        alpha
-    );
+    auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
+        return rpp::ops::sparse_matrix_vector_product(
+            strategy,
+            std::move(config),
+            Helper::host_vector_batch(expected, basis),
+            Helper::host_vector_batch(arg, basis),
+            basis,
+            basis,
+            Helper::tensor_count,
+            host_matrix,
+            alpha
+        );
+    });
+    ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
     actual = Helper::copy_to_host(device_actual);
     Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
@@ -166,16 +170,20 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
     ASSERT_TRUE(static_cast<bool>(err)) << err.message();
     RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-    rpp::cpu::single_thread::sparse_matrix_vector_product_kernel(
-        Helper::host_vector_batch(expected, basis),
-        Helper::host_vector_batch(arg, basis),
-        host_matrix,
-        basis,
-        basis,
-        cpu_strategy,
-        Helper::tensor_count,
-        alpha
-    );
+    auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
+        return rpp::ops::sparse_matrix_vector_product(
+            strategy,
+            std::move(config),
+            Helper::host_vector_batch(expected, basis),
+            Helper::host_vector_batch(arg, basis),
+            basis,
+            basis,
+            Helper::tensor_count,
+            host_matrix,
+            alpha
+        );
+    });
+    ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
     actual = Helper::copy_to_host(device_actual);
     Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});

@@ -41,14 +41,18 @@ TEST(GpuBlockVectorInplaceAddTests, MatchesCpuForSingleElementBatches)
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        rpp::cpu::single_thread::vector_inplace_add_kernel(
-            Helper::host_vector_batch(expected, basis),
-            Helper::host_vector_batch(rhs, basis),
-            basis,
-            cpu_strategy,
-            Helper::tensor_count,
-            alpha
-        );
+        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::vector_inplace_add(
+                strategy,
+                std::move(config),
+                Helper::host_vector_batch(expected, basis),
+                Helper::host_vector_batch(rhs, basis),
+                basis,
+                Helper::tensor_count,
+                alpha
+            );
+        });
+        ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-5});

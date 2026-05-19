@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <rpp/cpu/operations/single_thread/basic/st_fma.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
@@ -99,17 +99,19 @@ TEST_F(ShuffleTensorFmaTests, KernelWrapperMatchesDirectOperation)
     auto const b = Wrapper::make_batch('b', basis);
     auto const c = Wrapper::make_batch('c', basis);
 
-    rpp::cpu::single_thread::st_fma_kernel(
+    auto const err = rpp::ops::st_fma(
+        strategy,
+        typename Wrapper::Strategy::LaunchConfig{},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(a, basis),
         Wrapper::tensor_batch(b, basis),
         Wrapper::tensor_batch(c, basis),
         basis,
-        strategy,
         Wrapper::tensor_count,
         alpha,
         beta
     );
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::STFma<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

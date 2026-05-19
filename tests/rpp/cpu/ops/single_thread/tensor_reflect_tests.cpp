@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <rpp/cpu/operations/single_thread/basic/tensor_reflect.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
@@ -115,13 +115,15 @@ TEST_F(TensorReflectTests, KernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const arg = Wrapper::make_batch('a', basis);
 
-    rpp::cpu::single_thread::tensor_reflect_kernel(
+    auto const err = rpp::ops::tensor_reflect(
+        strategy,
+        typename Wrapper::Strategy::LaunchConfig{},
         Wrapper::tensor_batch(actual, basis),
         Wrapper::tensor_batch(arg, basis),
         basis,
-        strategy,
         Wrapper::tensor_count
     );
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::TensorReflect<Wrapper::Strategy>>(
         basis,
         [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {

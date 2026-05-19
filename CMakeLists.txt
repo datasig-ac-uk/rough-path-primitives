@@ -82,7 +82,6 @@ rpp_make_op_file_list(RPP_OPS PRIMARY ADDITIONAL base_operation.hpp)
 rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread
         ADDITIONAL
         basic/detail/ft_multiply.hpp
-        detail/batch_wrapper.hpp
 )
 
 target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
@@ -102,8 +101,12 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/support/iterator_traits.hpp
         include/rpp/support/span.hpp
         include/rpp/support/strided_iterator.hpp
-        include/rpp/dense/batch.hpp
-        include/rpp/dense/views.hpp
+        include/rpp/views/batch.hpp
+        include/rpp/views/views.hpp
+        include/rpp/views/detail/view_fragment.hpp
+        include/rpp/views/dense_graded_vector_view.hpp
+        include/rpp/views/dense_lie_view.hpp
+        include/rpp/views/dense_tensor_view.hpp
         include/rpp/sparse/detail/compressed_matrix.hpp
         include/rpp/sparse/matrix.hpp
         include/rpp/sparse/l2t_matrix.hpp
