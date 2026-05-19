@@ -17,7 +17,7 @@
 namespace rpp::benchmarks::cpu {
 
 using Scalar = double;
-using Basis = StandardTensorBasis;
+using Basis = basis::StandardTensorBasis;
 using Degree = Basis::Degree;
 using Index = Basis::Index;
 

@@ -32,10 +32,6 @@ target_link_libraries(rpp_gpu_block_ops_tests
             RPP::GPU
             CUDA::cudart
 )
-set_target_properties(rpp_gpu_block_ops_tests PROPERTIES
-        CUDA_STANDARD 17
-        CUDA_STANDARD_REQUIRED ON
-)
 target_compile_options(rpp_gpu_block_ops_tests
         PRIVATE
             $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>

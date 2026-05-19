@@ -7,12 +7,12 @@ namespace {
 
 using Architecture = rpp::arch::NativeArchitecture;
 using Degree = Architecture::Degree;
-using Cache = rpp::LieMultiplicationCache<Architecture>;
+using Cache = rpp::basis::LieMultiplicationCache<Architecture>;
 using CacheEntry = Cache::CacheEntry;
 
 [[nodiscard]] auto make_lie_basis(Degree width = 3, Degree depth = 4)
 {
-    return rpp::HallBasis<Architecture>(width, depth);
+    return rpp::basis::HallBasis<Architecture>(width, depth);
 }
 
 TEST(LieMultiplicationCacheTests, ReturnsDirectAndAntisymmetricBasisProducts)

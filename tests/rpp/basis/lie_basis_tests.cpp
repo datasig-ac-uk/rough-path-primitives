@@ -10,7 +10,7 @@ using Index = Architecture::Index;
 
 [[nodiscard]] auto make_lie_basis(Degree width = 3, Degree depth = 4)
 {
-    return rpp::HallBasis<Architecture>(width, depth);
+    return rpp::basis::HallBasis<Architecture>(width, depth);
 }
 
 TEST(HallLieBasisTests, GeneratesExpectedDegreeRanges)
