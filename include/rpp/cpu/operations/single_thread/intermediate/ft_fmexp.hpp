@@ -5,12 +5,11 @@
 
 #include <rpp/utility.hpp>
 
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/intermediate/ft_fmexp.hpp>
 
 #include <rpp/cpu/operations/single_thread/strategy.hpp>
-#include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
 #include <rpp/cpu/operations/single_thread/linalg/vector_inplace_add.hpp>
 #include <rpp/cpu/operations/single_thread/linalg/vector_assign.hpp>
 #include <rpp/cpu/operations/single_thread/basic/ft_inplace_mul.hpp>
@@ -47,35 +46,6 @@ public:
         }
     }
 };
-
-
-namespace cpu::single_thread {
-template<typename BatchOut, typename BatchMultiplier, typename BatchExponent, typename Basis, typename Accum_, typename
-    Architecture>
-void ft_fmexp_kernel(
-    const BatchOut batch_out,
-    const BatchMultiplier batch_multiplier,
-    const BatchExponent batch_exponent,
-    const Basis basis,
-    const strategies::SingleThreadStrategy<Accum_, Architecture> strategy,
-    typename Architecture::Index n_tensors
-) {
-    using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
-    using Op = ops::FTFMExp<Strategy>;
-
-    detail::apply_batch<Op>(
-        basis,
-        strategy,
-        n_tensors,
-        [&](Op const &op, typename Strategy::Context const &ctx, typename Strategy::Index tensor_idx) {
-            auto out = batch_out.view(tensor_idx, basis);
-            auto multiplier = batch_multiplier.view(tensor_idx, basis);
-            auto exponent = batch_exponent.view(tensor_idx, basis);
-            op(ctx, out, multiplier, exponent);
-        }
-    );
-}
-} // namespace cpu::single_thread
 } // namespace rpp
 
 #endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_INTERMEDIATE_FT_FMEXP_HPP

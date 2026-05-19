@@ -6,13 +6,11 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
 
 #include <rpp/cpu/operations/single_thread/strategy.hpp>
-#include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
-
 namespace rpp::ops {
 
 // TODO: The inplace a <- a*b + c and a <- b*a + c variants need a different strategy
@@ -114,36 +112,5 @@ public:
 };
 
 } // namespace rpp::ops
-
-namespace rpp::cpu::single_thread {
-
-template <ops::FTInplaceFMAType FMAType, typename BatchA, typename BatchB, typename BatchC, typename Basis, typename Accum_, typename Architecture>
-void ft_inplace_fma_kernel(
-    const BatchA batch_a,
-    const BatchB batch_b,
-    const BatchC batch_c,
-    const Basis basis,
-    const strategies::SingleThreadStrategy<Accum_, Architecture> strategy,
-    typename Architecture::Index n_tensors,
-    Accum_ alpha = Accum_{1},
-    Accum_ beta = Accum_{1}
-) {
-    using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
-    using Op = ops::FTInplaceFma<Strategy, FMAType>;
-
-    detail::apply_batch<Op>(
-        basis,
-        strategy,
-        n_tensors,
-        [&](Op const& op, typename Strategy::Context const& ctx, typename Strategy::Index tensor_idx) {
-            auto a = batch_a.view(tensor_idx, basis);
-            auto b = batch_b.view(tensor_idx, basis);
-            auto c = batch_c.view(tensor_idx, basis);
-            op(ctx, a, b, c, alpha, beta);
-        }
-    );
-}
-
-} // namespace rpp::cpu::single_thread
 
 #endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_FT_INPLACE_FMA_HPP

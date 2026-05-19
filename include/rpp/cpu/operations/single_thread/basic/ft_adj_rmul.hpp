@@ -6,13 +6,12 @@
 
 #include <rpp/utility.hpp>
 
-#include <rpp/dense/batch.hpp>
-#include <rpp/dense/views.hpp>
+#include <rpp/views/batch.hpp>
+#include <rpp/views/dense_tensor_view.hpp>
 
 #include <rpp/operations/basic/ft_adj_rmul.hpp>
 
 #include <rpp/cpu/operations/single_thread/strategy.hpp>
-#include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
 #include <rpp/cpu/operations/single_thread/basic/tensor_antipode.hpp>
 #include <rpp/cpu/operations/single_thread/basic/ft_adj_lmul.hpp>
 
@@ -79,9 +78,9 @@ public:
         auto const& basis = out.basis();
         auto* ptr = ctx.template scratch_space<std::byte*>();
         const auto stride = batch_stride(basis.size());
-        dense::DenseTensorView<Accum*, typename TensorOut::Basis> out_workspace(batch_ptr(ptr, 0, stride), out.basis(), out.min_degree(), out.max_degree());
-        dense::DenseTensorView<Accum*, typename TensorOp::Basis> op_workspace(batch_ptr(ptr, 1, stride), op.basis(), op.min_degree(), op.max_degree());
-        dense::DenseTensorView<Accum*, typename TensorArg::Basis> arg_workspace(batch_ptr(ptr, 2, stride), arg.basis(), arg.min_degree(), arg.max_degree());
+        DenseTensorView<Accum*, typename TensorOut::Basis> out_workspace(batch_ptr(ptr, 0, stride), out.basis(), out.min_degree(), out.max_degree());
+        DenseTensorView<Accum*, typename TensorOp::Basis> op_workspace(batch_ptr(ptr, 1, stride), op.basis(), op.min_degree(), op.max_degree());
+        DenseTensorView<Accum*, typename TensorArg::Basis> arg_workspace(batch_ptr(ptr, 2, stride), arg.basis(), arg.min_degree(), arg.max_degree());
 
         std::fill(out_workspace.begin(), out_workspace.end(), Accum{0});
 
@@ -95,34 +94,5 @@ public:
 };
 
 } // namespace rpp::ops
-
-namespace rpp::cpu::single_thread {
-
-template <typename BatchOut, typename BatchOp, typename BatchArg, typename Basis, typename Accum_, typename Architecture>
-void ft_adj_rmul_kernel(
-    const BatchOut batch_out,
-    const BatchOp batch_op,
-    const BatchArg batch_arg,
-    const Basis basis,
-    const strategies::SingleThreadStrategy<Accum_, Architecture> strategy,
-    typename Architecture::Index n_tensors
-) {
-    using Strategy = strategies::SingleThreadStrategy<Accum_, Architecture>;
-    using Op = ops::FTAdjRMul<Strategy>;
-
-    detail::apply_batch<Op>(
-        basis,
-        strategy,
-        n_tensors,
-        [&](Op const& op, typename Strategy::Context const& ctx, typename Strategy::Index tensor_idx) {
-            auto out = batch_out.view(tensor_idx, basis);
-            auto op_arg = batch_op.view(tensor_idx, basis);
-            auto arg = batch_arg.view(tensor_idx, basis);
-            op(ctx, out, op_arg, arg);
-        }
-    );
-}
-
-} // namespace rpp::cpu::single_thread
 
 #endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_FT_ADJ_RMUL_HPP

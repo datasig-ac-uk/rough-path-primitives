@@ -41,23 +41,9 @@ public:
 
 };
 
-}
-
-namespace rpp::cpu::single_thread {
-
-template <typename BatchOut, typename FunctionalBatch, typename ArgBatch, typename Accum, typename Architecture>
-void tensor_pairing(
-    const BatchOut batch_out,
-    const FunctionalBatch functional_batch,
-    const ArgBatch arg_batch,
-    const strategies::SingleThreadStrategy<Accum, Architecture> strategy,
-    typename Architecture::Index n_tensors
-    ) {
-
-}
+} // namespace rpp::ops
 
 
 
-} // namespace rpp::cpu::single_thread
 
 #endif //RPP_CPU_OPS_SINGLE_THREAD_TENSOR_PAIRING_HPP

@@ -6,13 +6,11 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/basic/tensor_generalised_antipode.hpp>
 
 #include <rpp/cpu/operations/single_thread/strategy.hpp>
-#include <rpp/cpu/operations/single_thread/detail/batch_wrapper.hpp>
-
 namespace rpp::ops {
 
 

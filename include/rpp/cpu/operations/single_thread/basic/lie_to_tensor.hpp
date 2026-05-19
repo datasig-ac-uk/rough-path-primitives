@@ -53,42 +53,4 @@ namespace rpp::ops {
 
 
 } // namespace rpp::ops
-
-namespace rpp::cpu::single_thread {
-
-template <typename TensorBatchOut, typename LieBatchIn, typename Matrix, typename Accum, typename Architecture>
-void lie_to_tensor(
-    const TensorBatchOut tensor_batch_out,
-    const LieBatchIn lie_batch_in,
-    const Matrix matrix,
-    const strategies::SingleThreadStrategy<Accum, Architecture> strategy,
-    typename Architecture::Index n_tensors) noexcept {
-
-    static constexpr auto impl_type = sparse::matrix_format_v<Matrix> == sparse::CSRMatrix
-        ? ops::L2TImplementationType::CSRSparseMatrix : ops::L2TImplementationType::CSCSparseMatrix;
-
-
-    using Strategy = strategies::SingleThreadStrategy<Accum, Architecture>;
-    using Op = ops::LieToTensor<Strategy, impl_type>;
-
-    detail::apply_batch<Op>(
-        lie_batch_in.basis(),
-        strategy,
-        n_tensors,
-        [&](Op const& op, typename Strategy::Context const& ctx, typename Strategy::Index tensor_idx) {
-            auto tensor = tensor_batch_out.view(tensor_idx, lie_batch_in.basis());
-            auto lie = lie_batch_in.view(tensor_idx, lie_batch_in.basis());
-            op(ctx, tensor, lie, matrix);
-        }
-    );
-
-
-
-
-
-}
-
-}// namespace rpp::cpu:::single_thread
-
-
 #endif //RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_LIE_TO_TENSOR_HPP
