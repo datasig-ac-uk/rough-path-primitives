@@ -11,7 +11,7 @@
 #include <rpp/basis/basis_tags.hpp>
 #include <rpp/basis/graded_basis.hpp>
 
-namespace rpp {
+namespace rpp::basis {
 
 RPP_MAKE_BASIS_TAG(LieBasis);
 
@@ -156,6 +156,20 @@ struct LieBasis : GradedBasis<Architecture_, LieBasisTag>, Ordering {
 };
 
 using StandardLieBasis = LieBasis<arch::NativeArchitecture>;
+
+} // namespace rpp::basis
+
+namespace rpp {
+
+template <typename Architecture_, typename Ordering= basis::detail::StandardLieBasisOrder>
+using LieBasis = basis::LieBasis<Architecture_, Ordering>;
+
+using StandardLieBasis = basis::StandardLieBasis;
+using LieBasisTag = basis::LieBasisTag;
+
+namespace detail {
+using StandardLieBasisOrder = basis::detail::StandardLieBasisOrder;
+} // namespace detail
 
 } // namespace rpp
 

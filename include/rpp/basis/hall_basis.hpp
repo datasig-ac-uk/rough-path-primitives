@@ -11,7 +11,7 @@
 #include <rpp/basis/lie_basis.hpp>
 
 
-namespace rpp {
+namespace rpp::basis {
 
 template <typename Architecture=arch::NativeArchitecture>
 class HallBasis {
@@ -89,6 +89,13 @@ void HallBasis<Architecture>::grow() {
 }
 
 
-} // namespace
+} // namespace rpp::basis
+
+namespace rpp {
+
+template <typename Architecture=arch::NativeArchitecture>
+using HallBasis = basis::HallBasis<Architecture>;
+
+} // namespace rpp
 
 #endif //RPP_BASIS_HALL_BASIS_HPP

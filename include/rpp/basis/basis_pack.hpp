@@ -7,7 +7,7 @@
 
 
 
-namespace rpp {
+namespace rpp::basis {
 
 template <typename... Bases>
 struct BasisPack;
@@ -187,8 +187,6 @@ constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis, Basis const& 
     }
 }
 
-namespace basis {
-
 template <typename Basis>
 constexpr auto in(Basis basis) noexcept -> detail::BasisHolder<InputBasisTag<detail::BasisTagOf<Basis>>, Basis> {
     using Holder = detail::BasisHolder<InputBasisTag<detail::BasisTagOf<Basis>>, Basis>;
@@ -207,8 +205,6 @@ constexpr auto idx(Basis basis) noexcept -> detail::BasisHolder<IndexedBasisTag<
     return Holder(std::move(basis));
 }
 
-} // namespace basis
-
 /**
  * @brief Constructs a @c BasisPack from a variadic list of basis objects.
  *
@@ -225,6 +221,27 @@ template <typename... Bases>
 constexpr BasisPack<Bases...> make_basis_pack(Bases... bases) {
     return {std::move(bases)...};
 }
+
+} // namespace rpp::basis
+
+namespace rpp {
+
+template <typename... Bases>
+using BasisPack = basis::BasisPack<Bases...>;
+
+using basis::get_basis;
+using basis::in;
+using basis::out;
+using basis::make_basis_pack;
+
+template <size_t Index, typename Basis>
+constexpr auto idx(Basis basis_value) noexcept {
+    return basis::idx<Index>(std::move(basis_value));
+}
+
+namespace detail {
+using basis::detail::check_unique;
+} // namespace detail
 
 } // namespace rpp
 

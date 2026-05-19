@@ -14,7 +14,7 @@
 #include <rpp/basis/lie_basis.hpp>
 
 
-namespace rpp {
+namespace rpp::basis {
 namespace lie_mul_detail {
 template<typename Index>
 struct BracketIndex {
@@ -75,7 +75,7 @@ template<typename Architecture=arch::NativeArchitecture>
 class LieMultiplicationCache {
     using Degree = typename Architecture::Degree;
     using Index = typename Architecture::Index;
-    using Basis = rpp::LieBasis<Architecture>;
+    using Basis = LieBasis<Architecture>;
 
     using CacheInteger = std::make_signed_t<Index>;
     using DataEntry = std::pair<Index, CacheInteger>;
@@ -196,6 +196,21 @@ typename LieMultiplicationCache<Architecture>::CacheEntry const &LieMultiplicati
 
     return it->second;
 }
+} // namespace rpp::basis
+
+namespace rpp {
+
+template<typename Architecture=arch::NativeArchitecture>
+using LieMultiplicationCache = basis::LieMultiplicationCache<Architecture>;
+
+namespace lie_mul_detail {
+template<typename Index>
+using BracketIndex = basis::lie_mul_detail::BracketIndex<Index>;
+
+template<typename Index>
+using BracketIndexHash = basis::lie_mul_detail::BracketIndexHash<Index>;
+} // namespace lie_mul_detail
+
 } // namespace rpp
 
 #endif //RPP_BASIS_LIE_MULTIPLICATION_HPP

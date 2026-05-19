@@ -5,7 +5,7 @@
 #include <rpp/config.h>
 #include <rpp/support/tagged_pointer.hpp>
 
-namespace rpp {
+namespace rpp::basis {
 
 template <typename Architecture_, typename Tag_>
 struct GradedBasis {
@@ -14,16 +14,17 @@ struct GradedBasis {
 
     using Degree = typename Architecture::Degree;
     using Index = typename Architecture::Index;
+    using DBPtr = typename Architecture::template Ptr<Index const>;
 
     Degree width;
     Degree depth;
-    TaggedPtr<Index const, Architecture> degree_begin;
+    DBPtr degree_begin;
 
     GradedBasis(Degree width_, Degree depth_, Index const *degree_begin_) noexcept
         : width(width_), depth(depth_), degree_begin(degree_begin_) {
     }
 
-    GradedBasis(Degree width_, Degree depth_, TaggedPtr<Index, Architecture> degree_begin_) noexcept
+    GradedBasis(Degree width_, Degree depth_, DBPtr degree_begin_) noexcept
         : width(width_), depth(depth_), degree_begin(degree_begin_) {
     }
 
@@ -99,6 +100,6 @@ struct GradedBasis {
 
 
 
-} // namespace rpp
+} // namespace rpp::basis
 
 #endif //RPP_BASIS_GRADED_BASIS_HPP
