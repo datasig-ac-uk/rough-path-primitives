@@ -8,7 +8,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 #include <rpp/basis/basis_pack.hpp>
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/sparse/matrix.hpp>

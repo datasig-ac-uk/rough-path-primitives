@@ -17,22 +17,15 @@
 #include <rpp/operations/base_operation.hpp>
 
 namespace rpp::gpu::block {
-namespace detail {
 
-} // namespace detail
-
-template<
-    typename Op,
-    typename BatchArgs,
-    typename BasisPack,
-    typename ExtrasTuple
->
-RPP_KERNEL void kernel(
-    const BatchArgs batches,
-    const BasisPack bases,
-    const typename Op::Index batch_size,
-    const ExtrasTuple extras
-) {
+template <typename Op,
+          typename BatchArgs,
+          typename BasisPack,
+          typename ExtrasTuple>
+RPP_KERNEL void kernel(const BatchArgs batches,
+                       const BasisPack bases,
+                       const typename Op::Index batch_size,
+                       const ExtrasTuple extras) {
     using Strategy = typename Op::Strategy;
 
     extern __shared__ std::byte smem_bytes[];
@@ -42,9 +35,16 @@ RPP_KERNEL void kernel(
     Op::init_scratch_space(ctx, bases);
 
     const auto work_idx = Strategy::object_index(blockIdx.x, threadIdx.x);
-    if (work_idx >= batch_size) { return; }
+    if (work_idx >= batch_size) {
+        return;
+    }
 
-    ops::invoke(Op{}, ctx, [&](auto const &batch) { return batch.view(work_idx, bases); }, batches, extras);
+    ops::invoke(
+        Op{},
+        ctx,
+        [&](auto const& batch) { return batch.view(bases, work_idx); },
+        batches,
+        extras);
 
     Op::destroy_scratch_space(ctx, bases);
 }
@@ -52,4 +52,4 @@ RPP_KERNEL void kernel(
 
 } // namespace rpp::gpu::block
 
-#endif //RPP_GPU_OPERATIONS_BLOCK_KERNEL_HPP
+#endif // RPP_GPU_OPERATIONS_BLOCK_KERNEL_HPP

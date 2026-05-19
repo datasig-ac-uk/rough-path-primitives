@@ -1,11 +1,11 @@
-#ifndef RPP_DENSE_DETAIL_VIEW_FRAGMENT_HPP
-#define RPP_DENSE_DETAIL_VIEW_FRAGMENT_HPP
+#ifndef RPP_VIEWS_DETAIL_VIEW_FRAGMENT_HPP
+#define RPP_VIEWS_DETAIL_VIEW_FRAGMENT_HPP
 
 #include <rpp/config.h>
 #include <rpp/architecture.hpp>
 #include <rpp/support/iterator_traits.hpp>
 
-namespace rpp::dense::detail {
+namespace rpp::detail {
 
 template<typename It_>
 class VectorFragment {
@@ -36,6 +36,6 @@ public:
     }
 };
 
-} // namespace rpp::dense::detail
+} // namespace rpp::detail
 
-#endif // RPP_DENSE_DETAIL_VIEW_FRAGMENT_HPP
+#endif // RPP_VIEWS_DETAIL_VIEW_FRAGMENT_HPP
