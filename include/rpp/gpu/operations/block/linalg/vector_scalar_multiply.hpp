@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 #include <rpp/utility.hpp>
 
 #include <rpp/operations/base_operation.hpp>
@@ -46,29 +46,5 @@ public:
     }
 };
 } // namespace rpp::ops
-
-namespace rpp::gpu::block {
-template<typename Batch, typename Basis, typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename
-    Architecture>
-RPP_KERNEL void vector_scalar_multiply_kernel(
-    const Batch batch,
-    const Basis basis,
-    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
-    typename Architecture::Index n_tensors,
-    Accum_ scalar
-) {
-    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
-
-    extern __shared__ std::byte smem_bytes[];
-
-    const auto ctx = strategy.make_context(smem_bytes);
-    const auto my_index = strategy.object_index(blockIdx.x, threadIdx.x);
-    if (my_index >= n_tensors) { return; }
-
-    ops::VectorScalarMultiply<Strategy> op;
-    auto vec = batch.view(my_index, basis);
-    op(ctx, vec, scalar);
-}
-} // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_VECTOR_SCALAR_MULTIPLY_HPP

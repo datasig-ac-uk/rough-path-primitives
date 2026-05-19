@@ -8,7 +8,7 @@
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 #include <rpp/sparse/matrix.hpp>
 #include <rpp/support/algorithm.hpp>
 
@@ -188,35 +188,5 @@ public:
     }
 };
 } // namespace rpp::ops
-
-namespace rpp::gpu::block {
-template<typename BatchOut, typename Matrix, typename BatchArg, typename OutBasis, typename ArgBasis, typename Accum_,
-    unsigned BlockSize,
-    unsigned MaxBlockSize, typename Architecture>
-RPP_KERNEL void sparse_matrix_vector_product_kernel(
-    const BatchOut batch_out,
-    const BatchArg batch_arg,
-    const Matrix matrix,
-    const OutBasis out_basis,
-    const ArgBasis arg_basis,
-    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
-    typename Architecture::Index n_tensors,
-    Accum_ alpha = Accum_{1}
-) {
-    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
-
-    extern __shared__ std::byte smem_bytes[];
-
-    const auto ctx = strategy.make_context(smem_bytes);
-    const auto my_index = strategy.object_index(blockIdx.x, threadIdx.x);
-    if (my_index >= n_tensors) { return; }
-
-    ops::SparseMatrixVectorProduct<Strategy, sparse::matrix_format_v<Matrix> > op;
-
-    auto out = batch_out.view(my_index, out_basis);
-    auto arg = batch_arg.view(my_index, arg_basis);
-    op(ctx, out, arg, matrix, alpha);
-}
-} // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_SPARSE_MATRIX_VECTOR_HPP

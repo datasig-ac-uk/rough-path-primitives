@@ -6,7 +6,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/tensor_generalised_antipode.hpp>

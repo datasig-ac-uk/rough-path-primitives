@@ -2,7 +2,7 @@
 #define RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_INPLACE_FMA_HPP
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
@@ -96,35 +96,5 @@ public:
     }
 };
 } // namespace rpp::ops
-
-namespace rpp::gpu::block {
-template<ops::FTInplaceFMAType FMAType, typename BatchA, typename BatchB, typename BatchC, typename Basis, typename
-    Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
-RPP_KERNEL void ft_inplace_fma_kernel(
-    const BatchA batch_a,
-    const BatchB batch_b,
-    const BatchC batch_c,
-    const Basis basis,
-    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
-    typename Architecture::Index n_tensors,
-    Accum_ alpha = Accum_{1},
-    Accum_ beta = Accum_{1}
-) {
-    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
-
-    extern __shared__ std::byte smem_bytes[];
-
-    const auto ctx = strategy.make_context(smem_bytes);
-    const auto my_index = strategy.object_index(blockIdx.x, threadIdx.x);
-    if (my_index >= n_tensors) { return; }
-
-    ops::FTInplaceFma<Strategy, FMAType> op;
-
-    auto a = batch_a.view(my_index, basis);
-    auto b = batch_b.view(my_index, basis);
-    auto c = batch_c.view(my_index, basis);
-    op(ctx, a, b, c, alpha, beta);
-}
-} // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_INPLACE_FMA_HPP

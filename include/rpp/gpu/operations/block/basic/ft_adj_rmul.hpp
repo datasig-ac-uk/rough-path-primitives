@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 #include <rpp/utility.hpp>
 
 #include <rpp/operations/base_operation.hpp>
@@ -73,33 +73,5 @@ public:
     }
 };
 } // namespace rpp::ops
-
-namespace rpp::gpu::block {
-template<typename BatchOut, typename BatchOp, typename BatchArg, typename Basis, typename Accum_, unsigned BlockSize, unsigned MaxBlockSize,
-    typename Architecture>
-RPP_KERNEL void ft_adj_rmul_kernel(
-    const BatchOut batch_out,
-    const BatchOp batch_op,
-    const BatchArg batch_arg,
-    const Basis basis,
-    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
-    typename Architecture::Index n_tensors
-) {
-    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
-
-    extern __shared__ std::byte smem_bytes[];
-
-    const auto ctx = strategy.make_context(smem_bytes);
-    const auto my_index = strategy.object_index(blockIdx.x, threadIdx.x);
-    if (my_index >= n_tensors) { return; }
-
-    ops::FTAdjRMul<Strategy> op;
-
-    auto out = batch_out.view(my_index, basis);
-    auto op_tensor = batch_op.view(my_index, basis);
-    auto arg = batch_arg.view(my_index, basis);
-    op(ctx, out, op_tensor, arg);
-}
-} // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_ADJ_RMUL_HPP

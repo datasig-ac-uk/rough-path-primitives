@@ -6,7 +6,7 @@
 #include <cstdint>
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 #include <rpp/utility.hpp>
 
 #include <rpp/operations/base_operation.hpp>
@@ -15,8 +15,7 @@
 #include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/basic/detail/ft_adjoint_multiply.hpp>
 
-namespace rpp {
-namespace ops {
+namespace rpp::ops{
 template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
 class FTAdjLMul<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize,
             Architecture> > : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > {
@@ -92,40 +91,6 @@ public:
         }
     }
 };
-} // namespace ops
-
-
-namespace gpu::block {
-template<typename BatchOut, typename BatchOp, typename BatchArg, typename Basis, typename Accum, unsigned BlockSize, unsigned MaxBlockSize,
-    typename Architecture>
-RPP_KERNEL void ft_adj_lmul_kernel(
-    const BatchOut batch_out,
-    const BatchOp batch_op,
-    const BatchArg batch_arg,
-    const Basis basis,
-    const strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture> strategy,
-    typename Architecture::Index n_tensors
-) {
-    using Strategy = strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture>;
-
-    extern __shared__ std::byte smem_bytes[];
-
-    const auto ctx = strategy.make_context(smem_bytes);
-    const auto my_index = strategy.object_index(blockIdx.x, threadIdx.x);
-    if (my_index >= n_tensors) { return; }
-
-    ops::FTAdjLMul<Strategy> op;
-
-    auto out = batch_out.view(my_index, basis);
-    auto op_tensor = batch_op.view(my_index, basis);
-    auto arg = batch_arg.view(my_index, basis);
-    op(ctx, out, op_tensor, arg);
-}
-
-
-
-
-} // namespace gpu::block
 } // namespace rpp
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_ADJ_LMUL_HPP

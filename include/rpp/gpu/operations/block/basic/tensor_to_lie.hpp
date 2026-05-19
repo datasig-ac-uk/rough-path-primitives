@@ -12,36 +12,4 @@
 #include <rpp/gpu/operations/block/strategy.hpp>
 #include <rpp/gpu/operations/block/linalg/sparse_matrix_vector.hpp>
 
-namespace rpp::gpu::block {
-
-template <typename LieBatchOut, typename TensorBatchIn, typename Matrix, typename Accum, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
-RPP_KERNEL void tensor_to_lie_kernel(
-    const LieBatchOut lie_batch_out,
-    const TensorBatchIn tensor_batch_in,
-    const Matrix matrix,
-    const strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture> strategy,
-    typename Architecture::Index n_tensors
-) {
-    using Strategy = strategies::BlockStrategy<Accum, BlockSize, MaxBlockSize, Architecture>;
-
-    static constexpr auto impl_type = sparse::matrix_format_v<Matrix> == sparse::MatrixFormat::CSR
-        ? ops::T2LImplementationType::CSRSparseMatrix : ops::T2LImplementationType::CSCSparseMatrix;
-
-    using Op = ops::TensorToLie<Strategy, impl_type>;
-
-    extern __shared__ std::byte smem_bytes[];
-
-    const auto ctx = strategy.make_context(smem_bytes);
-    const auto my_index = strategy.object_index(blockIdx.x, threadIdx.x);
-    if (my_index >= n_tensors) { return; }
-
-    Op op;
-
-    auto out = lie_batch_out.view(my_index, tensor_batch_in.basis());
-    auto in = tensor_batch_in.view(my_index, tensor_batch_in.basis());
-    op(ctx, out, in, matrix);
-}
-
-} // namespace rpp::gpu::block
-
 #endif //RPP_GPU_OPERATIONS_BLOCK_BASIC_TENSOR_TO_LIE_HPP

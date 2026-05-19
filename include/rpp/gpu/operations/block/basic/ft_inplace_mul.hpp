@@ -2,7 +2,7 @@
 #define RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_INPLACE_MUL_HPP
 
 #include <rpp/config.h>
-#include <rpp/dense/batch.hpp>
+#include <rpp/views/batch.hpp>
 #include <rpp/utility.hpp>
 
 #include <rpp/operations/base_operation.hpp>
@@ -54,33 +54,5 @@ public:
     }
 };
 } // namespace rpp::ops
-
-namespace rpp::gpu::block {
-template<typename BatchLhs, typename BatchRhs, typename Basis, typename Accum_, unsigned BlockSize, unsigned
-    MaxBlockSize, typename
-    Architecture>
-RPP_KERNEL void ft_inplace_mul_kernel(
-    const BatchLhs batch_lhs,
-    const BatchRhs batch_rhs,
-    const Basis basis,
-    const strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> strategy,
-    typename Architecture::Index n_tensors,
-    Accum_ beta = Accum_{1}
-) {
-    using Strategy = strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
-
-    extern __shared__ std::byte smem_bytes[];
-
-    const auto ctx = strategy.make_context(smem_bytes);
-    const auto my_index = strategy.object_index(blockIdx.x, threadIdx.x);
-    if (my_index >= n_tensors) { return; }
-
-    ops::FTInplaceMul<Strategy> op;
-
-    auto lhs = batch_lhs.view(my_index, basis);
-    auto rhs = batch_rhs.view(my_index, basis);
-    op(ctx, lhs, rhs, beta);
-}
-} // namespace rpp::gpu::block
 
 #endif // RPP_GPU_OPERATIONS_BLOCK_BASIC_FT_INPLACE_MUL_HPP
