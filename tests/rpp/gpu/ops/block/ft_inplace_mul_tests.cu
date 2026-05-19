@@ -24,8 +24,8 @@ __global__ void ft_inplace_mul_truncated_rhs_kernel(
     if (my_index >= n_tensors) { return; }
 
     rpp::ops::FTInplaceMul<Strategy> op;
-    auto lhs = batch_lhs.view(my_index, basis);
-    auto rhs = batch_rhs.view(my_index, basis).truncate(1, basis.depth);
+    auto lhs = batch_lhs.view(basis, my_index);
+    auto rhs = batch_rhs.view(basis, my_index).truncate(1, basis.depth);
     op(ctx, lhs, rhs, beta);
 }
 
@@ -109,10 +109,10 @@ TEST(GpuBlockFtInplaceMulTests, ZerosUnitCoefficientWhenRhsHasNoUnitTerm)
         auto const rhs_batch = Helper::device_tensor_batch(device_rhs, basis);
         auto const rhs_truncated = rpp::make_tensor_batch(
             rhs_batch.data(),
-            rhs_batch.stride(),
+            rhs_batch.layout(),
+            basis,
             1,
-            basis.depth,
-            rhs_batch.basis_or_tag()
+            basis.depth
         );
 
         auto const err = rpp::ops::ft_inplace_mul(
@@ -128,8 +128,8 @@ TEST(GpuBlockFtInplaceMulTests, ZerosUnitCoefficientWhenRhsHasNoUnitTerm)
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const cpu_ctx = Helper::CpuStrategy::make_context(nullptr);
-        auto expected_view = Helper::host_tensor_batch(expected, basis).view(0, basis);
-        auto rhs_view = Helper::host_tensor_batch(rhs, basis).view(0, basis);
+        auto expected_view = Helper::host_tensor_batch(expected, basis).view(0);
+        auto rhs_view = Helper::host_tensor_batch(rhs, basis).view(0);
         auto rhs_trunc = rhs_view.truncate(1, basis.depth);
         rpp::ops::FTInplaceMul<Helper::CpuStrategy>{}(cpu_ctx, expected_view, rhs_trunc, beta);
 

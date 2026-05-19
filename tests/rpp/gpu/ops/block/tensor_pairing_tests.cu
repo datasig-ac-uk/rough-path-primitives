@@ -7,7 +7,6 @@
 
 namespace {
 
-
 TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
 {
     using Helper = rpp::tests::GpuBlockTestHelper;
@@ -25,8 +24,8 @@ TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
         Helper::Scalar expected = 0;
 
         auto const cpu_ctx = Helper::CpuStrategy::make_context(nullptr);
-        auto functional = Helper::host_tensor_batch(functional_data, basis).view(0, basis);
-        auto arg = Helper::host_tensor_batch(arg_data, basis).view(0, basis);
+        auto functional = Helper::host_tensor_batch(functional_data, basis).view(0);
+        auto arg = Helper::host_tensor_batch(arg_data, basis).view(0);
         rpp::ops::TensorPairing<Helper::CpuStrategy>{}(cpu_ctx, expected, functional, arg);
 
         Helper::DeviceVector<Helper::Scalar> device_functional(functional_data);
@@ -39,7 +38,7 @@ TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
         auto const err = rpp::ops::tensor_pairing(
             gpu_strategy,
             std::move(launch_config),
-            rpp::ScalarBatch(Helper::device_data(device_actual)),
+            Helper::device_scalar_batch(device_actual),
             Helper::device_tensor_batch(device_functional, basis),
             Helper::device_tensor_batch(device_arg, basis),
             basis,

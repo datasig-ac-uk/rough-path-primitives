@@ -25,6 +25,7 @@
 #include <rpp/gpu/strategies.hpp>
 
 #include "rpp/views/dense_graded_vector_view.hpp"
+#include "rpp/views/scalar_view.hpp"
 #include "rpp/views/dense_tensor_view.hpp"
 
 #define RPP_CUDA_ASSERT(expr)                                                                  \
@@ -207,42 +208,52 @@ struct GpuBlockTestHelper {
 
     [[nodiscard]] static auto host_vector_batch(HostVector<Scalar>& data, Basis const& basis)
     {
-        return make_graded_vector_batch(host_data(data), basis.size(), basis, Degree{0}, basis.depth);
+        return rpp::make_graded_vector_batch(host_data(data), basis.size(), basis, Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto host_vector_batch(HostVector<Scalar> const& data, Basis const& basis)
     {
-        return make_graded_vector_batch(host_data(data), basis.size(), basis, Degree{0}, basis.depth);
+        return rpp::make_graded_vector_batch(host_data(data), basis.size(), basis, Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto device_vector_batch(DeviceVector<Scalar>& data, Basis const& basis)
     {
-        return make_graded_vector_batch(device_data(data), basis.size(), basis, Degree{0}, basis.depth);
+        return rpp::make_graded_vector_batch(device_data(data), basis.size(), basis, Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto device_vector_batch(DeviceVector<Scalar> const& data, Basis const& basis)
     {
-        return make_graded_vector_batch(device_data(data), basis.size(), basis,Degree{0}, basis.depth);
+        return rpp::make_graded_vector_batch(device_data(data), basis.size(), basis, Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto host_tensor_batch(HostVector<Scalar>& data, Basis const& basis)
     {
-        return make_tensor_batch(host_data(data), basis.size(), Degree{0}, basis.depth);
+        return rpp::make_tensor_batch(host_data(data), basis.size(), basis, Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto host_tensor_batch(HostVector<Scalar> const& data, Basis const& basis)
     {
-        return make_tensor_batch(host_data(data), basis.size(), Degree{0}, basis.depth);
+        return rpp::make_tensor_batch(host_data(data), basis.size(), basis, Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto device_tensor_batch(DeviceVector<Scalar>& data, Basis const& basis)
     {
-        return make_tensor_batch(device_data(data), basis.size(), Degree{0}, basis.depth);
+        return rpp::make_tensor_batch(device_data(data), basis.size(), basis, Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto device_tensor_batch(DeviceVector<Scalar> const& data, Basis const& basis)
     {
-        return make_tensor_batch(device_data(data), basis.size(), Degree{0}, basis.depth);
+        return rpp::make_tensor_batch(device_data(data), basis.size(), basis, Degree{0}, basis.depth);
+    }
+
+    [[nodiscard]] static auto device_scalar_batch(DeviceVector<Scalar>& data)
+    {
+        return rpp::make_scalar_batch(device_data(data));
+    }
+
+    [[nodiscard]] static auto device_scalar_batch(DeviceVector<Scalar> const& data)
+    {
+        return rpp::make_scalar_batch(device_data(data));
     }
 
     template <typename GpuOp>

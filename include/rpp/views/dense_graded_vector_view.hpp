@@ -49,9 +49,11 @@ public:
         std::tuple<BasisMeta, MinDegreeMeta, MaxDegreeMeta> const& meta
     )
         : data_(data),
-          metadata_(std::get<0>(meta),
-                    static_cast<Degree>(std::get<1>(meta)),
-                    static_cast<Degree>(std::get<2>(meta))) {}
+          metadata_{
+              std::get<0>(meta),
+              static_cast<Degree>(std::get<1>(meta)),
+              static_cast<Degree>(std::get<2>(meta))
+          } {}
 
     RPP_HOST_DEVICE
     constexpr DenseGradedVectorView(It_ data,

@@ -26,6 +26,27 @@ using view_meta_t = typename ViewMetaData<T>::type;
 
 namespace layouts {
 
+struct NoStrideLayout {
+
+    template <typename It, typename Index,
+              typename = std::enable_if_t<traits::is_random_access_v<It>>>
+    RPP_HOST_DEVICE
+    auto map(It data, Index index) const noexcept {
+        return data + index;
+    }
+
+    template <typename... Its, typename Index,
+              typename = std::enable_if_t<(traits::is_random_access_v<Its> &&
+                                           ... && true)>>
+    RPP_HOST_DEVICE
+    auto map(std::tuple<Its...> data, Index index) const noexcept {
+        return map_tuple(data, [&index, this](auto const& it) {
+            return it + index;
+        });
+    }
+
+};
+
 template <typename Index>
 struct StrideLayout {
     Index stride_;
@@ -115,19 +136,19 @@ public:
 
     RPP_HOST_DEVICE
     constexpr View view(Index idx) const noexcept {
-        return View{
-            layout().map(data(), idx),
-            metadata()
-        };
+            return View{
+                layout().map(data(), idx),
+                metadata()
+            };
     }
 
     template <typename BasisPack>
     RPP_HOST_DEVICE
     constexpr View view(BasisPack const& bases, Index idx) const noexcept {
-        return View{
-            layout().map(data(), idx),
-            detail::resolve_metadata(bases, metadata())
-        };
+            return View{
+                layout().map(data(), idx),
+                detail::resolve_metadata(bases, metadata())
+            };
     }
 
 };
