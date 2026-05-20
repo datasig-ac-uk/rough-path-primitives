@@ -38,8 +38,6 @@ target_include_directories(RPP
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-#add_library(RPPStub STATIC src/stub.cpp)
-#target_link_libraries(RPPStub PRIVATE RPP)
 
 set(RPP_LINALG_OPS
         vector_add
