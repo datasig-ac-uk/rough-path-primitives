@@ -76,7 +76,7 @@ auto ft_fmexp(
         "or that the necessary specialisation headers have not been included. "
         "For example, you may need to add the following include directive to "
         "bring in the single-threaded CPU implementation of this operation:\n\n"
-        "    #include <rpp/cpu/operations/single_thread/intermediate/ft_fmexp.hpp>"
+        "    #include <rpp/cpu/single_thread/operations/intermediate/ft_fmexp.hpp>"
         );
 
     return strategy.template launch<Op>(

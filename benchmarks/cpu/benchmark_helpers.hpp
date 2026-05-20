@@ -9,7 +9,7 @@
 #include <benchmark/benchmark.h>
 
 #include <rpp/basis/tensor_basis.hpp>
-#include <rpp/cpu/operations/single_thread.hpp>
+#include <rpp/cpu/single_thread/operations.hpp>
 #include <rpp/cpu/strategies.hpp>
 #include <rpp/views/views.hpp>
 #include <rpp/sparse/matrix.hpp>

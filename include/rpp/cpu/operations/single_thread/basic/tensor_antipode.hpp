@@ -1,7 +1,0 @@
-#ifndef RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_TENSOR_ANTIPODE_HPP
-#define RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_TENSOR_ANTIPODE_HPP
-
-#include <rpp/operations/basic/tensor_antipode.hpp>
-#include <rpp/cpu/operations/single_thread/basic/tensor_generalised_antipode.hpp>
-
-#endif // RPP_CPU_OPERATIONS_SINGLE_THREAD_BASIC_TENSOR_ANTIPODE_HPP

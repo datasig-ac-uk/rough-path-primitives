@@ -81,7 +81,7 @@ set(RPP_INTERMEDIATE_OPS
 rpp_make_op_file_list(RPP_OPS PRIMARY ADDITIONAL base_operation.hpp)
 rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread
         ADDITIONAL
-        basic/detail/ft_multiply.hpp
+        operations/basic/detail/ft_multiply.hpp
 )
 
 target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
@@ -135,9 +135,9 @@ target_link_libraries(RPP_GPU
 rpp_make_op_file_list(RPP_GPU_BLOCK_OPS PLATFORM gpu STRATEGY block
         ADDITIONAL
         strategy.hpp
-        basic/detail/ft_adjoint_multiply.hpp
-        basic/detail/ft_multiply.hpp
-        basic/detail/st_multiply.hpp
+        operations/basic/detail/ft_adjoint_multiply.hpp
+        operations/basic/detail/ft_multiply.hpp
+        operations/basic/detail/st_multiply.hpp
         kernel.hpp
 )
 

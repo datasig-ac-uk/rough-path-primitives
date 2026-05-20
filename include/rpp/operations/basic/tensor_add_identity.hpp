@@ -49,7 +49,7 @@ auto tensor_add_identity(
         "have not been included. For example, you may need to add the following "
         "include directive to bring in the single-threaded CPU implementation of "
         "this operation:\n\n"
-        "    #include <rpp/cpu/operations/single_thread/basic/tensor_add_identity.hpp>"
+        "    #include <rpp/cpu/single_thread/operations/basic/tensor_add_identity.hpp>"
         );
 
     return strategy.template launch<Op>(

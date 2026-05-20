@@ -26,7 +26,7 @@ auto tensor_reflect(
         "or that the necessary specialisation headers have not been included. "
         "For example, you may need to add the following include directive to "
         "bring in the single-threaded CPU implementation of this operation:\n\n"
-        "    #include <rpp/cpu/operations/single_thread/basic/tensor_reflect.hpp>"
+        "    #include <rpp/cpu/single_thread/operations/basic/tensor_reflect.hpp>"
         );
 
     return strategy.template launch<Op>(

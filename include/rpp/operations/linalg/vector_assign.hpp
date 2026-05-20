@@ -47,7 +47,7 @@ auto vector_assign(
         "or that the necessary specialisation headers have not been included. "
         "For example, you may need to add the following include directive to "
         "bring in the single-threaded CPU implementation of this operation:\n\n"
-        "    #include <rpp/cpu/operations/single_thread/linalg/vector_assign.hpp>"
+        "    #include <rpp/cpu/single_thread/operations/linalg/vector_assign.hpp>"
         );
 
     return strategy.template launch<Op>(

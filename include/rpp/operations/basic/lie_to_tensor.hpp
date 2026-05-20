@@ -81,7 +81,7 @@ auto lie_to_tensor(
         "or that the necessary specialisation headers have not been included. "
         "For example, you may need to add the following include directive to "
         "bring in the single-threaded CPU implementation of this operation:\n\n"
-        "    #include <rpp/cpu/operations/single_thread/basic/lie_to_tensor.hpp>"
+        "    #include <rpp/cpu/single_thread/operations/basic/lie_to_tensor.hpp>"
         );
 
     return strategy.template launch<Op>(
