@@ -28,6 +28,9 @@ public:
     using Index = typename Strategy::Index;
     using Letter = typename Strategy::Letter;
     using Bitmask = typename Strategy::Bitmask;
+    using Accum = typename Strategy::Accum;
+
+    static constexpr bool is_nothrow = std::is_integral_v<Accum> || std::is_floating_point_v<Accum>;
 
 private:
     std::byte *scratch_ptr_;
@@ -80,7 +83,7 @@ struct SingleThreadStrategy {
         Batches batches,
         Bases bases,
         Index batch_size,
-        Extras&&... extras
+        Extras &&... extras
     ) const noexcept;
 };
 
@@ -90,8 +93,7 @@ template<typename Op, typename Batches, typename Bases, typename... Extras>
 Error<std::string> SingleThreadStrategy<Accum_, Architecture_>::launch(
     LaunchConfig launch_config RPP_MAYBE_UNUSED,
     Batches batches,
-    Bases bases, Index batch_size, Extras&&... extras) const noexcept {
-
+    Bases bases, Index batch_size, Extras &&... extras) const noexcept {
     DataMapper<Architecture> mapper;
     auto extras_mapped = map_data_args<std::tuple>(mapper, std::forward<Extras>(extras)...);
     if (!extras_mapped) {

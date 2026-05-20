@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <limits>
+#include <type_traits>
 
 #include <cuda_runtime.h>
 
@@ -38,6 +39,7 @@ public:
 
     static constexpr bool static_small_block = static_block_size < Strategy::warp_size;
 
+    static constexpr bool is_nothrow = std::is_integral_v<Accum> || std::is_floating_point_v<Accum>;
 private:
     std::byte *smem_ptr_;
 
