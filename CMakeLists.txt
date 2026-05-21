@@ -222,7 +222,7 @@ if (PROJECT_IS_TOP_LEVEL)
 
     set(RPP_CMAKE_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/RoughPathPrimitives")
     install(EXPORT RoughPathPrimitivesTargets
-            FILE RoughPathPrimitiveTargets.cmake
+            FILE RoughPathPrimitivesTargets.cmake
             NAMESPACE RPP::
             DESTINATION ${RPP_CMAKE_INSTALL_DIR})
 
