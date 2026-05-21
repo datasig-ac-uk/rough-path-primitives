@@ -9,9 +9,8 @@
 namespace {
 
 
-template<typename T, typename Size>
-[[nodiscard]] auto copy_storage(T const* values, Size size)
-{
+template <typename T, typename Size>
+[[nodiscard]] auto copy_storage(T const* values, Size size) {
     const auto count = static_cast<std::ptrdiff_t>(size);
     if (count == 0) {
         return std::vector<T>{};
@@ -19,21 +18,17 @@ template<typename T, typename Size>
     return std::vector<T>(values, values + count);
 }
 
-template<typename Matrix>
-void expect_storage(
-    Matrix const& matrix,
-    std::vector<typename Matrix::Scalar> const& data,
-    std::vector<typename Matrix::Index> const& indices,
-    std::vector<typename Matrix::Offset> const& offsets
-)
-{
+template <typename Matrix>
+void expect_storage(Matrix const& matrix,
+                    std::vector<typename Matrix::Scalar> const& data,
+                    std::vector<typename Matrix::Index> const& indices,
+                    std::vector<typename Matrix::Offset> const& offsets) {
     EXPECT_EQ(copy_storage(matrix.data(), matrix.nnz()), data);
     EXPECT_EQ(copy_storage(matrix.indices(), matrix.nnz()), indices);
     EXPECT_EQ(copy_storage(matrix.offsets(), matrix.outer_dim() + 1), offsets);
 }
 
-TEST(CompressedMatrixConversionTests, ConvertsCsrToCsc)
-{
+TEST(CompressedMatrixConversionTests, ConvertsCsrToCsc) {
     using Scalar = int;
     using Index = int;
     using Offset = int;
@@ -43,13 +38,7 @@ TEST(CompressedMatrixConversionTests, ConvertsCsrToCsc)
     std::vector<Offset> const offsets{0, 2, 3, 6};
 
     auto const csr = rpp::sparse::make_csr_matrix(
-        data.data(),
-        indices.data(),
-        offsets.data(),
-        data.size(),
-        3,
-        4
-    );
+        data.data(), indices.data(), offsets.data(), data.size(), 3, 4);
 
     auto const csc = rpp::sparse::swap_format(csr);
 
@@ -61,16 +50,13 @@ TEST(CompressedMatrixConversionTests, ConvertsCsrToCsc)
     EXPECT_EQ(csc_view.rows(), 3);
     EXPECT_EQ(csc_view.cols(), 4);
 
-    expect_storage(
-        csc,
-        std::vector<Scalar>{2, 4, 3, 5, -1, 1},
-        std::vector<Index>{0, 2, 2, 1, 0, 2},
-        std::vector<Offset>{0, 2, 3, 4, 6}
-    );
+    expect_storage(csc,
+                   std::vector<Scalar>{2, 4, 3, 5, -1, 1},
+                   std::vector<Index>{0, 2, 2, 1, 0, 2},
+                   std::vector<Offset>{0, 2, 3, 4, 6});
 }
 
-TEST(CompressedMatrixConversionTests, ConvertsCscToCsr)
-{
+TEST(CompressedMatrixConversionTests, ConvertsCscToCsr) {
     using Scalar = int;
     using Index = int;
     using Offset = int;
@@ -80,13 +66,7 @@ TEST(CompressedMatrixConversionTests, ConvertsCscToCsr)
     std::vector<Offset> const offsets{0, 2, 3, 4, 6};
 
     auto const csc = rpp::sparse::make_csc_matrix(
-        data.data(),
-        indices.data(),
-        offsets.data(),
-        data.size(),
-        3,
-        4
-    );
+        data.data(), indices.data(), offsets.data(), data.size(), 3, 4);
 
     auto const csr = rpp::sparse::swap_format(csc);
 
@@ -98,16 +78,13 @@ TEST(CompressedMatrixConversionTests, ConvertsCscToCsr)
     EXPECT_EQ(csr_view.rows(), 3);
     EXPECT_EQ(csr_view.cols(), 4);
 
-    expect_storage(
-        csr,
-        std::vector<Scalar>{2, -1, 5, 4, 3, 1},
-        std::vector<Index>{0, 3, 2, 0, 1, 3},
-        std::vector<Offset>{0, 2, 3, 6}
-    );
+    expect_storage(csr,
+                   std::vector<Scalar>{2, -1, 5, 4, 3, 1},
+                   std::vector<Index>{0, 3, 2, 0, 1, 3},
+                   std::vector<Offset>{0, 2, 3, 6});
 }
 
-TEST(CompressedMatrixConversionTests, PreservesEmptyRowsAndColumns)
-{
+TEST(CompressedMatrixConversionTests, PreservesEmptyRowsAndColumns) {
     using Scalar = int;
     using Index = int;
     using Offset = int;
@@ -117,28 +94,19 @@ TEST(CompressedMatrixConversionTests, PreservesEmptyRowsAndColumns)
     std::vector<Offset> const offsets{0, 0, 2, 2, 4};
 
     auto const csr = rpp::sparse::make_csr_matrix(
-        data.data(),
-        indices.data(),
-        offsets.data(),
-        data.size(),
-        4,
-        5
-    );
+        data.data(), indices.data(), offsets.data(), data.size(), 4, 5);
 
     auto const csc = rpp::sparse::swap_format(csr);
 
     EXPECT_EQ(csc.outer_dim(), 5);
     EXPECT_EQ(csc.inner_dim(), 4);
-    expect_storage(
-        csc,
-        std::vector<Scalar>{7, 8, 6, 9},
-        std::vector<Index>{3, 1, 3, 1},
-        std::vector<Offset>{0, 1, 1, 1, 3, 4}
-    );
+    expect_storage(csc,
+                   std::vector<Scalar>{7, 8, 6, 9},
+                   std::vector<Index>{3, 1, 3, 1},
+                   std::vector<Offset>{0, 1, 1, 1, 3, 4});
 }
 
-TEST(CompressedMatrixConversionTests, RoundTripsCsrThroughCsc)
-{
+TEST(CompressedMatrixConversionTests, RoundTripsCsrThroughCsc) {
     using Scalar = int;
     using Index = int;
     using Offset = int;
@@ -148,13 +116,7 @@ TEST(CompressedMatrixConversionTests, RoundTripsCsrThroughCsc)
     std::vector<Offset> const offsets{0, 0, 2, 2, 4};
 
     auto const csr = rpp::sparse::make_csr_matrix(
-        data.data(),
-        indices.data(),
-        offsets.data(),
-        data.size(),
-        4,
-        5
-    );
+        data.data(), indices.data(), offsets.data(), data.size(), 4, 5);
 
     auto const csc = rpp::sparse::swap_format(csr);
     auto const roundtrip = rpp::sparse::swap_format(csc.view());
@@ -165,8 +127,7 @@ TEST(CompressedMatrixConversionTests, RoundTripsCsrThroughCsc)
     expect_storage(roundtrip, data, indices, offsets);
 }
 
-TEST(CompressedMatrixConversionTests, RoundTripsCscThroughCsr)
-{
+TEST(CompressedMatrixConversionTests, RoundTripsCscThroughCsr) {
     using Scalar = int;
     using Index = int;
     using Offset = int;
@@ -176,13 +137,7 @@ TEST(CompressedMatrixConversionTests, RoundTripsCscThroughCsr)
     std::vector<Offset> const offsets{0, 1, 1, 1, 3, 4};
 
     auto const csc = rpp::sparse::make_csc_matrix(
-        data.data(),
-        indices.data(),
-        offsets.data(),
-        data.size(),
-        4,
-        5
-    );
+        data.data(), indices.data(), offsets.data(), data.size(), 4, 5);
 
     auto const csr = rpp::sparse::swap_format(csc);
     auto const roundtrip = rpp::sparse::swap_format(csr.view());
@@ -193,8 +148,7 @@ TEST(CompressedMatrixConversionTests, RoundTripsCscThroughCsr)
     expect_storage(roundtrip, data, indices, offsets);
 }
 
-TEST(CompressedMatrixConversionTests, ConvertsZeroNnzMatrix)
-{
+TEST(CompressedMatrixConversionTests, ConvertsZeroNnzMatrix) {
     using Scalar = int;
     using Index = int;
     using Offset = int;
@@ -204,29 +158,20 @@ TEST(CompressedMatrixConversionTests, ConvertsZeroNnzMatrix)
     std::vector<Offset> const offsets{0, 0, 0};
 
     auto const csr = rpp::sparse::make_csr_matrix(
-        data.data(),
-        indices.data(),
-        offsets.data(),
-        data.size(),
-        2,
-        3
-    );
+        data.data(), indices.data(), offsets.data(), data.size(), 2, 3);
 
     auto const csc = rpp::sparse::swap_format(csr);
 
     EXPECT_EQ(csc.nnz(), 0);
     EXPECT_EQ(csc.outer_dim(), 3);
     EXPECT_EQ(csc.inner_dim(), 2);
-    expect_storage(
-        csc,
-        std::vector<Scalar>{},
-        std::vector<Index>{},
-        std::vector<Offset>{0, 0, 0, 0}
-    );
+    expect_storage(csc,
+                   std::vector<Scalar>{},
+                   std::vector<Index>{},
+                   std::vector<Offset>{0, 0, 0, 0});
 }
 
-TEST(CompressedMatrixConversionTests, ConvertsGradedCompressedMatrix)
-{
+TEST(CompressedMatrixConversionTests, ConvertsGradedCompressedMatrix) {
     using Scalar = int;
     using Index = int;
     using Offset = int;
@@ -235,12 +180,16 @@ TEST(CompressedMatrixConversionTests, ConvertsGradedCompressedMatrix)
     std::vector<Index> const indices{0, 3, 2, 0, 1, 3};
     std::vector<Offset> const offsets{0, 2, 3, 6};
 
-    auto const csr = rpp::sparse::GradedMatrixView<
-        rpp::sparse::CSRMatrix,
-        Scalar const*,
-        Index const*,
-        Offset const*
-    >{data.data(), indices.data(), offsets.data(), static_cast<std::ptrdiff_t>(data.size()), 3, 4};
+    auto const csr = rpp::sparse::GradedMatrixView<rpp::sparse::CSRMatrix,
+                                                   Scalar const*,
+                                                   Index const*,
+                                                   Offset const*>{
+        data.data(),
+        indices.data(),
+        offsets.data(),
+        static_cast<std::ptrdiff_t>(data.size()),
+        3,
+        4};
 
     auto const csc = rpp::sparse::swap_format(csr);
 
@@ -252,12 +201,10 @@ TEST(CompressedMatrixConversionTests, ConvertsGradedCompressedMatrix)
     EXPECT_EQ(csc_view.rows(), 3);
     EXPECT_EQ(csc_view.cols(), 4);
 
-    expect_storage(
-        csc,
-        std::vector<Scalar>{2, 4, 3, 5, -1, 1},
-        std::vector<Index>{0, 2, 2, 1, 0, 2},
-        std::vector<Offset>{0, 2, 3, 4, 6}
-    );
+    expect_storage(csc,
+                   std::vector<Scalar>{2, 4, 3, 5, -1, 1},
+                   std::vector<Index>{0, 2, 2, 1, 0, 2},
+                   std::vector<Offset>{0, 2, 3, 4, 6});
 }
 
 } // namespace

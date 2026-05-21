@@ -34,5 +34,5 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
 )
 target_link_libraries(rpp_cpu_single_thread_algebra_tests
         PRIVATE
-            Libalgebra_lite::Libalgebra_lite
+        Libalgebra_lite::Libalgebra_lite
 )

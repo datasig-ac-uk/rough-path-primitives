@@ -7,8 +7,7 @@
 
 namespace {
 
-TEST(GpuBlockFtMulTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockFtMulTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     using GpuOp = rpp::ops::FTMul<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
@@ -32,30 +31,28 @@ TEST(GpuBlockFtMulTests, MatchesCpuForSingleElementBatches)
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
-        auto const err = rpp::ops::ft_mul(
-            gpu_strategy,
-            std::move(launch_config),
-            Helper::device_tensor_batch(device_actual, basis),
-            Helper::device_tensor_batch(device_lhs, basis),
-            Helper::device_tensor_batch(device_rhs, basis),
-            basis,
-            Helper::tensor_count,
-            beta
-        );
+        auto const err =
+            rpp::ops::ft_mul(gpu_strategy,
+                             std::move(launch_config),
+                             Helper::device_tensor_batch(device_actual, basis),
+                             Helper::device_tensor_batch(device_lhs, basis),
+                             Helper::device_tensor_batch(device_rhs, basis),
+                             basis,
+                             Helper::tensor_count,
+                             beta);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::ft_mul(
-                strategy,
-                std::move(config),
-                Helper::host_tensor_batch(expected, basis),
-                Helper::host_tensor_batch(lhs, basis),
-                Helper::host_tensor_batch(rhs, basis),
-                basis,
-                Helper::tensor_count,
-                beta
-            );
+        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy,
+                                                    auto config) {
+            return rpp::ops::ft_mul(strategy,
+                                    std::move(config),
+                                    Helper::host_tensor_batch(expected, basis),
+                                    Helper::host_tensor_batch(lhs, basis),
+                                    Helper::host_tensor_batch(rhs, basis),
+                                    basis,
+                                    Helper::tensor_count,
+                                    beta);
         });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 

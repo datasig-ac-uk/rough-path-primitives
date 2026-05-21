@@ -11,8 +11,8 @@
 #include <rpp/basis/tensor_basis.hpp>
 #include <rpp/cpu/single_thread/operations.hpp>
 #include <rpp/cpu/strategies.hpp>
-#include <rpp/views/views.hpp>
 #include <rpp/sparse/matrix.hpp>
+#include <rpp/views/views.hpp>
 
 namespace rpp::benchmarks::cpu {
 
@@ -30,7 +30,8 @@ struct BenchmarkArchitecture {
     static constexpr unsigned max_depth = 16;
 };
 
-using Strategy = rpp::cpu::strategies::SingleThreadStrategy<Scalar, BenchmarkArchitecture>;
+using Strategy =
+    rpp::cpu::strategies::SingleThreadStrategy<Scalar, BenchmarkArchitecture>;
 using Context = Strategy::Context;
 
 using VectorView = DenseGradedVectorView<Scalar*, Basis>;
@@ -38,23 +39,24 @@ using ConstVectorView = DenseGradedVectorView<Scalar const*, Basis>;
 using TensorView = DenseTensorView<Scalar*, Basis>;
 using ConstTensorView = DenseTensorView<Scalar const*, Basis>;
 
-[[nodiscard]] inline std::vector<Index> make_degree_begin(Degree width, Degree depth)
-{
+[[nodiscard]] inline std::vector<Index> make_degree_begin(Degree width,
+                                                          Degree depth) {
     std::vector<Index> result(static_cast<std::size_t>(depth + 2));
     for (Degree degree = 1; degree <= depth + 1; ++degree) {
-        result[static_cast<std::size_t>(degree)] =
-            Index{1} + static_cast<Index>(width) * result[static_cast<std::size_t>(degree - 1)];
+        result[static_cast<std::size_t>(degree)] = Index{1} +
+            static_cast<Index>(width) *
+                result[static_cast<std::size_t>(degree - 1)];
     }
     return result;
 }
 
-[[nodiscard]] inline Scalar value_for(std::size_t index, std::uint32_t salt) noexcept
-{
-    return static_cast<Scalar>((index * 17 + salt * 31) % 97 - 48) / Scalar{257};
+[[nodiscard]] inline Scalar value_for(std::size_t index,
+                                      std::uint32_t salt) noexcept {
+    return static_cast<Scalar>((index * 17 + salt * 31) % 97 - 48) /
+        Scalar{257};
 }
 
-inline void fill_values(std::vector<Scalar>& data, std::uint32_t salt)
-{
+inline void fill_values(std::vector<Scalar>& data, std::uint32_t salt) {
     for (std::size_t i = 0; i < data.size(); ++i) {
         data[i] = value_for(i, salt);
     }
@@ -80,8 +82,7 @@ struct TensorCase {
           b(static_cast<std::size_t>(basis.size())),
           c(static_cast<std::size_t>(basis.size())),
           zero(static_cast<std::size_t>(basis.size()), Scalar{0}),
-          identity(static_cast<std::size_t>(basis.size()), Scalar{0})
-    {
+          identity(static_cast<std::size_t>(basis.size()), Scalar{0}) {
         fill_values(out, 1);
         fill_values(a, 2);
         fill_values(b, 3);
@@ -92,8 +93,7 @@ struct TensorCase {
     }
 
     template <typename Op>
-    [[nodiscard]] Context context()
-    {
+    [[nodiscard]] Context context() {
         const auto scratch_size = Op::scratch_space_size(strategy, basis);
         scratch.assign(std::max<std::size_t>(scratch_size, 1), std::byte{});
         return Strategy::make_context(scratch.data());
@@ -105,21 +105,20 @@ struct TensorCase {
     [[nodiscard]] ConstTensorView a_tensor() const { return {a.data(), basis}; }
     [[nodiscard]] ConstTensorView b_tensor() const { return {b.data(), basis}; }
     [[nodiscard]] ConstTensorView c_tensor() const { return {c.data(), basis}; }
-    [[nodiscard]] ConstTensorView zero_tensor() const { return {zero.data(), basis}; }
-    [[nodiscard]] ConstTensorView identity_tensor() const { return {identity.data(), basis}; }
+    [[nodiscard]] ConstTensorView zero_tensor() const {
+        return {zero.data(), basis};
+    }
+    [[nodiscard]] ConstTensorView identity_tensor() const {
+        return {identity.data(), basis};
+    }
 };
 
-inline void apply_configs(benchmark::internal::Benchmark* benchmark)
-{
-    benchmark
-        ->Args({2, 6})
-        ->Args({3, 5})
-        ->Args({4, 4})
-        ->Args({5, 3});
+inline void apply_configs(benchmark::internal::Benchmark* benchmark) {
+    benchmark->Args({2, 6})->Args({3, 5})->Args({4, 4})->Args({5, 3});
 }
 
-inline void record_case_metrics(benchmark::State& state, TensorCase const& test_case)
-{
+inline void record_case_metrics(benchmark::State& state,
+                                TensorCase const& test_case) {
     state.counters["width"] = static_cast<double>(test_case.basis.width);
     state.counters["depth"] = static_cast<double>(test_case.basis.depth);
     state.counters["dim"] = static_cast<double>(test_case.basis.size());
@@ -127,9 +126,9 @@ inline void record_case_metrics(benchmark::State& state, TensorCase const& test_
 }
 
 template <typename Op, typename Fn>
-void run_tensor_benchmark(benchmark::State& state, Fn&& fn)
-{
-    TensorCase test_case(static_cast<Degree>(state.range(0)), static_cast<Degree>(state.range(1)));
+void run_tensor_benchmark(benchmark::State& state, Fn&& fn) {
+    TensorCase test_case(static_cast<Degree>(state.range(0)),
+                         static_cast<Degree>(state.range(1)));
     Op op;
     auto ctx = test_case.template context<Op>();
 
@@ -150,9 +149,7 @@ struct SparseCase {
     std::vector<Index> csc_indices;
     std::vector<Index> csc_offsets;
 
-    explicit SparseCase(Degree width, Degree depth)
-        : tensors(width, depth)
-    {
+    explicit SparseCase(Degree width, Degree depth) : tensors(width, depth) {
         const auto size = tensors.basis.size();
         offsets.reserve(static_cast<std::size_t>(size + 1));
         values.reserve(static_cast<std::size_t>(5 * size));
@@ -161,7 +158,9 @@ struct SparseCase {
         for (Index row = 0; row < size; ++row) {
             offsets.push_back(static_cast<Index>(values.size()));
             for (const auto col : columns_for(row, size)) {
-                values.push_back(value_for(static_cast<std::size_t>(row) * 131 + static_cast<std::size_t>(col), 5));
+                values.push_back(value_for(static_cast<std::size_t>(row) * 131 +
+                                               static_cast<std::size_t>(col),
+                                           5));
                 indices.push_back(col);
             }
         }
@@ -171,8 +170,7 @@ struct SparseCase {
     }
 
 private:
-    [[nodiscard]] static std::vector<Index> columns_for(Index row, Index size)
-    {
+    [[nodiscard]] static std::vector<Index> columns_for(Index row, Index size) {
         std::vector<Index> cols;
         auto add_col = [&](Index col) {
             if (col >= 0 && col < size) {
@@ -189,8 +187,7 @@ private:
         return cols;
     }
 
-    void build_csc()
-    {
+    void build_csc() {
         const auto size = tensors.basis.size();
         csc_values.assign(values.size(), Scalar{});
         csc_indices.assign(indices.size(), Index{0});
@@ -200,12 +197,14 @@ private:
             for (auto entry = offsets[static_cast<std::size_t>(row)];
                  entry < offsets[static_cast<std::size_t>(row + 1)];
                  ++entry) {
-                ++csc_offsets[static_cast<std::size_t>(indices[static_cast<std::size_t>(entry)] + 1)];
+                ++csc_offsets[static_cast<std::size_t>(
+                    indices[static_cast<std::size_t>(entry)] + 1)];
             }
         }
 
         for (Index col = 0; col < size; ++col) {
-            csc_offsets[static_cast<std::size_t>(col + 1)] += csc_offsets[static_cast<std::size_t>(col)];
+            csc_offsets[static_cast<std::size_t>(col + 1)] +=
+                csc_offsets[static_cast<std::size_t>(col)];
         }
 
         auto write_locs = csc_offsets;
@@ -215,7 +214,8 @@ private:
                  ++entry) {
                 const auto col = indices[static_cast<std::size_t>(entry)];
                 const auto dest = write_locs[static_cast<std::size_t>(col)]++;
-                csc_values[static_cast<std::size_t>(dest)] = values[static_cast<std::size_t>(entry)];
+                csc_values[static_cast<std::size_t>(dest)] =
+                    values[static_cast<std::size_t>(entry)];
                 csc_indices[static_cast<std::size_t>(dest)] = row;
             }
         }
@@ -224,28 +224,22 @@ private:
 public:
     [[nodiscard]] std::size_t nnz() const noexcept { return values.size(); }
 
-    [[nodiscard]] auto csr() const
-    {
-        return sparse::make_csr_matrix(
-            values.data(),
-            indices.data(),
-            offsets.data(),
-            values.size(),
-            tensors.basis.size(),
-            tensors.basis.size()
-        );
+    [[nodiscard]] auto csr() const {
+        return sparse::make_csr_matrix(values.data(),
+                                       indices.data(),
+                                       offsets.data(),
+                                       values.size(),
+                                       tensors.basis.size(),
+                                       tensors.basis.size());
     }
 
-    [[nodiscard]] auto csc() const
-    {
-        return sparse::make_csc_matrix(
-            csc_values.data(),
-            csc_indices.data(),
-            csc_offsets.data(),
-            csc_values.size(),
-            tensors.basis.size(),
-            tensors.basis.size()
-        );
+    [[nodiscard]] auto csc() const {
+        return sparse::make_csc_matrix(csc_values.data(),
+                                       csc_indices.data(),
+                                       csc_offsets.data(),
+                                       csc_values.size(),
+                                       tensors.basis.size(),
+                                       tensors.basis.size());
     }
 };
 

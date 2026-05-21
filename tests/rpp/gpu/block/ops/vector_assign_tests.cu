@@ -7,8 +7,7 @@
 
 namespace {
 
-TEST(GpuBlockVectorAssignTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockVectorAssignTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     RPP_REQUIRE_CUDA_DEVICE();
 
@@ -34,21 +33,20 @@ TEST(GpuBlockVectorAssignTests, MatchesCpuForSingleElementBatches)
             Helper::device_vector_batch(device_actual, basis),
             Helper::device_vector_batch(device_arg, basis),
             basis,
-            Helper::tensor_count
-        );
+            Helper::tensor_count);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::vector_assign(
-                strategy,
-                std::move(config),
-                Helper::host_vector_batch(expected, basis),
-                Helper::host_vector_batch(arg, basis),
-                basis,
-                Helper::tensor_count
-            );
-        });
+        auto const cpu_err =
+            Helper::launch_cpu([&](auto const& strategy, auto config) {
+                return rpp::ops::vector_assign(
+                    strategy,
+                    std::move(config),
+                    Helper::host_vector_batch(expected, basis),
+                    Helper::host_vector_batch(arg, basis),
+                    basis,
+                    Helper::tensor_count);
+            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);

@@ -11,16 +11,14 @@
 
 namespace {
 
-class VectorAssignTests
-    : public testing::Test,
-      public rpp::tests::PolynomialTensorHelper {
+class VectorAssignTests : public testing::Test,
+                          public rpp::tests::PolynomialTensorHelper {
 protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 };
 
-TEST_F(VectorAssignTests, CopiesSourceCoefficientwise)
-{
+TEST_F(VectorAssignTests, CopiesSourceCoefficientwise) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -36,8 +34,7 @@ TEST_F(VectorAssignTests, CopiesSourceCoefficientwise)
     EXPECT_EQ(out, arg);
 }
 
-TEST_F(VectorAssignTests, CopiesOnlyOverlappingDegreeRange)
-{
+TEST_F(VectorAssignTests, CopiesOnlyOverlappingDegreeRange) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -49,7 +46,8 @@ TEST_F(VectorAssignTests, CopiesOnlyOverlappingDegreeRange)
         auto const begin = basis.start_of_degree(degree);
         auto const end = basis.end_of_degree(degree);
         for (Index i = begin; i < end; ++i) {
-            expected[static_cast<std::size_t>(i)] = arg[static_cast<std::size_t>(i)];
+            expected[static_cast<std::size_t>(i)] =
+                arg[static_cast<std::size_t>(i)];
         }
     }
 
@@ -62,8 +60,7 @@ TEST_F(VectorAssignTests, CopiesOnlyOverlappingDegreeRange)
     EXPECT_EQ(out, expected);
 }
 
-TEST_F(VectorAssignTests, KernelWrapperMatchesDirectOperation)
-{
+TEST_F(VectorAssignTests, KernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
@@ -74,23 +71,20 @@ TEST_F(VectorAssignTests, KernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const arg = Wrapper::make_batch('b', basis);
 
-    auto const err = rpp::ops::vector_assign(
-        strategy,
-        typename Wrapper::Strategy::LaunchConfig{},
-        Wrapper::vector_batch(actual, basis),
-        Wrapper::vector_batch(arg, basis),
-        basis,
-        Wrapper::tensor_count
-    );
+    auto const err =
+        rpp::ops::vector_assign(strategy,
+                                typename Wrapper::Strategy::LaunchConfig{},
+                                Wrapper::vector_batch(actual, basis),
+                                Wrapper::vector_batch(arg, basis),
+                                basis,
+                                Wrapper::tensor_count);
     EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::VectorAssign<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
+        basis, [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
             auto out = Wrapper::vector_view(expected, basis, tensor_idx);
             auto rhs = Wrapper::vector_view(arg, basis, tensor_idx);
             op(ctx, out, rhs);
-        }
-    );
+        });
 
     EXPECT_EQ(actual, expected);
 }

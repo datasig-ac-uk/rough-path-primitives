@@ -7,8 +7,7 @@
 
 namespace {
 
-TEST(GpuBlockVectorSetConstantTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockVectorSetConstantTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     RPP_REQUIRE_CUDA_DEVICE();
 
@@ -33,21 +32,20 @@ TEST(GpuBlockVectorSetConstantTests, MatchesCpuForSingleElementBatches)
             Helper::device_vector_batch(device_actual, basis),
             basis,
             Helper::tensor_count,
-            value
-        );
+            value);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::vector_set_constant(
-                strategy,
-                std::move(config),
-                Helper::host_vector_batch(expected, basis),
-                basis,
-                Helper::tensor_count,
-                value
-            );
-        });
+        auto const cpu_err =
+            Helper::launch_cpu([&](auto const& strategy, auto config) {
+                return rpp::ops::vector_set_constant(
+                    strategy,
+                    std::move(config),
+                    Helper::host_vector_batch(expected, basis),
+                    basis,
+                    Helper::tensor_count,
+                    value);
+            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
@@ -55,8 +53,7 @@ TEST(GpuBlockVectorSetConstantTests, MatchesCpuForSingleElementBatches)
     }
 }
 
-TEST(GpuBlockVectorSetZeroTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockVectorSetZeroTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     RPP_REQUIRE_CUDA_DEVICE();
 
@@ -80,21 +77,20 @@ TEST(GpuBlockVectorSetZeroTests, MatchesCpuForSingleElementBatches)
             Helper::device_vector_batch(device_actual, basis),
             basis,
             Helper::tensor_count,
-            Helper::Scalar{0}
-        );
+            Helper::Scalar{0});
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::vector_set_constant(
-                strategy,
-                std::move(config),
-                Helper::host_vector_batch(expected, basis),
-                basis,
-                Helper::tensor_count,
-                Helper::Scalar{0}
-            );
-        });
+        auto const cpu_err =
+            Helper::launch_cpu([&](auto const& strategy, auto config) {
+                return rpp::ops::vector_set_constant(
+                    strategy,
+                    std::move(config),
+                    Helper::host_vector_batch(expected, basis),
+                    basis,
+                    Helper::tensor_count,
+                    Helper::Scalar{0});
+            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);

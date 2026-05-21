@@ -3,10 +3,10 @@
 namespace {
 namespace rb = rpp::benchmarks::cpu;
 
-void BM_TensorPairing(benchmark::State& state)
-{
+void BM_TensorPairing(benchmark::State& state) {
     using Op = rpp::ops::TensorPairing<rb::Strategy>;
-    rb::TensorCase test_case(static_cast<rb::Degree>(state.range(0)), static_cast<rb::Degree>(state.range(1)));
+    rb::TensorCase test_case(static_cast<rb::Degree>(state.range(0)),
+                             static_cast<rb::Degree>(state.range(1)));
     Op op;
     auto ctx = test_case.template context<Op>();
     rb::Scalar result{0};

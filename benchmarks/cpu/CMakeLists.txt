@@ -5,13 +5,13 @@ function(rpp_add_cpu_benchmark target)
 
     target_link_libraries(${target}
             PRIVATE
-                RPP::RPP
-                benchmark::benchmark_main
+            RPP::RPP
+            benchmark::benchmark_main
     )
 
     target_include_directories(${target}
             PRIVATE
-                ${CMAKE_CURRENT_LIST_DIR}
+            ${CMAKE_CURRENT_LIST_DIR}
     )
 endfunction()
 

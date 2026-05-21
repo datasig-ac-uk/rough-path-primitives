@@ -20,12 +20,9 @@ protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 
-    [[nodiscard]] static Scalar pairing(
-        Basis const& basis,
-        std::vector<Scalar> const& lhs,
-        std::vector<Scalar> const& rhs
-    )
-    {
+    [[nodiscard]] static Scalar pairing(Basis const& basis,
+                                        std::vector<Scalar> const& lhs,
+                                        std::vector<Scalar> const& rhs) {
         Scalar result;
         TensorView<Scalar const*> lhs_view(lhs.data(), basis);
         TensorView<Scalar const*> rhs_view(rhs.data(), basis);
@@ -35,13 +32,11 @@ protected:
         return result;
     }
 
-    [[nodiscard]] static std::vector<Scalar> linear_combo(
-        std::vector<Scalar> const& lhs,
-        Scalar const& lhs_scale,
-        std::vector<Scalar> const& rhs,
-        Scalar const& rhs_scale
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    linear_combo(std::vector<Scalar> const& lhs,
+                 Scalar const& lhs_scale,
+                 std::vector<Scalar> const& rhs,
+                 Scalar const& rhs_scale) {
         std::vector<Scalar> result(lhs.size());
         for (std::size_t i = 0; i < lhs.size(); ++i) {
             result[i] = lhs_scale * lhs[i] + rhs_scale * rhs[i];
@@ -49,12 +44,10 @@ protected:
         return result;
     }
 
-    [[nodiscard]] static std::vector<Scalar> apply_right_product(
-        Basis const& basis,
-        std::vector<Scalar> const& arg,
-        std::vector<Scalar> const& op
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    apply_right_product(Basis const& basis,
+                        std::vector<Scalar> const& arg,
+                        std::vector<Scalar> const& op) {
         std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
 
         TensorView<Scalar*> out_view(out.data(), basis);
@@ -66,16 +59,15 @@ protected:
         return out;
     }
 
-    [[nodiscard]] static std::vector<Scalar> apply_adj_mul(
-        Basis const& basis,
-        std::vector<Scalar> const& op,
-        std::vector<Scalar> const& arg
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    apply_adj_mul(Basis const& basis,
+                  std::vector<Scalar> const& op,
+                  std::vector<Scalar> const& arg) {
         using AdjMul = rpp::ops::FTAdjRMul<Strategy>;
 
         std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
-        auto const scratch_bytes = AdjMul::scratch_space_size(Strategy{}, basis);
+        auto const scratch_bytes =
+            AdjMul::scratch_space_size(Strategy{}, basis);
         std::vector<std::byte> scratch(scratch_bytes);
 
         TensorView<Scalar*> out_view(out.data(), basis);
@@ -90,8 +82,7 @@ protected:
     }
 };
 
-TEST_F(FreeTensorAdjointRightMulTests, SatisfiesAdjointPairingCriterion)
-{
+TEST_F(FreeTensorAdjointRightMulTests, SatisfiesAdjointPairingCriterion) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -105,8 +96,7 @@ TEST_F(FreeTensorAdjointRightMulTests, SatisfiesAdjointPairingCriterion)
     EXPECT_EQ(pairing(basis, adjoint, t), pairing(basis, arg, product));
 }
 
-TEST_F(FreeTensorAdjointRightMulTests, IsBilinearInOperatorAndArgument)
-{
+TEST_F(FreeTensorAdjointRightMulTests, IsBilinearInOperatorAndArgument) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -132,15 +122,12 @@ TEST_F(FreeTensorAdjointRightMulTests, IsBilinearInOperatorAndArgument)
 
     std::vector<Scalar> rhs(static_cast<std::size_t>(basis.size()));
     for (std::size_t i = 0; i < rhs.size(); ++i) {
-        rhs[i] = (alpha * gamma) * ax11[i]
-               + (alpha * delta) * ax12[i]
-               + (beta * gamma) * ax21[i]
-               + (beta * delta) * ax22[i];
+        rhs[i] = (alpha * gamma) * ax11[i] + (alpha * delta) * ax12[i] +
+            (beta * gamma) * ax21[i] + (beta * delta) * ax22[i];
     }
 
     EXPECT_EQ(lhs, rhs);
 }
-
 
 
 } // namespace

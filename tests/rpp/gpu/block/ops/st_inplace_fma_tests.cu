@@ -7,8 +7,7 @@
 
 namespace {
 
-TEST(GpuBlockStInplaceFmaTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockStInplaceFmaTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     using GpuOp = rpp::ops::STInplaceFma<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
@@ -42,24 +41,23 @@ TEST(GpuBlockStInplaceFmaTests, MatchesCpuForSingleElementBatches)
             basis,
             Helper::tensor_count,
             alpha,
-            beta
-        );
+            beta);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::st_inplace_fma(
-                strategy,
-                std::move(config),
-                Helper::host_tensor_batch(expected, basis),
-                Helper::host_tensor_batch(b, basis),
-                Helper::host_tensor_batch(c, basis),
-                basis,
-                Helper::tensor_count,
-                alpha,
-                beta
-            );
-        });
+        auto const cpu_err =
+            Helper::launch_cpu([&](auto const& strategy, auto config) {
+                return rpp::ops::st_inplace_fma(
+                    strategy,
+                    std::move(config),
+                    Helper::host_tensor_batch(expected, basis),
+                    Helper::host_tensor_batch(b, basis),
+                    Helper::host_tensor_batch(c, basis),
+                    basis,
+                    Helper::tensor_count,
+                    alpha,
+                    beta);
+            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);

@@ -16,14 +16,13 @@ FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
 
-
 function(rpp_add_test target)
     add_executable(${target})
     target_sources(${target} PRIVATE ${ARGN})
     target_link_libraries(${target}
             PRIVATE
-                RPP::RPP
-                GTest::gtest_main
+            RPP::RPP
+            GTest::gtest_main
     )
 
     gtest_discover_tests(${target})

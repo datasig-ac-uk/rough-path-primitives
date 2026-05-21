@@ -7,8 +7,7 @@
 
 namespace {
 
-TEST(GpuBlockFtLogTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockFtLogTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     using GpuOp = rpp::ops::FTLog<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
@@ -29,31 +28,30 @@ TEST(GpuBlockFtLogTests, MatchesCpuForSingleElementBatches)
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
-        auto const err = rpp::ops::ft_log(
-            gpu_strategy,
-            std::move(launch_config),
-            Helper::device_tensor_batch(device_actual, basis),
-            Helper::device_tensor_batch(device_arg, basis),
-            basis,
-            Helper::tensor_count
-        );
+        auto const err =
+            rpp::ops::ft_log(gpu_strategy,
+                             std::move(launch_config),
+                             Helper::device_tensor_batch(device_actual, basis),
+                             Helper::device_tensor_batch(device_arg, basis),
+                             basis,
+                             Helper::tensor_count);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::ft_log(
-                strategy,
-                std::move(config),
-                Helper::host_tensor_batch(expected, basis),
-                Helper::host_tensor_batch(arg, basis),
-                basis,
-                Helper::tensor_count
-            );
+        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy,
+                                                    auto config) {
+            return rpp::ops::ft_log(strategy,
+                                    std::move(config),
+                                    Helper::host_tensor_batch(expected, basis),
+                                    Helper::host_tensor_batch(arg, basis),
+                                    basis,
+                                    Helper::tensor_count);
         });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
-        Helper::expect_near(actual[0], Helper::Scalar{0}, Helper::Scalar{1.5e-5});
+        Helper::expect_near(
+            actual[0], Helper::Scalar{0}, Helper::Scalar{1.5e-5});
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
     }
 }

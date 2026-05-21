@@ -7,8 +7,7 @@
 
 namespace {
 
-TEST(GpuBlockFtFmexpTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockFtFmexpTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     using GpuOp = rpp::ops::FTFMExp<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
@@ -21,7 +20,8 @@ TEST(GpuBlockFtFmexpTests, MatchesCpuForSingleElementBatches)
 
         auto expected = Helper::make_zero_batch(basis);
         auto actual = expected;
-        auto const multiplier = Helper::make_batch(1, basis, Helper::Scalar{0.005});
+        auto const multiplier =
+            Helper::make_batch(1, basis, Helper::Scalar{0.005});
         auto exponent = Helper::make_batch(2, basis, Helper::Scalar{0.005});
         exponent[0] = 0;
 
@@ -39,22 +39,21 @@ TEST(GpuBlockFtFmexpTests, MatchesCpuForSingleElementBatches)
             Helper::device_tensor_batch(device_multiplier, basis),
             Helper::device_tensor_batch(device_exponent, basis),
             basis,
-            Helper::tensor_count
-        );
+            Helper::tensor_count);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::ft_fmexp(
-                strategy,
-                std::move(config),
-                Helper::host_tensor_batch(expected, basis),
-                Helper::host_tensor_batch(multiplier, basis),
-                Helper::host_tensor_batch(exponent, basis),
-                basis,
-                Helper::tensor_count
-            );
-        });
+        auto const cpu_err =
+            Helper::launch_cpu([&](auto const& strategy, auto config) {
+                return rpp::ops::ft_fmexp(
+                    strategy,
+                    std::move(config),
+                    Helper::host_tensor_batch(expected, basis),
+                    Helper::host_tensor_batch(multiplier, basis),
+                    Helper::host_tensor_batch(exponent, basis),
+                    basis,
+                    Helper::tensor_count);
+            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);

@@ -10,13 +10,11 @@ using Degree = Architecture::Degree;
 using Cache = rpp::basis::LieMultiplicationCache<Architecture>;
 using CacheEntry = Cache::CacheEntry;
 
-[[nodiscard]] auto make_lie_basis(Degree width = 3, Degree depth = 4)
-{
+[[nodiscard]] auto make_lie_basis(Degree width = 3, Degree depth = 4) {
     return rpp::basis::HallBasis<Architecture>(width, depth);
 }
 
-TEST(LieMultiplicationCacheTests, ReturnsDirectAndAntisymmetricBasisProducts)
-{
+TEST(LieMultiplicationCacheTests, ReturnsDirectAndAntisymmetricBasisProducts) {
     auto const hall = make_lie_basis();
     Cache cache(hall.to_lie_basis());
 
@@ -25,8 +23,7 @@ TEST(LieMultiplicationCacheTests, ReturnsDirectAndAntisymmetricBasisProducts)
     EXPECT_TRUE(cache.get_bracket(1, 1).empty());
 }
 
-TEST(LieMultiplicationCacheTests, ReturnsEmptyProductOutsideBasisDepth)
-{
+TEST(LieMultiplicationCacheTests, ReturnsEmptyProductOutsideBasisDepth) {
     auto const hall = make_lie_basis();
     Cache cache(hall.to_lie_basis());
 
@@ -35,8 +32,7 @@ TEST(LieMultiplicationCacheTests, ReturnsEmptyProductOutsideBasisDepth)
     EXPECT_TRUE(cache.get_bracket(0, 1).empty());
 }
 
-TEST(LieMultiplicationCacheTests, ExpandsNonHallBracketByJacobiIdentity)
-{
+TEST(LieMultiplicationCacheTests, ExpandsNonHallBracketByJacobiIdentity) {
     auto const hall = make_lie_basis();
     Cache cache(hall.to_lie_basis());
 
@@ -44,8 +40,7 @@ TEST(LieMultiplicationCacheTests, ExpandsNonHallBracketByJacobiIdentity)
     EXPECT_EQ(cache.get_bracket(6, 1), (CacheEntry{{10, -1}, {12, 1}}));
 }
 
-TEST(LieMultiplicationCacheTests, ExpandsRecursiveNonHallBracket)
-{
+TEST(LieMultiplicationCacheTests, ExpandsRecursiveNonHallBracket) {
     auto const hall = make_lie_basis();
     Cache cache(hall.to_lie_basis());
 

@@ -15,10 +15,10 @@ if (NOT benchmark_FOUND)
             FIND_PACKAGE_ARGS CONFIG
     )
     FetchContent_MakeAvailable(benchmark)
-endif()
+endif ()
 
 add_subdirectory(cpu)
 
 if (RPP_ENABLE_CUDA)
-#    add_subdirectory(gpu)
-endif()
+    #    add_subdirectory(gpu)
+endif ()

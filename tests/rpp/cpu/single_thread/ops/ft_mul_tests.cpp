@@ -28,85 +28,73 @@ struct MulViewCase {
     DegreeRange rhs;
 };
 
-[[nodiscard]] bool contains(DegreeRange range, Degree degree) noexcept
-{
+[[nodiscard]] bool contains(DegreeRange range, Degree degree) noexcept {
     return range.min <= degree && degree <= range.max;
 }
 
-class FreeTensorMulTests
-    : public testing::Test,
-      public Helper {
+class FreeTensorMulTests : public testing::Test, public Helper {
 protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 
     [[nodiscard]] static TensorView<Scalar*> mutable_tensor_view(
-        std::vector<Scalar>& data,
-        Basis const& basis,
-        DegreeRange range
-    )
-    {
+        std::vector<Scalar>& data, Basis const& basis, DegreeRange range) {
         return {data.data(), basis, range.min, range.max};
     }
 
-    [[nodiscard]] static TensorView<Scalar const*> const_tensor_view(
-        std::vector<Scalar> const& data,
-        Basis const& basis,
-        DegreeRange range
-    )
-    {
+    [[nodiscard]] static TensorView<Scalar const*>
+    const_tensor_view(std::vector<Scalar> const& data,
+                      Basis const& basis,
+                      DegreeRange range) {
         return {data.data(), basis, range.min, range.max};
     }
 
-    [[nodiscard]] static std::vector<Scalar> expected_mul(
-        Basis const& basis,
-        std::vector<Scalar> const& initial_out,
-        std::vector<Scalar> const& lhs,
-        std::vector<Scalar> const& rhs,
-        DegreeRange out_range,
-        DegreeRange lhs_range,
-        DegreeRange rhs_range,
-        Scalar const& beta = Scalar{1}
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    expected_mul(Basis const& basis,
+                 std::vector<Scalar> const& initial_out,
+                 std::vector<Scalar> const& lhs,
+                 std::vector<Scalar> const& rhs,
+                 DegreeRange out_range,
+                 DegreeRange lhs_range,
+                 DegreeRange rhs_range,
+                 Scalar const& beta = Scalar{1}) {
         auto expected = initial_out;
 
-        for_each_index(
-            basis,
-            [&](Degree degree, Index level_index) {
-                if (!contains(out_range, degree)) {
-                    return;
-                }
-
-                Scalar entry{0};
-                auto const word = unpack_level_index(basis, degree, level_index);
-                for (Degree mid = 0; mid <= degree; ++mid) {
-                    auto const split = word.begin() + static_cast<std::ptrdiff_t>(mid);
-                    auto const lhs_index = pack_word(basis, word.begin(), split);
-                    auto const rhs_index = pack_word(basis, split, word.end());
-                    auto const rhs_degree = degree - mid;
-
-                    if (contains(lhs_range, mid) && contains(rhs_range, rhs_degree)) {
-                        entry += beta
-                               * lhs[static_cast<std::size_t>(basis.start_of_degree(mid) + lhs_index)]
-                               * rhs[static_cast<std::size_t>(basis.start_of_degree(rhs_degree) + rhs_index)];
-                    }
-                }
-
-                expected[static_cast<std::size_t>(basis.start_of_degree(degree) + level_index)] = entry;
+        for_each_index(basis, [&](Degree degree, Index level_index) {
+            if (!contains(out_range, degree)) {
+                return;
             }
-        );
+
+            Scalar entry{0};
+            auto const word = unpack_level_index(basis, degree, level_index);
+            for (Degree mid = 0; mid <= degree; ++mid) {
+                auto const split =
+                    word.begin() + static_cast<std::ptrdiff_t>(mid);
+                auto const lhs_index = pack_word(basis, word.begin(), split);
+                auto const rhs_index = pack_word(basis, split, word.end());
+                auto const rhs_degree = degree - mid;
+
+                if (contains(lhs_range, mid) &&
+                    contains(rhs_range, rhs_degree)) {
+                    entry += beta *
+                        lhs[static_cast<std::size_t>(
+                            basis.start_of_degree(mid) + lhs_index)] *
+                        rhs[static_cast<std::size_t>(
+                            basis.start_of_degree(rhs_degree) + rhs_index)];
+                }
+            }
+
+            expected[static_cast<std::size_t>(basis.start_of_degree(degree) +
+                                              level_index)] = entry;
+        });
 
         return expected;
     }
 
-    static void expect_mul_matches_reference(
-        DegreeRange out_range,
-        DegreeRange lhs_range,
-        DegreeRange rhs_range,
-        Scalar const& beta = Scalar{1}
-    )
-    {
+    static void expect_mul_matches_reference(DegreeRange out_range,
+                                             DegreeRange lhs_range,
+                                             DegreeRange rhs_range,
+                                             Scalar const& beta = Scalar{1}) {
         auto const basis_data = BasisData(width, depth);
         auto const& basis = basis_data.basis;
 
@@ -122,30 +110,24 @@ protected:
         auto const ctx = make_context();
         rpp::ops::FTMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view, beta);
 
-        EXPECT_EQ(
-            out,
-            expected_mul(
-                basis,
-                initial_out,
-                lhs,
-                rhs,
-                out_range,
-                lhs_range,
-                rhs_range,
-                beta
-            )
-        );
+        EXPECT_EQ(out,
+                  expected_mul(basis,
+                               initial_out,
+                               lhs,
+                               rhs,
+                               out_range,
+                               lhs_range,
+                               rhs_range,
+                               beta));
     }
 
-    [[nodiscard]] static std::vector<Scalar> apply_mul(
-        Basis const& basis,
-        std::vector<Scalar> const& lhs,
-        std::vector<Scalar> const& rhs,
-        DegreeRange out_range,
-        DegreeRange lhs_range,
-        DegreeRange rhs_range
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    apply_mul(Basis const& basis,
+              std::vector<Scalar> const& lhs,
+              std::vector<Scalar> const& rhs,
+              DegreeRange out_range,
+              DegreeRange lhs_range,
+              DegreeRange rhs_range) {
         std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
 
         auto out_view = mutable_tensor_view(out, basis, out_range);
@@ -157,13 +139,11 @@ protected:
         return out;
     }
 
-    [[nodiscard]] static std::vector<Scalar> linear_combo(
-        std::vector<Scalar> const& lhs,
-        Scalar const& lhs_scale,
-        std::vector<Scalar> const& rhs,
-        Scalar const& rhs_scale
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    linear_combo(std::vector<Scalar> const& lhs,
+                 Scalar const& lhs_scale,
+                 std::vector<Scalar> const& rhs,
+                 Scalar const& rhs_scale) {
         std::vector<Scalar> result(lhs.size());
         for (std::size_t i = 0; i < lhs.size(); ++i) {
             result[i] = lhs_scale * lhs[i] + rhs_scale * rhs[i];
@@ -172,17 +152,11 @@ protected:
     }
 };
 
-TEST_F(FreeTensorMulTests, ComputesConcatenationProduct)
-{
-    expect_mul_matches_reference(
-        {0, depth},
-        {0, depth},
-        {0, depth}
-    );
+TEST_F(FreeTensorMulTests, ComputesConcatenationProduct) {
+    expect_mul_matches_reference({0, depth}, {0, depth}, {0, depth});
 }
 
-TEST_F(FreeTensorMulTests, HandlesTruncatedOperandDegreeRanges)
-{
+TEST_F(FreeTensorMulTests, HandlesTruncatedOperandDegreeRanges) {
     MulViewCase const cases[] = {
         {"lhs has positive min degree", {0, depth}, {1, depth}, {0, depth}},
         {"rhs has positive min degree", {0, depth}, {0, depth}, {1, depth}},
@@ -194,15 +168,11 @@ TEST_F(FreeTensorMulTests, HandlesTruncatedOperandDegreeRanges)
     for (auto const& test_case : cases) {
         SCOPED_TRACE(test_case.name);
         expect_mul_matches_reference(
-            test_case.out,
-            test_case.lhs,
-            test_case.rhs
-        );
+            test_case.out, test_case.lhs, test_case.rhs);
     }
 }
 
-TEST_F(FreeTensorMulTests, RespectsTruncatedOutputDegreeRange)
-{
+TEST_F(FreeTensorMulTests, RespectsTruncatedOutputDegreeRange) {
     MulViewCase const cases[] = {
         {"output begins above zero", {2, depth}, {0, depth}, {0, depth}},
         {"output has truncated max degree", {0, 2}, {0, depth}, {0, depth}},
@@ -212,27 +182,17 @@ TEST_F(FreeTensorMulTests, RespectsTruncatedOutputDegreeRange)
     for (auto const& test_case : cases) {
         SCOPED_TRACE(test_case.name);
         expect_mul_matches_reference(
-            test_case.out,
-            test_case.lhs,
-            test_case.rhs
-        );
+            test_case.out, test_case.lhs, test_case.rhs);
     }
 }
 
-TEST_F(FreeTensorMulTests, HandlesScaledProduct)
-{
+TEST_F(FreeTensorMulTests, HandlesScaledProduct) {
     auto const beta = make_scalar({{{{'p', 1}}, 5, 2}});
 
-    expect_mul_matches_reference(
-        {1, depth},
-        {0, 2},
-        {1, depth},
-        beta
-    );
+    expect_mul_matches_reference({1, depth}, {0, 2}, {1, depth}, beta);
 }
 
-TEST_F(FreeTensorMulTests, IsBilinearInOperands)
-{
+TEST_F(FreeTensorMulTests, IsBilinearInOperands) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -253,26 +213,28 @@ TEST_F(FreeTensorMulTests, IsBilinearInOperands)
     auto const lhs = linear_combo(lhs1, alpha, lhs2, beta);
     auto const rhs = linear_combo(rhs1, gamma, rhs2, delta);
 
-    auto const result = apply_mul(basis, lhs, rhs, out_range, lhs_range, rhs_range);
+    auto const result =
+        apply_mul(basis, lhs, rhs, out_range, lhs_range, rhs_range);
 
-    auto const m11 = apply_mul(basis, lhs1, rhs1, out_range, lhs_range, rhs_range);
-    auto const m12 = apply_mul(basis, lhs1, rhs2, out_range, lhs_range, rhs_range);
-    auto const m21 = apply_mul(basis, lhs2, rhs1, out_range, lhs_range, rhs_range);
-    auto const m22 = apply_mul(basis, lhs2, rhs2, out_range, lhs_range, rhs_range);
+    auto const m11 =
+        apply_mul(basis, lhs1, rhs1, out_range, lhs_range, rhs_range);
+    auto const m12 =
+        apply_mul(basis, lhs1, rhs2, out_range, lhs_range, rhs_range);
+    auto const m21 =
+        apply_mul(basis, lhs2, rhs1, out_range, lhs_range, rhs_range);
+    auto const m22 =
+        apply_mul(basis, lhs2, rhs2, out_range, lhs_range, rhs_range);
 
     std::vector<Scalar> expected(static_cast<std::size_t>(basis.size()));
     for (std::size_t i = 0; i < expected.size(); ++i) {
-        expected[i] = (alpha * gamma) * m11[i]
-                    + (alpha * delta) * m12[i]
-                    + (beta * gamma) * m21[i]
-                    + (beta * delta) * m22[i];
+        expected[i] = (alpha * gamma) * m11[i] + (alpha * delta) * m12[i] +
+            (beta * gamma) * m21[i] + (beta * delta) * m22[i];
     }
 
     EXPECT_EQ(result, expected);
 }
 
-TEST_F(FreeTensorMulTests, KernelWrapperMatchesDirectOperation)
-{
+TEST_F(FreeTensorMulTests, KernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
@@ -285,26 +247,22 @@ TEST_F(FreeTensorMulTests, KernelWrapperMatchesDirectOperation)
     auto const lhs = Wrapper::make_batch('a', basis);
     auto const rhs = Wrapper::make_batch('b', basis);
 
-    auto const error = rpp::ops::ft_mul(
-        strategy,
-        Wrapper::Strategy::LaunchConfig{},
-        Wrapper::tensor_batch(actual, basis),
-        Wrapper::tensor_batch(lhs, basis),
-        Wrapper::tensor_batch(rhs, basis),
-        basis,
-        Wrapper::tensor_count,
-        beta
-    );
+    auto const error = rpp::ops::ft_mul(strategy,
+                                        Wrapper::Strategy::LaunchConfig{},
+                                        Wrapper::tensor_batch(actual, basis),
+                                        Wrapper::tensor_batch(lhs, basis),
+                                        Wrapper::tensor_batch(rhs, basis),
+                                        basis,
+                                        Wrapper::tensor_count,
+                                        beta);
     EXPECT_TRUE(static_cast<bool>(error));
     Wrapper::apply_direct<rpp::ops::FTMul<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
+        basis, [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
             auto out = Wrapper::tensor_view(expected, basis, tensor_idx);
             auto left = Wrapper::tensor_view(lhs, basis, tensor_idx);
             auto right = Wrapper::tensor_view(rhs, basis, tensor_idx);
             op(ctx, out, left, right, beta);
-        }
-    );
+        });
 
     EXPECT_EQ(actual, expected);
 }

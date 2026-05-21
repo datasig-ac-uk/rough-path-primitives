@@ -11,16 +11,14 @@
 
 namespace {
 
-class ShuffleTensorFmaTests
-    : public testing::Test,
-      public rpp::tests::PolynomialTensorHelper {
+class ShuffleTensorFmaTests : public testing::Test,
+                              public rpp::tests::PolynomialTensorHelper {
 protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 };
 
-TEST_F(ShuffleTensorFmaTests, AccumulatesShuffleProduct)
-{
+TEST_F(ShuffleTensorFmaTests, AccumulatesShuffleProduct) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -39,8 +37,7 @@ TEST_F(ShuffleTensorFmaTests, AccumulatesShuffleProduct)
     expected.reserve(static_cast<std::size_t>(basis.size()));
 
     for_each_index(
-        basis,
-        [&expected, &basis](Degree degree, Index level_index) {
+        basis, [&expected, &basis](Degree degree, Index level_index) {
             auto const word = unpack_level_index(basis, degree, level_index);
             auto entry = symbol('c', basis, degree, level_index);
             auto const mask_count = std::uint32_t{1} << degree;
@@ -54,37 +51,33 @@ TEST_F(ShuffleTensorFmaTests, AccumulatesShuffleProduct)
                 for (Degree i = 0; i < degree; ++i) {
                     if (((mask >> i) & std::uint32_t{1}) != 0) {
                         lhs_word.push_back(word[static_cast<std::size_t>(i)]);
-                    } else {
+                    }
+                    else {
                         rhs_word.push_back(word[static_cast<std::size_t>(i)]);
                     }
                 }
 
                 auto const lhs_degree = static_cast<Degree>(lhs_word.size());
                 auto const rhs_degree = static_cast<Degree>(rhs_word.size());
-                auto const lhs_index = pack_word(basis, lhs_word.begin(), lhs_word.end());
-                auto const rhs_index = pack_word(basis, rhs_word.begin(), rhs_word.end());
+                auto const lhs_index =
+                    pack_word(basis, lhs_word.begin(), lhs_word.end());
+                auto const rhs_index =
+                    pack_word(basis, rhs_word.begin(), rhs_word.end());
 
-                entry += make_scalar({
-                    {
-                        {
-                            {'a', symbol_index(basis, lhs_degree, lhs_index)},
-                            {'b', symbol_index(basis, rhs_degree, rhs_index)}
-                        },
-                        1,
-                        1
-                    }
-                });
+                entry += make_scalar(
+                    {{{{'a', symbol_index(basis, lhs_degree, lhs_index)},
+                       {'b', symbol_index(basis, rhs_degree, rhs_index)}},
+                      1,
+                      1}});
             }
 
             expected.emplace_back(std::move(entry));
-        }
-    );
+        });
 
     EXPECT_EQ(out, expected);
 }
 
-TEST_F(ShuffleTensorFmaTests, KernelWrapperMatchesDirectOperation)
-{
+TEST_F(ShuffleTensorFmaTests, KernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
@@ -99,29 +92,26 @@ TEST_F(ShuffleTensorFmaTests, KernelWrapperMatchesDirectOperation)
     auto const b = Wrapper::make_batch('b', basis);
     auto const c = Wrapper::make_batch('c', basis);
 
-    auto const err = rpp::ops::st_fma(
-        strategy,
-        typename Wrapper::Strategy::LaunchConfig{},
-        Wrapper::tensor_batch(actual, basis),
-        Wrapper::tensor_batch(a, basis),
-        Wrapper::tensor_batch(b, basis),
-        Wrapper::tensor_batch(c, basis),
-        basis,
-        Wrapper::tensor_count,
-        alpha,
-        beta
-    );
+    auto const err =
+        rpp::ops::st_fma(strategy,
+                         typename Wrapper::Strategy::LaunchConfig{},
+                         Wrapper::tensor_batch(actual, basis),
+                         Wrapper::tensor_batch(a, basis),
+                         Wrapper::tensor_batch(b, basis),
+                         Wrapper::tensor_batch(c, basis),
+                         basis,
+                         Wrapper::tensor_count,
+                         alpha,
+                         beta);
     EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::STFma<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
+        basis, [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
             auto out = Wrapper::tensor_view(expected, basis, tensor_idx);
             auto addend = Wrapper::tensor_view(a, basis, tensor_idx);
             auto left = Wrapper::tensor_view(b, basis, tensor_idx);
             auto right = Wrapper::tensor_view(c, basis, tensor_idx);
             op(ctx, out, addend, left, right, alpha, beta);
-        }
-    );
+        });
 
     EXPECT_EQ(actual, expected);
 }

@@ -10,16 +10,14 @@
 
 namespace {
 
-class VectorInplaceAddTests
-    : public testing::Test,
-      public rpp::tests::PolynomialTensorHelper {
+class VectorInplaceAddTests : public testing::Test,
+                              public rpp::tests::PolynomialTensorHelper {
 protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 3;
 };
 
-TEST_F(VectorInplaceAddTests, AddsRhsCoefficientwise)
-{
+TEST_F(VectorInplaceAddTests, AddsRhsCoefficientwise) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -35,20 +33,15 @@ TEST_F(VectorInplaceAddTests, AddsRhsCoefficientwise)
     std::vector<Scalar> expected;
     expected.reserve(static_cast<std::size_t>(basis.size()));
     for_each_index(
-        basis,
-        [&expected, &basis](Degree degree, Index level_index) {
-            expected.emplace_back(
-                symbol('a', basis, degree, level_index)
-                + symbol('b', basis, degree, level_index)
-            );
-        }
-    );
+        basis, [&expected, &basis](Degree degree, Index level_index) {
+            expected.emplace_back(symbol('a', basis, degree, level_index) +
+                                  symbol('b', basis, degree, level_index));
+        });
 
     EXPECT_EQ(lhs, expected);
 }
 
-TEST_F(VectorInplaceAddTests, AddsScaledRhsCoefficientwise)
-{
+TEST_F(VectorInplaceAddTests, AddsScaledRhsCoefficientwise) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -67,18 +60,15 @@ TEST_F(VectorInplaceAddTests, AddsScaledRhsCoefficientwise)
     for_each_index(
         basis,
         [&expected, &basis, &multiplier](Degree degree, Index level_index) {
-            expected.emplace_back(
-                symbol('a', basis, degree, level_index)
-                + multiplier * symbol('b', basis, degree, level_index)
-            );
-        }
-    );
+            expected.emplace_back(symbol('a', basis, degree, level_index) +
+                                  multiplier *
+                                      symbol('b', basis, degree, level_index));
+        });
 
     EXPECT_EQ(lhs, expected);
 }
 
-TEST_F(VectorInplaceAddTests, KernelWrapperMatchesDirectOperation)
-{
+TEST_F(VectorInplaceAddTests, KernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
@@ -90,24 +80,21 @@ TEST_F(VectorInplaceAddTests, KernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const rhs = Wrapper::make_batch('b', basis);
 
-    auto const err = rpp::ops::vector_inplace_add(
-        strategy,
-        typename Wrapper::Strategy::LaunchConfig{},
-        Wrapper::vector_batch(actual, basis),
-        Wrapper::vector_batch(rhs, basis),
-        basis,
-        Wrapper::tensor_count,
-        alpha
-    );
+    auto const err =
+        rpp::ops::vector_inplace_add(strategy,
+                                     typename Wrapper::Strategy::LaunchConfig{},
+                                     Wrapper::vector_batch(actual, basis),
+                                     Wrapper::vector_batch(rhs, basis),
+                                     basis,
+                                     Wrapper::tensor_count,
+                                     alpha);
     EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::VectorInplaceAdd<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
+        basis, [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
             auto lhs = Wrapper::vector_view(expected, basis, tensor_idx);
             auto arg = Wrapper::vector_view(rhs, basis, tensor_idx);
             op(ctx, lhs, arg, alpha);
-        }
-    );
+        });
 
     EXPECT_EQ(actual, expected);
 }

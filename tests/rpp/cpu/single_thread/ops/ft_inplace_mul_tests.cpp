@@ -26,37 +26,27 @@ struct InplaceMulViewCase {
     DegreeRange rhs;
 };
 
-class FreeTensorInplaceMulTests
-    : public testing::Test,
-      public Helper {
+class FreeTensorInplaceMulTests : public testing::Test, public Helper {
 protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 
     [[nodiscard]] static TensorView<Scalar*> mutable_tensor_view(
-        std::vector<Scalar>& data,
-        Basis const& basis,
-        DegreeRange range
-    )
-    {
+        std::vector<Scalar>& data, Basis const& basis, DegreeRange range) {
         return {data.data(), basis, range.min, range.max};
     }
 
-    [[nodiscard]] static TensorView<Scalar const*> const_tensor_view(
-        std::vector<Scalar> const& data,
-        Basis const& basis,
-        DegreeRange range
-    )
-    {
+    [[nodiscard]] static TensorView<Scalar const*>
+    const_tensor_view(std::vector<Scalar> const& data,
+                      Basis const& basis,
+                      DegreeRange range) {
         return {data.data(), basis, range.min, range.max};
     }
 
-    static void expect_inplace_mul_matches_out_of_place(
-        DegreeRange lhs_range,
-        DegreeRange rhs_range,
-        Scalar const& beta = Scalar{1}
-    )
-    {
+    static void
+    expect_inplace_mul_matches_out_of_place(DegreeRange lhs_range,
+                                            DegreeRange rhs_range,
+                                            Scalar const& beta = Scalar{1}) {
         auto const basis_data = BasisData(width, depth);
         auto const& basis = basis_data.basis;
 
@@ -65,40 +55,28 @@ protected:
         auto expected = initial_lhs;
         auto const rhs = make_tensor('b', basis);
 
-        auto inplace_lhs_view = mutable_tensor_view(inplace_lhs, basis, lhs_range);
+        auto inplace_lhs_view =
+            mutable_tensor_view(inplace_lhs, basis, lhs_range);
         auto expected_view = mutable_tensor_view(expected, basis, lhs_range);
-        auto const initial_lhs_view = const_tensor_view(initial_lhs, basis, lhs_range);
+        auto const initial_lhs_view =
+            const_tensor_view(initial_lhs, basis, lhs_range);
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = make_context();
         rpp::ops::FTInplaceMul<Strategy>{}(
-            ctx,
-            inplace_lhs_view,
-            rhs_view,
-            beta
-        );
+            ctx, inplace_lhs_view, rhs_view, beta);
         rpp::ops::FTMul<Strategy>{}(
-            ctx,
-            expected_view,
-            initial_lhs_view,
-            rhs_view,
-            beta
-        );
+            ctx, expected_view, initial_lhs_view, rhs_view, beta);
 
         EXPECT_EQ(inplace_lhs, expected);
     }
 };
 
-TEST_F(FreeTensorInplaceMulTests, MatchesOutOfPlaceMulForFullViews)
-{
-    expect_inplace_mul_matches_out_of_place(
-        {0, depth},
-        {0, depth}
-    );
+TEST_F(FreeTensorInplaceMulTests, MatchesOutOfPlaceMulForFullViews) {
+    expect_inplace_mul_matches_out_of_place({0, depth}, {0, depth});
 }
 
-TEST_F(FreeTensorInplaceMulTests, MatchesOutOfPlaceMulForTruncatedViews)
-{
+TEST_F(FreeTensorInplaceMulTests, MatchesOutOfPlaceMulForTruncatedViews) {
     InplaceMulViewCase const cases[] = {
         {"lhs has positive min degree", {2, depth}, {0, depth}},
         {"lhs has truncated max degree", {0, 2}, {0, depth}},
@@ -109,26 +87,17 @@ TEST_F(FreeTensorInplaceMulTests, MatchesOutOfPlaceMulForTruncatedViews)
 
     for (auto const& test_case : cases) {
         SCOPED_TRACE(test_case.name);
-        expect_inplace_mul_matches_out_of_place(
-            test_case.lhs,
-            test_case.rhs
-        );
+        expect_inplace_mul_matches_out_of_place(test_case.lhs, test_case.rhs);
     }
 }
 
-TEST_F(FreeTensorInplaceMulTests, MatchesOutOfPlaceMulWithScaledProduct)
-{
+TEST_F(FreeTensorInplaceMulTests, MatchesOutOfPlaceMulWithScaledProduct) {
     auto const beta = make_scalar({{{{'p', 1}}, 7, 3}});
 
-    expect_inplace_mul_matches_out_of_place(
-        {1, depth},
-        {0, 2},
-        beta
-    );
+    expect_inplace_mul_matches_out_of_place({1, depth}, {0, 2}, beta);
 }
 
-TEST_F(FreeTensorInplaceMulTests, KernelWrapperMatchesDirectOperation)
-{
+TEST_F(FreeTensorInplaceMulTests, KernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
@@ -140,25 +109,22 @@ TEST_F(FreeTensorInplaceMulTests, KernelWrapperMatchesDirectOperation)
     auto expected = actual;
     auto const rhs = Wrapper::make_batch('b', basis);
 
-    const auto err = rpp::ops::ft_inplace_mul(
-        strategy,
-        {},
-        Wrapper::tensor_batch(actual, basis),
-        Wrapper::tensor_batch(rhs, basis),
-        basis,
-        Wrapper::tensor_count,
-        beta
-        );
+    const auto err =
+        rpp::ops::ft_inplace_mul(strategy,
+                                 {},
+                                 Wrapper::tensor_batch(actual, basis),
+                                 Wrapper::tensor_batch(rhs, basis),
+                                 basis,
+                                 Wrapper::tensor_count,
+                                 beta);
     EXPECT_TRUE(static_cast<bool>(err)) << err.message();
 
     Wrapper::apply_direct<rpp::ops::FTInplaceMul<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
+        basis, [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
             auto lhs = Wrapper::tensor_view(expected, basis, tensor_idx);
             auto right = Wrapper::tensor_view(rhs, basis, tensor_idx);
             op(ctx, lhs, right, beta);
-        }
-    );
+        });
 
     EXPECT_EQ(actual, expected);
 }

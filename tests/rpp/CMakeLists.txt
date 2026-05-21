@@ -6,4 +6,4 @@ add_subdirectory(support)
 
 if (RPP_ENABLE_CUDA)
     add_subdirectory(gpu)
-endif()
+endif ()

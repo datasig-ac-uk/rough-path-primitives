@@ -7,8 +7,7 @@
 
 namespace {
 
-TEST(GpuBlockTensorSetIdentityTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockTensorSetIdentityTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     RPP_REQUIRE_CUDA_DEVICE();
 
@@ -33,21 +32,20 @@ TEST(GpuBlockTensorSetIdentityTests, MatchesCpuForSingleElementBatches)
             Helper::device_tensor_batch(device_actual, basis),
             basis,
             Helper::tensor_count,
-            scalar
-        );
+            scalar);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::tensor_set_identity(
-                strategy,
-                std::move(config),
-                Helper::host_tensor_batch(expected, basis),
-                basis,
-                Helper::tensor_count,
-                scalar
-            );
-        });
+        auto const cpu_err =
+            Helper::launch_cpu([&](auto const& strategy, auto config) {
+                return rpp::ops::tensor_set_identity(
+                    strategy,
+                    std::move(config),
+                    Helper::host_tensor_batch(expected, basis),
+                    basis,
+                    Helper::tensor_count,
+                    scalar);
+            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);

@@ -19,10 +19,14 @@ TEST(TaggedPointerTest, IncrementDecrement) {
     int data[5] = {10, 20, 30, 40, 50};
     using Ptr = arch::NativeArchitecture::Ptr<int>;
     Ptr p(&data[0]);
-    ++p; EXPECT_EQ(*p, 20);
-    p++; EXPECT_EQ(*p, 30);
-    --p; EXPECT_EQ(*p, 20);
-    p--; EXPECT_EQ(*p, 10);
+    ++p;
+    EXPECT_EQ(*p, 20);
+    p++;
+    EXPECT_EQ(*p, 30);
+    --p;
+    EXPECT_EQ(*p, 20);
+    p--;
+    EXPECT_EQ(*p, 10);
 }
 
 // Test pointer arithmetic operations
@@ -72,8 +76,9 @@ struct MyArchitecture {
 TEST(TaggedPointerTest, TagInheritanceAndTraits) {
     using Ptr = MyArchitecture::Ptr<int>;
 
-    static_assert(std::is_same_v<std::iterator_traits<Ptr>::difference_type, typename MyArchitecture::Index>,
-        "difference type should be set by architecture");
+    static_assert(std::is_same_v<std::iterator_traits<Ptr>::difference_type,
+                                 typename MyArchitecture::Index>,
+                  "difference type should be set by architecture");
 
     static_assert(std::is_base_of_v<tags::ArchTag<MyArchitecture>, Ptr>,
                   "Ptr should inherit ArchTag");

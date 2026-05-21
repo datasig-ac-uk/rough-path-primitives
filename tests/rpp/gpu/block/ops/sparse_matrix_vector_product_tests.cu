@@ -16,26 +16,18 @@ struct SparseMatrixData {
     Helper::HostVector<Helper::Index> offsets;
 };
 
-SparseMatrixData make_csr_data()
-{
+SparseMatrixData make_csr_data() {
     return {
-        {2.0, -1.0, 0.5, 3.0, 1.5, -2.0},
-        {0, 2, 1, 0, 3, 2},
-        {0, 2, 3, 5, 6}
-    };
+        {2.0, -1.0, 0.5, 3.0, 1.5, -2.0}, {0, 2, 1, 0, 3, 2}, {0, 2, 3, 5, 6}};
 }
 
-SparseMatrixData make_csc_data()
-{
+SparseMatrixData make_csc_data() {
     return {
-        {2.0, 3.0, 0.5, -1.0, -2.0, 1.5},
-        {0, 2, 1, 0, 3, 2},
-        {0, 2, 3, 5, 6}
-    };
+        {2.0, 3.0, 0.5, -1.0, -2.0, 1.5}, {0, 2, 1, 0, 3, 2}, {0, 2, 3, 5, 6}};
 }
 
-TEST(GpuBlockSparseMatrixVectorProductTests, CsrMatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockSparseMatrixVectorProductTests,
+     CsrMatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     RPP_REQUIRE_CUDA_DEVICE();
 
@@ -50,14 +42,13 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CsrMatchesCpuForSingleElementBatche
     auto actual = expected;
     auto const arg = Helper::make_batch(2, basis, Helper::Scalar{0.01});
 
-    auto const host_matrix = rpp::sparse::make_csr_matrix(
-        matrix_data.values.data(),
-        matrix_data.indices.data(),
-        matrix_data.offsets.data(),
-        matrix_data.values.size(),
-        basis.size(),
-        basis.size()
-    );
+    auto const host_matrix =
+        rpp::sparse::make_csr_matrix(matrix_data.values.data(),
+                                     matrix_data.indices.data(),
+                                     matrix_data.offsets.data(),
+                                     matrix_data.values.size(),
+                                     basis.size(),
+                                     basis.size());
 
     Helper::DeviceVector<Helper::Scalar> device_actual(actual);
     Helper::DeviceVector<Helper::Scalar> device_arg(arg);
@@ -66,14 +57,13 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CsrMatchesCpuForSingleElementBatche
     Helper::DeviceVector<Helper::Index> device_offsets(matrix_data.offsets);
     Helper::DeviceBasis device_basis(basis_data);
 
-    auto const device_matrix = rpp::sparse::make_csr_matrix(
-        Helper::device_data(device_values),
-        Helper::device_data(device_indices),
-        Helper::device_data(device_offsets),
-        matrix_data.values.size(),
-        basis.size(),
-        basis.size()
-    );
+    auto const device_matrix =
+        rpp::sparse::make_csr_matrix(Helper::device_data(device_values),
+                                     Helper::device_data(device_indices),
+                                     Helper::device_data(device_offsets),
+                                     matrix_data.values.size(),
+                                     basis.size(),
+                                     basis.size());
 
     rpp::gpu::DeviceLaunchConfig launch_config;
     launch_config.stream = nullptr;
@@ -86,32 +76,31 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CsrMatchesCpuForSingleElementBatche
         basis,
         Helper::tensor_count,
         device_matrix,
-        alpha
-    );
+        alpha);
     ASSERT_TRUE(static_cast<bool>(err)) << err.message();
     RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-    auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-        return rpp::ops::sparse_matrix_vector_product(
-            strategy,
-            std::move(config),
-            Helper::host_vector_batch(expected, basis),
-            Helper::host_vector_batch(arg, basis),
-            basis,
-            basis,
-            Helper::tensor_count,
-            host_matrix,
-            alpha
-        );
-    });
+    auto const cpu_err =
+        Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::sparse_matrix_vector_product(
+                strategy,
+                std::move(config),
+                Helper::host_vector_batch(expected, basis),
+                Helper::host_vector_batch(arg, basis),
+                basis,
+                basis,
+                Helper::tensor_count,
+                host_matrix,
+                alpha);
+        });
     ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
     actual = Helper::copy_to_host(device_actual);
     Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
 }
 
-TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockSparseMatrixVectorProductTests,
+     CscMatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     RPP_REQUIRE_CUDA_DEVICE();
 
@@ -126,14 +115,13 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
     auto actual = expected;
     auto const arg = Helper::make_batch(2, basis, Helper::Scalar{0.01});
 
-    auto const host_matrix = rpp::sparse::make_csc_matrix(
-        matrix_data.values.data(),
-        matrix_data.indices.data(),
-        matrix_data.offsets.data(),
-        matrix_data.values.size(),
-        basis.size(),
-        basis.size()
-    );
+    auto const host_matrix =
+        rpp::sparse::make_csc_matrix(matrix_data.values.data(),
+                                     matrix_data.indices.data(),
+                                     matrix_data.offsets.data(),
+                                     matrix_data.values.size(),
+                                     basis.size(),
+                                     basis.size());
 
     Helper::DeviceVector<Helper::Scalar> device_actual(actual);
     Helper::DeviceVector<Helper::Scalar> device_arg(arg);
@@ -142,16 +130,16 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
     Helper::DeviceVector<Helper::Index> device_offsets(matrix_data.offsets);
     Helper::DeviceBasis device_basis(basis_data);
 
-    auto const device_matrix = rpp::sparse::make_csc_matrix(
-        Helper::device_data(device_values),
-        Helper::device_data(device_indices),
-        Helper::device_data(device_offsets),
-        matrix_data.values.size(),
-        basis.size(),
-        basis.size()
-    );
+    auto const device_matrix =
+        rpp::sparse::make_csc_matrix(Helper::device_data(device_values),
+                                     Helper::device_data(device_indices),
+                                     Helper::device_data(device_offsets),
+                                     matrix_data.values.size(),
+                                     basis.size(),
+                                     basis.size());
 
-    using Op = rpp::ops::SparseMatrixVectorProduct<Helper::GpuStrategy, rpp::sparse::CSCMatrix>;
+    using Op = rpp::ops::SparseMatrixVectorProduct<Helper::GpuStrategy,
+                                                   rpp::sparse::CSCMatrix>;
     auto smem_bytes = Op::scratch_space_size(gpu_strategy, basis);
 
     rpp::gpu::DeviceLaunchConfig launch_config;
@@ -165,24 +153,23 @@ TEST(GpuBlockSparseMatrixVectorProductTests, CscMatchesCpuForSingleElementBatche
         basis,
         Helper::tensor_count,
         device_matrix,
-        alpha
-    );
+        alpha);
     ASSERT_TRUE(static_cast<bool>(err)) << err.message();
     RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-    auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-        return rpp::ops::sparse_matrix_vector_product(
-            strategy,
-            std::move(config),
-            Helper::host_vector_batch(expected, basis),
-            Helper::host_vector_batch(arg, basis),
-            basis,
-            basis,
-            Helper::tensor_count,
-            host_matrix,
-            alpha
-        );
-    });
+    auto const cpu_err =
+        Helper::launch_cpu([&](auto const& strategy, auto config) {
+            return rpp::ops::sparse_matrix_vector_product(
+                strategy,
+                std::move(config),
+                Helper::host_vector_batch(expected, basis),
+                Helper::host_vector_batch(arg, basis),
+                basis,
+                basis,
+                Helper::tensor_count,
+                host_matrix,
+                alpha);
+        });
     ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
     actual = Helper::copy_to_host(device_actual);

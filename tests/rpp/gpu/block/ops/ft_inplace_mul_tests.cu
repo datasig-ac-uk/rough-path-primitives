@@ -7,21 +7,24 @@
 
 namespace {
 
-template <typename BatchLhs, typename BatchRhs, typename Basis, typename Strategy>
-__global__ void ft_inplace_mul_truncated_rhs_kernel(
-    BatchLhs batch_lhs,
-    BatchRhs batch_rhs,
-    Basis basis,
-    Strategy strategy,
-    typename Strategy::Index n_tensors,
-    typename Strategy::Accum beta
-)
-{
+template <typename BatchLhs,
+          typename BatchRhs,
+          typename Basis,
+          typename Strategy>
+__global__ void
+ft_inplace_mul_truncated_rhs_kernel(BatchLhs batch_lhs,
+                                    BatchRhs batch_rhs,
+                                    Basis basis,
+                                    Strategy strategy,
+                                    typename Strategy::Index n_tensors,
+                                    typename Strategy::Accum beta) {
     extern __shared__ std::byte smem_bytes[];
 
     auto const ctx = strategy.make_context(smem_bytes);
     auto const my_index = strategy.object_index(blockIdx.x, threadIdx.x);
-    if (my_index >= n_tensors) { return; }
+    if (my_index >= n_tensors) {
+        return;
+    }
 
     rpp::ops::FTInplaceMul<Strategy> op;
     auto lhs = batch_lhs.view(basis, my_index);
@@ -29,8 +32,7 @@ __global__ void ft_inplace_mul_truncated_rhs_kernel(
     op(ctx, lhs, rhs, beta);
 }
 
-TEST(GpuBlockFtInplaceMulTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockFtInplaceMulTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     using GpuOp = rpp::ops::FTInplaceMul<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
@@ -59,22 +61,21 @@ TEST(GpuBlockFtInplaceMulTests, MatchesCpuForSingleElementBatches)
             Helper::device_tensor_batch(device_rhs, basis),
             basis,
             Helper::tensor_count,
-            beta
-        );
+            beta);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy, auto config) {
-            return rpp::ops::ft_inplace_mul(
-                strategy,
-                std::move(config),
-                Helper::host_tensor_batch(expected, basis),
-                Helper::host_tensor_batch(rhs, basis),
-                basis,
-                Helper::tensor_count,
-                beta
-            );
-        });
+        auto const cpu_err =
+            Helper::launch_cpu([&](auto const& strategy, auto config) {
+                return rpp::ops::ft_inplace_mul(
+                    strategy,
+                    std::move(config),
+                    Helper::host_tensor_batch(expected, basis),
+                    Helper::host_tensor_batch(rhs, basis),
+                    basis,
+                    Helper::tensor_count,
+                    beta);
+            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
@@ -82,8 +83,7 @@ TEST(GpuBlockFtInplaceMulTests, MatchesCpuForSingleElementBatches)
     }
 }
 
-TEST(GpuBlockFtInplaceMulTests, ZerosUnitCoefficientWhenRhsHasNoUnitTerm)
-{
+TEST(GpuBlockFtInplaceMulTests, ZerosUnitCoefficientWhenRhsHasNoUnitTerm) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     using GpuOp = rpp::ops::FTInplaceMul<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
@@ -108,12 +108,7 @@ TEST(GpuBlockFtInplaceMulTests, ZerosUnitCoefficientWhenRhsHasNoUnitTerm)
 
         auto const rhs_batch = Helper::device_tensor_batch(device_rhs, basis);
         auto const rhs_truncated = rpp::make_tensor_batch(
-            rhs_batch.data(),
-            rhs_batch.layout(),
-            basis,
-            1,
-            basis.depth
-        );
+            rhs_batch.data(), rhs_batch.layout(), basis, 1, basis.depth);
 
         auto const err = rpp::ops::ft_inplace_mul(
             gpu_strategy,
@@ -122,8 +117,7 @@ TEST(GpuBlockFtInplaceMulTests, ZerosUnitCoefficientWhenRhsHasNoUnitTerm)
             rhs_truncated,
             basis,
             Helper::tensor_count,
-            beta
-        );
+            beta);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
@@ -131,10 +125,12 @@ TEST(GpuBlockFtInplaceMulTests, ZerosUnitCoefficientWhenRhsHasNoUnitTerm)
         auto expected_view = Helper::host_tensor_batch(expected, basis).view(0);
         auto rhs_view = Helper::host_tensor_batch(rhs, basis).view(0);
         auto rhs_trunc = rhs_view.truncate(1, basis.depth);
-        rpp::ops::FTInplaceMul<Helper::CpuStrategy>{}(cpu_ctx, expected_view, rhs_trunc, beta);
+        rpp::ops::FTInplaceMul<Helper::CpuStrategy>{}(
+            cpu_ctx, expected_view, rhs_trunc, beta);
 
         actual = Helper::copy_to_host(device_actual);
-        Helper::expect_near(actual[0], Helper::Scalar{0}, Helper::Scalar{1.5e-5});
+        Helper::expect_near(
+            actual[0], Helper::Scalar{0}, Helper::Scalar{1.5e-5});
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
     }
 }

@@ -19,35 +19,29 @@ class SparseMatrixVectorProductTests
 protected:
     using Vector = std::vector<Scalar>;
 
-    [[nodiscard]] static Scalar constant(int numerator, int denominator = 1)
-    {
-        return make_scalar({
-            {{}, numerator, denominator}
-        });
+    [[nodiscard]] static Scalar constant(int numerator, int denominator = 1) {
+        return make_scalar({{{}, numerator, denominator}});
     }
 
-    [[nodiscard]] static std::size_t matrix_position(Index row, Index col) noexcept
-    {
+    [[nodiscard]] static std::size_t matrix_position(Index row,
+                                                     Index col) noexcept {
         return static_cast<std::size_t>((row + 1) * 10 + (col + 1));
     }
 
-    [[nodiscard]] static Scalar matrix_symbol(char marker, Index row, Index col)
-    {
-        return make_scalar({
-            {{{marker, matrix_position(row, col)}}, 1, 1}
-        });
+    [[nodiscard]] static Scalar
+    matrix_symbol(char marker, Index row, Index col) {
+        return make_scalar({{{{marker, matrix_position(row, col)}}, 1, 1}});
     }
 
-    [[nodiscard]] static auto make_matrix_values(
-        char marker,
-        std::vector<Index> const& row_indices,
-        std::vector<Index> const& col_indices
-    )
-    {
+    [[nodiscard]] static auto
+    make_matrix_values(char marker,
+                       std::vector<Index> const& row_indices,
+                       std::vector<Index> const& col_indices) {
         Vector result;
         result.reserve(row_indices.size());
         for (std::size_t i = 0; i < row_indices.size(); ++i) {
-            result.push_back(matrix_symbol(marker, row_indices[i], col_indices[i]));
+            result.push_back(
+                matrix_symbol(marker, row_indices[i], col_indices[i]));
         }
         return result;
     }
@@ -56,8 +50,7 @@ protected:
                                        std::vector<Index> const& indices,
                                        std::vector<Index> const& offsets,
                                        Index rows,
-                                       Index cols)
-    {
+                                       Index cols) {
         return rpp::sparse::make_csr_matrix(values.data(),
                                             indices.data(),
                                             offsets.data(),
@@ -70,8 +63,7 @@ protected:
                                        std::vector<Index> const& indices,
                                        std::vector<Index> const& offsets,
                                        Index rows,
-                                       Index cols)
-    {
+                                       Index cols) {
         return rpp::sparse::make_csc_matrix(values.data(),
                                             indices.data(),
                                             offsets.data(),
@@ -81,8 +73,7 @@ protected:
     }
 };
 
-TEST_F(SparseMatrixVectorProductTests, AppliesCsrMatrix)
-{
+TEST_F(SparseMatrixVectorProductTests, AppliesCsrMatrix) {
     auto const out_basis_data = BasisData(2, 1);
     auto const arg_basis_data = BasisData(3, 1);
     auto const& out_basis = out_basis_data.basis;
@@ -106,19 +97,17 @@ TEST_F(SparseMatrixVectorProductTests, AppliesCsrMatrix)
         make_context(), out_view, arg_view, matrix);
 
     std::vector<Scalar> const expected{
-        matrix_symbol('m', 0, 0) * symbol('x', arg_basis, 0, 0)
-            + matrix_symbol('m', 0, 3) * symbol('x', arg_basis, 1, 2),
+        matrix_symbol('m', 0, 0) * symbol('x', arg_basis, 0, 0) +
+            matrix_symbol('m', 0, 3) * symbol('x', arg_basis, 1, 2),
         matrix_symbol('m', 1, 2) * symbol('x', arg_basis, 1, 1),
-        matrix_symbol('m', 2, 0) * symbol('x', arg_basis, 0, 0)
-            + matrix_symbol('m', 2, 1) * symbol('x', arg_basis, 1, 0)
-            + matrix_symbol('m', 2, 3) * symbol('x', arg_basis, 1, 2)
-    };
+        matrix_symbol('m', 2, 0) * symbol('x', arg_basis, 0, 0) +
+            matrix_symbol('m', 2, 1) * symbol('x', arg_basis, 1, 0) +
+            matrix_symbol('m', 2, 3) * symbol('x', arg_basis, 1, 2)};
 
     EXPECT_EQ(out, expected);
 }
 
-TEST_F(SparseMatrixVectorProductTests, AppliesCscMatrix)
-{
+TEST_F(SparseMatrixVectorProductTests, AppliesCscMatrix) {
     auto const out_basis_data = BasisData(2, 1);
     auto const arg_basis_data = BasisData(3, 1);
     auto const& out_basis = out_basis_data.basis;
@@ -142,19 +131,17 @@ TEST_F(SparseMatrixVectorProductTests, AppliesCscMatrix)
         make_context(), out_view, arg_view, matrix);
 
     std::vector<Scalar> const expected{
-        matrix_symbol('m', 0, 0) * symbol('x', arg_basis, 0, 0)
-            + matrix_symbol('m', 0, 3) * symbol('x', arg_basis, 1, 2),
+        matrix_symbol('m', 0, 0) * symbol('x', arg_basis, 0, 0) +
+            matrix_symbol('m', 0, 3) * symbol('x', arg_basis, 1, 2),
         matrix_symbol('m', 1, 2) * symbol('x', arg_basis, 1, 1),
-        matrix_symbol('m', 2, 0) * symbol('x', arg_basis, 0, 0)
-            + matrix_symbol('m', 2, 1) * symbol('x', arg_basis, 1, 0)
-            + matrix_symbol('m', 2, 3) * symbol('x', arg_basis, 1, 2)
-    };
+        matrix_symbol('m', 2, 0) * symbol('x', arg_basis, 0, 0) +
+            matrix_symbol('m', 2, 1) * symbol('x', arg_basis, 1, 0) +
+            matrix_symbol('m', 2, 3) * symbol('x', arg_basis, 1, 2)};
 
     EXPECT_EQ(out, expected);
 }
 
-TEST_F(SparseMatrixVectorProductTests, ScalesResult)
-{
+TEST_F(SparseMatrixVectorProductTests, ScalesResult) {
     auto const out_basis_data = BasisData(2, 1);
     auto const arg_basis_data = BasisData(3, 1);
     auto const& out_basis = out_basis_data.basis;
@@ -178,19 +165,19 @@ TEST_F(SparseMatrixVectorProductTests, ScalesResult)
         make_context(), out_view, arg_view, matrix, constant(2));
 
     std::vector<Scalar> const expected{
-        constant(2) * (matrix_symbol('m', 0, 0) * symbol('x', arg_basis, 0, 0)
-            + matrix_symbol('m', 0, 3) * symbol('x', arg_basis, 1, 2)),
+        constant(2) *
+            (matrix_symbol('m', 0, 0) * symbol('x', arg_basis, 0, 0) +
+             matrix_symbol('m', 0, 3) * symbol('x', arg_basis, 1, 2)),
         constant(2) * (matrix_symbol('m', 1, 2) * symbol('x', arg_basis, 1, 1)),
-        constant(2) * (matrix_symbol('m', 2, 0) * symbol('x', arg_basis, 0, 0)
-            + matrix_symbol('m', 2, 1) * symbol('x', arg_basis, 1, 0)
-            + matrix_symbol('m', 2, 3) * symbol('x', arg_basis, 1, 2))
-    };
+        constant(2) *
+            (matrix_symbol('m', 2, 0) * symbol('x', arg_basis, 0, 0) +
+             matrix_symbol('m', 2, 1) * symbol('x', arg_basis, 1, 0) +
+             matrix_symbol('m', 2, 3) * symbol('x', arg_basis, 1, 2))};
 
     EXPECT_EQ(out, expected);
 }
 
-TEST_F(SparseMatrixVectorProductTests, AppliesToLogicalViewRanges)
-{
+TEST_F(SparseMatrixVectorProductTests, AppliesToLogicalViewRanges) {
     auto const basis_data = BasisData(2, 2);
     auto const& basis = basis_data.basis;
 
@@ -215,16 +202,15 @@ TEST_F(SparseMatrixVectorProductTests, AppliesToLogicalViewRanges)
         make_context(), out_view, arg_view, matrix);
 
     auto expected = out;
-    expected[1] = matrix_symbol('m', 0, 0) * symbol('x', basis, 2, 0)
-        + matrix_symbol('m', 0, 3) * symbol('x', basis, 2, 3);
-    expected[2] = matrix_symbol('m', 1, 1) * symbol('x', basis, 2, 1)
-        + matrix_symbol('m', 1, 2) * symbol('x', basis, 2, 2);
+    expected[1] = matrix_symbol('m', 0, 0) * symbol('x', basis, 2, 0) +
+        matrix_symbol('m', 0, 3) * symbol('x', basis, 2, 3);
+    expected[2] = matrix_symbol('m', 1, 1) * symbol('x', basis, 2, 1) +
+        matrix_symbol('m', 1, 2) * symbol('x', basis, 2, 2);
 
     EXPECT_EQ(out, expected);
 }
 
-TEST_F(SparseMatrixVectorProductTests, KernelWrapperMatchesDirectOperation)
-{
+TEST_F(SparseMatrixVectorProductTests, KernelWrapperMatchesDirectOperation) {
     static constexpr Index tensor_count = 2;
 
     auto const out_basis_data = BasisData(2, 1);

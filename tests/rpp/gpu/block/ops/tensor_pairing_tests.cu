@@ -7,8 +7,7 @@
 
 namespace {
 
-TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
-{
+TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
     using GpuOp = rpp::ops::TensorPairing<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
@@ -19,14 +18,18 @@ TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
         auto const cpu_strategy = Helper::cpu_strategy();
         auto const gpu_strategy = Helper::gpu_strategy();
 
-        auto const functional_data = Helper::make_batch(1, basis, Helper::Scalar{0.01});
-        auto const arg_data = Helper::make_batch(2, basis, Helper::Scalar{0.01});
+        auto const functional_data =
+            Helper::make_batch(1, basis, Helper::Scalar{0.01});
+        auto const arg_data =
+            Helper::make_batch(2, basis, Helper::Scalar{0.01});
         Helper::Scalar expected = 0;
 
         auto const cpu_ctx = Helper::CpuStrategy::make_context(nullptr);
-        auto functional = Helper::host_tensor_batch(functional_data, basis).view(0);
+        auto functional =
+            Helper::host_tensor_batch(functional_data, basis).view(0);
         auto arg = Helper::host_tensor_batch(arg_data, basis).view(0);
-        rpp::ops::TensorPairing<Helper::CpuStrategy>{}(cpu_ctx, expected, functional, arg);
+        rpp::ops::TensorPairing<Helper::CpuStrategy>{}(
+            cpu_ctx, expected, functional, arg);
 
         Helper::DeviceVector<Helper::Scalar> device_functional(functional_data);
         Helper::DeviceVector<Helper::Scalar> device_arg(arg_data);
@@ -42,8 +45,7 @@ TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches)
             Helper::device_tensor_batch(device_functional, basis),
             Helper::device_tensor_batch(device_arg, basis),
             basis,
-            1
-        );
+            1);
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 

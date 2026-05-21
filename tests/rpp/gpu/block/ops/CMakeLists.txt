@@ -29,10 +29,10 @@ rpp_add_test(rpp_gpu_block_ops_tests
 )
 target_link_libraries(rpp_gpu_block_ops_tests
         PRIVATE
-            RPP::GPU
-            CUDA::cudart
+        RPP::GPU
+        CUDA::cudart
 )
 target_compile_options(rpp_gpu_block_ops_tests
         PRIVATE
-            $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
+        $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
 )

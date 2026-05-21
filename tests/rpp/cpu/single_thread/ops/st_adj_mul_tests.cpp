@@ -12,19 +12,15 @@
 
 namespace {
 
-class ShuffleTensorAdjointMulTests
-    : public testing::Test,
-      public rpp::tests::PolynomialTensorHelper {
+class ShuffleTensorAdjointMulTests : public testing::Test,
+                                     public rpp::tests::PolynomialTensorHelper {
 protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 
-    [[nodiscard]] static Scalar pairing(
-        Basis const& basis,
-        std::vector<Scalar> const& lhs,
-        std::vector<Scalar> const& rhs
-    )
-    {
+    [[nodiscard]] static Scalar pairing(Basis const& basis,
+                                        std::vector<Scalar> const& lhs,
+                                        std::vector<Scalar> const& rhs) {
         Scalar result;
         TensorView<Scalar const*> lhs_view(lhs.data(), basis);
         TensorView<Scalar const*> rhs_view(rhs.data(), basis);
@@ -34,13 +30,11 @@ protected:
         return result;
     }
 
-    [[nodiscard]] static std::vector<Scalar> linear_combo(
-        std::vector<Scalar> const& lhs,
-        Scalar const& lhs_scale,
-        std::vector<Scalar> const& rhs,
-        Scalar const& rhs_scale
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    linear_combo(std::vector<Scalar> const& lhs,
+                 Scalar const& lhs_scale,
+                 std::vector<Scalar> const& rhs,
+                 Scalar const& rhs_scale) {
         std::vector<Scalar> result(lhs.size());
         for (std::size_t i = 0; i < lhs.size(); ++i) {
             result[i] = lhs_scale * lhs[i] + rhs_scale * rhs[i];
@@ -48,12 +42,10 @@ protected:
         return result;
     }
 
-    [[nodiscard]] static std::vector<Scalar> apply_shuffle(
-        Basis const& basis,
-        std::vector<Scalar> const& lhs,
-        std::vector<Scalar> const& rhs
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    apply_shuffle(Basis const& basis,
+                  std::vector<Scalar> const& lhs,
+                  std::vector<Scalar> const& rhs) {
         std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
         std::vector<Scalar> addend(static_cast<std::size_t>(basis.size()));
 
@@ -63,16 +55,15 @@ protected:
         TensorView<Scalar const*> rhs_view(rhs.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::STFma<Strategy>{}(ctx, out_view, addend_view, lhs_view, rhs_view);
+        rpp::ops::STFma<Strategy>{}(
+            ctx, out_view, addend_view, lhs_view, rhs_view);
         return out;
     }
 
-    [[nodiscard]] static std::vector<Scalar> apply_adj_mul(
-        Basis const& basis,
-        std::vector<Scalar> const& op,
-        std::vector<Scalar> const& arg
-    )
-    {
+    [[nodiscard]] static std::vector<Scalar>
+    apply_adj_mul(Basis const& basis,
+                  std::vector<Scalar> const& op,
+                  std::vector<Scalar> const& arg) {
         std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
 
         TensorView<Scalar*> out_view(out.data(), basis);
@@ -85,8 +76,7 @@ protected:
     }
 };
 
-TEST_F(ShuffleTensorAdjointMulTests, SatisfiesAdjointPairingCriterion)
-{
+TEST_F(ShuffleTensorAdjointMulTests, SatisfiesAdjointPairingCriterion) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -100,8 +90,7 @@ TEST_F(ShuffleTensorAdjointMulTests, SatisfiesAdjointPairingCriterion)
     EXPECT_EQ(pairing(basis, product, x), pairing(basis, b, adjoint));
 }
 
-TEST_F(ShuffleTensorAdjointMulTests, IsBilinearInOperatorAndArgument)
-{
+TEST_F(ShuffleTensorAdjointMulTests, IsBilinearInOperatorAndArgument) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -127,17 +116,14 @@ TEST_F(ShuffleTensorAdjointMulTests, IsBilinearInOperatorAndArgument)
 
     std::vector<Scalar> rhs(static_cast<std::size_t>(basis.size()));
     for (std::size_t i = 0; i < rhs.size(); ++i) {
-        rhs[i] = (alpha * gamma) * ax11[i]
-               + (alpha * delta) * ax12[i]
-               + (beta * gamma) * ax21[i]
-               + (beta * delta) * ax22[i];
+        rhs[i] = (alpha * gamma) * ax11[i] + (alpha * delta) * ax12[i] +
+            (beta * gamma) * ax21[i] + (beta * delta) * ax22[i];
     }
 
     EXPECT_EQ(lhs, rhs);
 }
 
-TEST_F(ShuffleTensorAdjointMulTests, KernelWrapperMatchesDirectOperation)
-{
+TEST_F(ShuffleTensorAdjointMulTests, KernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
@@ -149,25 +135,22 @@ TEST_F(ShuffleTensorAdjointMulTests, KernelWrapperMatchesDirectOperation)
     auto const op_arg = Wrapper::make_batch('a', basis);
     auto const arg = Wrapper::make_batch('x', basis);
 
-    auto const err = rpp::ops::st_adj_mul(
-        strategy,
-        typename Wrapper::Strategy::LaunchConfig{},
-        Wrapper::tensor_batch(actual, basis),
-        Wrapper::tensor_batch(op_arg, basis),
-        Wrapper::tensor_batch(arg, basis),
-        basis,
-        Wrapper::tensor_count
-    );
+    auto const err =
+        rpp::ops::st_adj_mul(strategy,
+                             typename Wrapper::Strategy::LaunchConfig{},
+                             Wrapper::tensor_batch(actual, basis),
+                             Wrapper::tensor_batch(op_arg, basis),
+                             Wrapper::tensor_batch(arg, basis),
+                             basis,
+                             Wrapper::tensor_count);
     EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::STAdjMul<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
+        basis, [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
             auto out = Wrapper::tensor_view(expected, basis, tensor_idx);
             auto operator_arg = Wrapper::tensor_view(op_arg, basis, tensor_idx);
             auto operand = Wrapper::tensor_view(arg, basis, tensor_idx);
             op(ctx, out, operator_arg, operand);
-        }
-    );
+        });
 
     EXPECT_EQ(actual, expected);
 }

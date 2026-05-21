@@ -12,16 +12,14 @@
 
 namespace {
 
-class TensorIdentityTests
-    : public testing::Test,
-      public rpp::tests::PolynomialTensorHelper {
+class TensorIdentityTests : public testing::Test,
+                            public rpp::tests::PolynomialTensorHelper {
 protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 };
 
-TEST_F(TensorIdentityTests, AddIdentityAddsOneToUnitOnly)
-{
+TEST_F(TensorIdentityTests, AddIdentityAddsOneToUnitOnly) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -37,8 +35,7 @@ TEST_F(TensorIdentityTests, AddIdentityAddsOneToUnitOnly)
     EXPECT_EQ(tensor, expected);
 }
 
-TEST_F(TensorIdentityTests, AddIdentitySupportsScaledIdentity)
-{
+TEST_F(TensorIdentityTests, AddIdentitySupportsScaledIdentity) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -55,8 +52,7 @@ TEST_F(TensorIdentityTests, AddIdentitySupportsScaledIdentity)
     EXPECT_EQ(tensor, expected);
 }
 
-TEST_F(TensorIdentityTests, SetIdentitySetsUnitAndZerosPositiveDegrees)
-{
+TEST_F(TensorIdentityTests, SetIdentitySetsUnitAndZerosPositiveDegrees) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -72,8 +68,7 @@ TEST_F(TensorIdentityTests, SetIdentitySetsUnitAndZerosPositiveDegrees)
     EXPECT_EQ(tensor, expected);
 }
 
-TEST_F(TensorIdentityTests, SetIdentitySupportsScaledIdentity)
-{
+TEST_F(TensorIdentityTests, SetIdentitySupportsScaledIdentity) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
@@ -90,8 +85,7 @@ TEST_F(TensorIdentityTests, SetIdentitySupportsScaledIdentity)
     EXPECT_EQ(tensor, expected);
 }
 
-TEST_F(TensorIdentityTests, AddIdentityKernelWrapperMatchesDirectOperation)
-{
+TEST_F(TensorIdentityTests, AddIdentityKernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
@@ -108,22 +102,18 @@ TEST_F(TensorIdentityTests, AddIdentityKernelWrapperMatchesDirectOperation)
         Wrapper::tensor_batch(actual, basis),
         basis,
         Wrapper::tensor_count,
-        scalar
-    );
+        scalar);
     EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::TensorAddIdentity<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
+        basis, [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
             auto tensor = Wrapper::tensor_view(expected, basis, tensor_idx);
             op(ctx, tensor, scalar);
-        }
-    );
+        });
 
     EXPECT_EQ(actual, expected);
 }
 
-TEST_F(TensorIdentityTests, SetIdentityKernelWrapperMatchesDirectOperation)
-{
+TEST_F(TensorIdentityTests, SetIdentityKernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
     auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
@@ -140,16 +130,13 @@ TEST_F(TensorIdentityTests, SetIdentityKernelWrapperMatchesDirectOperation)
         Wrapper::tensor_batch(actual, basis),
         basis,
         Wrapper::tensor_count,
-        scalar
-    );
+        scalar);
     EXPECT_TRUE(static_cast<bool>(err)) << err.message();
     Wrapper::apply_direct<rpp::ops::TensorSetIdentity<Wrapper::Strategy>>(
-        basis,
-        [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
+        basis, [&](auto const& op, auto const& ctx, Wrapper::Index tensor_idx) {
             auto tensor = Wrapper::tensor_view(expected, basis, tensor_idx);
             op(ctx, tensor, scalar);
-        }
-    );
+        });
 
     EXPECT_EQ(actual, expected);
 }
