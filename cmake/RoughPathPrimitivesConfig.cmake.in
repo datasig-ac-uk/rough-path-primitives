@@ -7,7 +7,6 @@ set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE
 set(${CMAKE_FIND_PACKAGE_NAME}_FOUND FALSE)
 return()
 endif()
-cmake_minimum_required(VERSION 3.3)
 
 
 include(CMakeFindDependencyMacro)
