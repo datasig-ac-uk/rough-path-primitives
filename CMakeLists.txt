@@ -122,7 +122,7 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
 
 
 add_library(RPP_GPU INTERFACE)
-add_library(RPP::GPU ALIAS RPP_GPU)
+add_library(RPP::RPP_GPU ALIAS RPP_GPU)
 target_link_libraries(RPP_GPU
         INTERFACE
             RPP::RPP
