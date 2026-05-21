@@ -12,22 +12,24 @@
 
 namespace rpp::ops {
 
-template <typename Strategy, typename=void>
+template <typename Strategy, typename = void>
 class TensorSetIdentity : public BaseOperation<Strategy> {
     using Accum = typename Strategy::Accum;
+
 public:
     using Context = typename Strategy::Context;
     static constexpr bool is_implemented = false;
 
 
     template <typename Tensor>
-    RPP_HOST_DEVICE
-    void operator()(Context const& ctx, Tensor& tensor, Accum scalar=Accum{1}) const noexcept {
-        static_assert(
-            static_assert_fail<Strategy, Context, Tensor, Accum>,
-            "rpp::ops::TensorSetIdentity has no implementation for this Strategy. "
-            "Use an operation specialization for the selected strategy and include its header."
-        );
+    RPP_HOST_DEVICE void operator()(Context const& ctx,
+                                    Tensor& tensor,
+                                    Accum scalar = Accum{1}) const noexcept {
+        static_assert(static_assert_fail<Strategy, Context, Tensor, Accum>,
+                      "rpp::ops::TensorSetIdentity has no implementation for "
+                      "this Strategy. "
+                      "Use an operation specialization for the selected "
+                      "strategy and include its header.");
     }
 };
 
@@ -38,31 +40,32 @@ auto tensor_set_identity(
     BatchTensor const& tensor,
     Basis const& basis,
     typename Strategy::Index num_batches,
-    typename Strategy::Accum scalar = typename Strategy::Accum{1}
-    ) noexcept {
+    typename Strategy::Accum scalar = typename Strategy::Accum{1}) noexcept {
     using Op = TensorSetIdentity<Strategy>;
 
     static_assert(
         Op::is_implemented,
         "The operation object \"TensorSetIdentity\" that implements "
-        "\"tensor_set_identity\" is not implemented. This either means that the "
-        "Strategy object is invalid, or that the necessary specialisation headers "
-        "have not been included. For example, you may need to add the following "
-        "include directive to bring in the single-threaded CPU implementation of "
+        "\"tensor_set_identity\" is not implemented. This either means that "
+        "the "
+        "Strategy object is invalid, or that the necessary specialisation "
+        "headers "
+        "have not been included. For example, you may need to add the "
+        "following "
+        "include directive to bring in the single-threaded CPU implementation "
+        "of "
         "this operation:\n\n"
-        "    #include <rpp/cpu/single_thread/operations/basic/tensor_set_identity.hpp>"
-        );
+        "    #include "
+        "<rpp/cpu/single_thread/operations/basic/tensor_set_identity.hpp>");
 
-    return strategy.template launch<Op>(
-        std::move(config),
-        std::make_tuple(tensor),
-        make_basis_pack(basis),
-        num_batches,
-        scalar
-        );
+    return strategy.template launch<Op>(std::move(config),
+                                        std::make_tuple(tensor),
+                                        make_basis_pack(basis),
+                                        num_batches,
+                                        scalar);
 }
 
 } // namespace rpp::ops
 
 
-#endif //RPP_OPERATIONS_BASIC_TENSOR_SET_IDENTITY_HPP
+#endif // RPP_OPERATIONS_BASIC_TENSOR_SET_IDENTITY_HPP

@@ -4,8 +4,8 @@
 #include <algorithm>
 
 #include <rpp/config.h>
-#include <rpp/views/batch.hpp>
 #include <rpp/utility.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/linalg/vector_scalar_multiply.hpp>
@@ -13,10 +13,18 @@
 #include <rpp/gpu/block/strategy.hpp>
 
 namespace rpp::ops {
-template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
-class VectorScalarMultiply<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > : public
-        BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
+template <typename Accum_,
+          unsigned BlockSize,
+          unsigned MaxBlockSize,
+          typename Architecture>
+class VectorScalarMultiply<
+    gpu::strategies::
+        BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>>
+    : public BaseOperation<
+          gpu::strategies::
+              BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
+    using Strategy = gpu::strategies::
+        BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
@@ -24,10 +32,11 @@ class VectorScalarMultiply<gpu::strategies::BlockStrategy<Accum_, BlockSize, Max
 public:
     static constexpr bool is_implemented = true;
 
-    template<typename Vector>
-    RPP_DEVICE void operator()(Context const &ctx, Vector &vec, Accum scalar) const noexcept {
+    template <typename Vector>
+    RPP_DEVICE void
+    operator()(Context const& ctx, Vector& vec, Accum scalar) const noexcept {
         using Scalar = typename Vector::value_type;
-        auto const &basis = vec.basis();
+        auto const& basis = vec.basis();
         const auto min_degree = vec.min_degree();
         const auto max_degree = vec.max_degree();
         if (max_degree < min_degree) {

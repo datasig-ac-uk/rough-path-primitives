@@ -14,16 +14,25 @@
 namespace rpp::ops {
 
 
-template <typename Accum_, TensorAntipodeSigningPolicy Policy, typename Architecture>
-class TensorGeneralisedAntipode<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>, Policy> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
-    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+template <typename Accum_,
+          TensorAntipodeSigningPolicy Policy,
+          typename Architecture>
+class TensorGeneralisedAntipode<
+    cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
+    Policy>
+    : public BaseOperation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    using Strategy =
+        cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
 
 public:
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut, typename TensorArg>
-    void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
+    void operator()(Context const& ctx,
+                    TensorOut& out,
+                    TensorArg const& arg) const noexcept {
 
         using Index = typename Context::Strategy::Index;
         const auto min_degree = std::max(out.min_degree(), arg.min_degree());
@@ -34,21 +43,24 @@ public:
             out[0] = arg[0];
         }
 
-        for (auto degree = std::max(1, min_degree); degree <= max_degree; ++degree) {
+        for (auto degree = std::max(1, min_degree); degree <= max_degree;
+             ++degree) {
             auto out_view = out.degree_view(degree);
             auto const arg_view = arg.degree_view(degree);
 
             for (Index i = 0; i < arg_view.size(); ++i) {
                 auto const out_index = basis.reverse_index(i, degree);
-                if constexpr (Policy == TensorAntipodeSigningPolicy::SignByDegree) {
-                    out_view[out_index] = arg_view[i] * (degree % 2 == 0 ? 1 : -1);
-                } else {
+                if constexpr (Policy ==
+                              TensorAntipodeSigningPolicy::SignByDegree) {
+                    out_view[out_index] =
+                        arg_view[i] * (degree % 2 == 0 ? 1 : -1);
+                }
+                else {
                     out_view[out_index] = arg_view[i];
                 }
             }
         }
     }
-
 };
 
 } // namespace rpp::ops

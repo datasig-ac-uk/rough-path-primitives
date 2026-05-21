@@ -1,10 +1,9 @@
 #ifndef RPP_BASIS_BASIS_PACK_HPP
 #define RPP_BASIS_BASIS_PACK_HPP
 
+#include <rpp/basis/basis_tags.hpp>
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
-#include <rpp/basis/basis_tags.hpp>
-
 
 
 namespace rpp::basis {
@@ -19,17 +18,13 @@ struct BasisHolder : Basis {
     using BasisTag = Tag;
     using BasisType = Basis;
 
-    explicit constexpr BasisHolder(Basis&& basis)
-        : Basis(std::move(basis))
-    {}
+    explicit constexpr BasisHolder(Basis&& basis) : Basis(std::move(basis)) {}
 };
 
 template <typename Tag, typename Pack>
 constexpr Pack const& get_basis(Pack const& pack RPP_MAYBE_UNUSED) {
-    static_assert(
-        static_assert_fail<Tag, Pack>,
-        "this pack does not contain the specified tag"
-        );
+    static_assert(static_assert_fail<Tag, Pack>,
+                  "this pack does not contain the specified tag");
     return pack;
 }
 
@@ -42,7 +37,8 @@ template <typename Tag, typename First, typename... Rest>
 constexpr decltype(auto) get_basis(First const& first, Rest const&... rest) {
     if constexpr (std::is_same_v<Tag, typename First::BasisTag>) {
         return get_basis<Tag>(first);
-    } else {
+    }
+    else {
         return get_basis<Tag>(rest...);
     }
 }
@@ -77,19 +73,23 @@ template <typename Target, typename T, typename... Ts>
 constexpr bool has_type() noexcept {
     if constexpr (std::is_same_v<Target, T>) {
         return true;
-    } else if constexpr (sizeof...(Ts) > 0) {
+    }
+    else if constexpr (sizeof...(Ts) > 0) {
         return has_type<Target, Ts...>;
-    } else {
+    }
+    else {
         return false;
     }
 }
 
 template <typename... SeenTs, typename T, typename... Ts>
-constexpr bool check_unique_recurse(std::tuple<SeenTs...> seen, T t, Ts... ts) noexcept {
+constexpr bool
+check_unique_recurse(std::tuple<SeenTs...> seen, T t, Ts... ts) noexcept {
     ignore_unused(seen, t, ts...);
     if constexpr (has_type<T, SeenTs...>) {
         return false;
-    } else {
+    }
+    else {
         return check_unique_recurse(std::tuple<SeenTs..., T>{}, ts...);
     }
 }
@@ -111,13 +111,15 @@ constexpr bool check_unique(T1 t1, T2 t2) noexcept {
 template <typename T1, typename T2, typename T3>
 constexpr bool check_unique(T1 t1, T2 t2, T3 t3) noexcept {
     ignore_unused(t1, t2, t3);
-    return !std::is_same_v<T1, T2> && !std::is_same_v<T1, T3> && !std::is_same_v<T2, T3>;
+    return !std::is_same_v<T1, T2> && !std::is_same_v<T1, T3> &&
+        !std::is_same_v<T2, T3>;
 }
 
 template <typename T1, typename T2, typename T3, typename T4>
 constexpr bool check_unique(T1 t1, T2 t2, T3 t3, T4 t4) noexcept {
     ignore_unused(t1, t2, t3, t4);
-    return check_unique(t1, t2, t3) && !std::is_same_v<T4, T1> && !std::is_same_v<T4, T2> && !std::is_same_v<T4, T3>;
+    return check_unique(t1, t2, t3) && !std::is_same_v<T4, T1> &&
+        !std::is_same_v<T4, T2> && !std::is_same_v<T4, T3>;
 }
 
 template <typename T, typename... Ts>
@@ -127,81 +129,90 @@ constexpr bool check_unique(T t, Ts... ts) noexcept {
 }
 
 
-
 } // namespace detail
-
-
 
 
 /**
  * @brief
- *   BasisPack aggregates a variadic list of basis types, each identified by a unique
- *   @c BasisTag. The class stores each basis object (or type) by inheriting from
+ *   BasisPack aggregates a variadic list of basis types, each identified by a
+ * unique
+ *   @c BasisTag. The class stores each basis object (or type) by inheriting
+ * from
  *   @c detail::HolderOf<Basis>..., thereby providing compile‑time access to the
  *   underlying bases.
  *
- *   A static assertion (enabled by default) enforces that all tags are distinct at
- *   compile time. The class offers a forwarding constructor that moves the supplied
- *   basis objects into the appropriate holders.
+ *   A static assertion (enabled by default) enforces that all tags are distinct
+ * at compile time. The class offers a forwarding constructor that moves the
+ * supplied basis objects into the appropriate holders.
  *
  * @tparam Bases Types of the bases to be packed; each must expose a nested
  *   @c Tag type used for identification.
  *
- * @note When @c RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK is defined, the compile‑time
- *   uniqueness check is omitted.
+ * @note When @c RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK is defined, the
+ * compile‑time uniqueness check is omitted.
  */
 template <typename... Bases>
 struct BasisPack : detail::HolderOf<Bases>... {
 #ifndef RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK
-    static_assert(detail::check_unique(typename detail::HolderOf<Bases>::BasisTag {}...),
-        "each basis in the pack must have a unique tag"
-        );
+    static_assert(
+        detail::check_unique(typename detail::HolderOf<Bases>::BasisTag{}...),
+        "each basis in the pack must have a unique tag");
 #endif // RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK
 
     // ReSharper disable once CppNonExplicitConvertingConstructor
     constexpr BasisPack(Bases&&... bases)
-        : detail::HolderOf<Bases>{std::move(bases)}...
-    {}
-
+        : detail::HolderOf<Bases>{std::move(bases)}... {}
 };
 
 
 template <typename TagOrBasis, typename... Bases>
-constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis, BasisPack<Bases...> const& basis_pack) {
+constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis,
+                                   BasisPack<Bases...> const& basis_pack) {
     if constexpr (is_basis_tag_v<TagOrBasis>) {
-        return detail::get_basis<TagOrBasis>(static_cast<detail::HolderOf<Bases> const&>(basis_pack)...);
-    } else {
+        return detail::get_basis<TagOrBasis>(
+            static_cast<detail::HolderOf<Bases> const&>(basis_pack)...);
+    }
+    else {
         return tag_or_basis;
     }
 }
 
 template <typename TagOrBasis, typename Basis>
-constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis, Basis const& basis) {
+constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis,
+                                   Basis const& basis) {
     if constexpr (is_basis_tag_v<TagOrBasis>) {
         static_assert(std::is_base_of_v<typename Basis::Tag, TagOrBasis>,
-            "the basis provided does not match the provided tag"
-            );
+                      "the basis provided does not match the provided tag");
         return basis;
-    } else {
+    }
+    else {
         return tag_or_basis;
     }
 }
 
 template <typename Basis>
-constexpr auto in(Basis basis) noexcept -> detail::BasisHolder<InputBasisTag<detail::BasisTagOf<Basis>>, Basis> {
-    using Holder = detail::BasisHolder<InputBasisTag<detail::BasisTagOf<Basis>>, Basis>;
+constexpr auto in(Basis basis) noexcept
+    -> detail::BasisHolder<InputBasisTag<detail::BasisTagOf<Basis>>, Basis> {
+    using Holder =
+        detail::BasisHolder<InputBasisTag<detail::BasisTagOf<Basis>>, Basis>;
     return Holder(std::move(basis));
 }
 
 template <typename Basis>
-constexpr auto out(Basis basis) noexcept -> detail::BasisHolder<OutputBasisTag<detail::BasisTagOf<Basis>>, Basis> {
-    using Holder = detail::BasisHolder<OutputBasisTag<detail::BasisTagOf<Basis>>, Basis>;
+constexpr auto out(Basis basis) noexcept
+    -> detail::BasisHolder<OutputBasisTag<detail::BasisTagOf<Basis>>, Basis> {
+    using Holder =
+        detail::BasisHolder<OutputBasisTag<detail::BasisTagOf<Basis>>, Basis>;
     return Holder(std::move(basis));
 }
 
 template <size_t Index, typename Basis>
-constexpr auto idx(Basis basis) noexcept -> detail::BasisHolder<IndexedBasisTag<Index, detail::BasisTagOf<Basis>>, Basis> {
-    using Holder = detail::BasisHolder<IndexedBasisTag<Index, detail::BasisTagOf<Basis>>, Basis>;
+constexpr auto idx(Basis basis) noexcept
+    -> detail::BasisHolder<IndexedBasisTag<Index, detail::BasisTagOf<Basis>>,
+                           Basis> {
+    using Holder =
+        detail::BasisHolder<IndexedBasisTag<Index, detail::BasisTagOf<Basis>>,
+                            Basis>;
     return Holder(std::move(basis));
 }
 
@@ -224,4 +235,4 @@ constexpr BasisPack<Bases...> make_basis_pack(Bases... bases) {
 
 } // namespace rpp::basis
 
-#endif //RPP_BASIS_BASIS_PACK_HPP
+#endif // RPP_BASIS_BASIS_PACK_HPP

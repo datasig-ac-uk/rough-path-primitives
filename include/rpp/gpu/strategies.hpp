@@ -1,8 +1,8 @@
 #ifndef RPP_GPU_STRATEGIES_HPP
 #define RPP_GPU_STRATEGIES_HPP
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <type_traits>
 
 

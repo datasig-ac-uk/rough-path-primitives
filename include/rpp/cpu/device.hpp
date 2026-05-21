@@ -4,10 +4,10 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <new>
-#include <memory>
-#include <string>
 #include <functional>
+#include <memory>
+#include <new>
+#include <string>
 #include <vector>
 
 #include <rpp/config.h>
@@ -24,9 +24,7 @@ class DataMapper {
         void* ptr = nullptr;
         std::function<void(void*)> deleter;
 
-        ~AllocEntry() noexcept {
-            deleter(ptr);
-        }
+        ~AllocEntry() noexcept { deleter(ptr); }
     };
 
 public:
@@ -47,9 +45,10 @@ private:
 
     template <typename T>
     Result<ArchPtr<T>> allocate(size_t size) noexcept {
-        T *ptr = ::new (std::nothrow, std::align_val_t{alignment}) T[size];
+        T* ptr = ::new (std::nothrow, std::align_val_t{alignment}) T[size];
         if (ptr == nullptr) {
-            return Error{ErrorCode::OutOfResources, "Failed to allocate memory"};
+            return Error{ErrorCode::OutOfResources,
+                         "Failed to allocate memory"};
         }
 
         allocations_.emplace_back(ptr, [size](void* ptr) noexcept {
@@ -62,7 +61,6 @@ private:
     }
 
 public:
-
     template <typename T, typename S, size_t N>
     Result<ArchPtr<T>> copy(Span<S, N> data) noexcept {
         auto allocation = allocate<T>(data.size());
@@ -70,7 +68,9 @@ public:
             return allocation;
         }
 
-        if (auto err = catch_exceptions([&]{ std::copy_n(data.begin(), data.size(), allocation.value()); })) {
+        if (auto err = catch_exceptions([&] {
+                std::copy_n(data.begin(), data.size(), allocation.value());
+            })) {
             return err;
         }
 
@@ -80,9 +80,12 @@ public:
     template <typename T, typename It>
     Result<ArchPtr<T>> copy(It begin, It end) noexcept {
         auto allocation = allocate<T>(std::distance(begin, end));
-        if (!allocation) { return allocation; }
+        if (!allocation) {
+            return allocation;
+        }
 
-        if (auto err = catch_exceptions([&]{ std::copy(begin, end, allocation.value()); })) {
+        if (auto err = catch_exceptions(
+                [&] { std::copy(begin, end, allocation.value()); })) {
             return err;
         }
 
@@ -92,20 +95,20 @@ public:
     template <typename T, typename It>
     Result<ArchPtr<T>> copy_n(It ptr, size_t size) noexcept {
         auto allocation = allocate<T>(size);
-        if (!allocation) { return allocation; }
+        if (!allocation) {
+            return allocation;
+        }
 
-        if (auto err = catch_exceptions([&]{ std::copy_n(ptr, size, allocation.value()); })) {
+        if (auto err = catch_exceptions(
+                [&] { std::copy_n(ptr, size, allocation.value()); })) {
             return err;
         }
 
         return allocation;
     }
-
-
 };
 
 
+} // namespace rpp::cpu
 
-}// namespace rpp::cpu
-
-#endif //RPP_CPU_DEVICE_HPP
+#endif // RPP_CPU_DEVICE_HPP

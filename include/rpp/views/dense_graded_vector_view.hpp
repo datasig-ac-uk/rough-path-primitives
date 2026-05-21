@@ -42,22 +42,18 @@ public:
     constexpr DenseGradedVectorView(It_ data, MetaData meta)
         : data_(data), metadata_(meta) {}
 
-    template <typename BasisMeta, typename MinDegreeMeta, typename MaxDegreeMeta>
-    RPP_HOST_DEVICE
-    constexpr DenseGradedVectorView(
+    template <typename BasisMeta,
+              typename MinDegreeMeta,
+              typename MaxDegreeMeta>
+    RPP_HOST_DEVICE constexpr DenseGradedVectorView(
         It_ data,
-        std::tuple<BasisMeta, MinDegreeMeta, MaxDegreeMeta> const& meta
-    )
-        : data_(data),
-          metadata_{
-              std::get<0>(meta),
-              static_cast<Degree>(std::get<1>(meta)),
-              static_cast<Degree>(std::get<2>(meta))
-          } {}
+        std::tuple<BasisMeta, MinDegreeMeta, MaxDegreeMeta> const& meta)
+        : data_(data), metadata_{std::get<0>(meta),
+                                 static_cast<Degree>(std::get<1>(meta)),
+                                 static_cast<Degree>(std::get<2>(meta))} {}
 
     RPP_HOST_DEVICE
-    constexpr DenseGradedVectorView(It_ data,
-                                    Basis const& basis)
+    constexpr DenseGradedVectorView(It_ data, Basis const& basis)
         : data_(data), metadata_(basis, Degree{0}, basis.depth) {}
 
     RPP_HOST_DEVICE
@@ -145,8 +141,9 @@ make_graded_vector_batch(Data data,
                                           layouts::StrideLayout<Layout>,
                                           Layout>;
     using MetaData = std::tuple<std::decay_t<Basis>, MinDegree, MaxDegree>;
-    using BatchType =
-        Batch<DenseGradedVectorView<Data, std::decay_t<Basis>>, RealLayout, MetaData>;
+    using BatchType = Batch<DenseGradedVectorView<Data, std::decay_t<Basis>>,
+                            RealLayout,
+                            MetaData>;
 
     static_assert(
         !is_basis_tag_v<std::decay_t<Basis>>,

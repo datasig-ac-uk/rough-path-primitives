@@ -1,12 +1,12 @@
 #ifndef RPP_CONFIG_COMPILER_H
 #define RPP_CONFIG_COMPILER_H
 
-#define RPP_VERSION_ENCODE(major, minor, patch) \
+#define RPP_VERSION_ENCODE(major, minor, patch)                                \
     (((major) * 1000000) + ((minor) * 1000) + (patch))
 
 #if defined(__clang__)
 #define RPP_COMPILER_CLANG 1
-#define RPP_COMPILER_CLANG_VERSION \
+#define RPP_COMPILER_CLANG_VERSION                                             \
     RPP_VERSION_ENCODE(__clang_major__, __clang_minor__, __clang_patchlevel__)
 #else
 #define RPP_COMPILER_CLANG 0
@@ -23,7 +23,7 @@
 
 #if defined(__GNUC__) && !defined(__clang__)
 #define RPP_COMPILER_GCC 1
-#define RPP_COMPILER_GCC_VERSION \
+#define RPP_COMPILER_GCC_VERSION                                               \
     RPP_VERSION_ENCODE(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
 #else
 #define RPP_COMPILER_GCC 0
@@ -32,8 +32,9 @@
 
 #if defined(__CUDACC__)
 #define RPP_COMPILER_CUDA 1
-#define RPP_COMPILER_CUDA_VERSION \
-    RPP_VERSION_ENCODE(__CUDACC_VER_MAJOR__, __CUDACC_VER_MINOR__, __CUDACC_VER_BUILD__)
+#define RPP_COMPILER_CUDA_VERSION                                              \
+    RPP_VERSION_ENCODE(                                                        \
+        __CUDACC_VER_MAJOR__, __CUDACC_VER_MINOR__, __CUDACC_VER_BUILD__)
 #else
 #define RPP_COMPILER_CUDA 0
 #define RPP_COMPILER_CUDA_VERSION 0
@@ -47,10 +48,12 @@
 #define RPP_CUDA_ARCH 0
 #endif
 
-#define RPP_COMPILER_VERSION \
-    (RPP_COMPILER_CLANG ? RPP_COMPILER_CLANG_VERSION : \
-    (RPP_COMPILER_MSVC ? RPP_COMPILER_MSVC_VERSION : \
-    (RPP_COMPILER_GCC ? RPP_COMPILER_GCC_VERSION : 0)))
+#define RPP_COMPILER_VERSION                                                   \
+    (RPP_COMPILER_CLANG                                                        \
+         ? RPP_COMPILER_CLANG_VERSION                                          \
+         : (RPP_COMPILER_MSVC                                                  \
+                ? RPP_COMPILER_MSVC_VERSION                                    \
+                : (RPP_COMPILER_GCC ? RPP_COMPILER_GCC_VERSION : 0)))
 
 #if defined(_MSVC_LANG)
 #define RPP_CXX_STANDARD _MSVC_LANG
@@ -195,7 +198,8 @@
 #define RPP_PREDICT_FALSE(expr) (!!(expr))
 #endif
 
-#if RPP_HAS_BUILTIN(__builtin_unreachable) || RPP_COMPILER_GCC || RPP_COMPILER_CLANG
+#if RPP_HAS_BUILTIN(__builtin_unreachable) || RPP_COMPILER_GCC ||              \
+    RPP_COMPILER_CLANG
 #define RPP_UNREACHABLE() __builtin_unreachable()
 #elif RPP_COMPILER_MSVC
 #define RPP_UNREACHABLE() __assume(0)
@@ -221,7 +225,8 @@
 #define RPP_HAS_IF_CONSTEVAL 0
 #endif
 
-#if defined(__cpp_lib_is_constant_evaluated) || RPP_HAS_BUILTIN(__builtin_is_constant_evaluated)
+#if defined(__cpp_lib_is_constant_evaluated) ||                                \
+    RPP_HAS_BUILTIN(__builtin_is_constant_evaluated)
 #define RPP_HAS_IS_CONSTANT_EVALUATED 1
 #else
 #define RPP_HAS_IS_CONSTANT_EVALUATED 0

@@ -15,8 +15,12 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class VectorInplaceAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
-    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+class VectorInplaceAdd<
+    cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
+    : public BaseOperation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    using Strategy =
+        cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
@@ -25,7 +29,10 @@ public:
     static constexpr bool is_implemented = true;
 
     template <typename VectorLhs, typename VectorRhs>
-    void operator()(Context const& ctx, VectorLhs& lhs, VectorRhs const& rhs, Accum alpha = Accum{1}) const noexcept {
+    void operator()(Context const& ctx,
+                    VectorLhs& lhs,
+                    VectorRhs const& rhs,
+                    Accum alpha = Accum{1}) const noexcept {
         using Scalar = typename VectorLhs::value_type;
         ignore_unused(ctx);
 
@@ -42,10 +49,10 @@ public:
         auto rhs_it = rhs.data() + begin;
 
 
-        for (Index i=0; i < size; ++i) {
-            const Accum lhs_val { lhs_it[i] };
-            const Accum rhs_val { rhs_it[i] };
-            const Accum result = lhs_val + alpha* rhs_val;
+        for (Index i = 0; i < size; ++i) {
+            const Accum lhs_val{lhs_it[i]};
+            const Accum rhs_val{rhs_it[i]};
+            const Accum result = lhs_val + alpha * rhs_val;
             lhs_it[i] = static_cast<Scalar>(result);
         }
     }

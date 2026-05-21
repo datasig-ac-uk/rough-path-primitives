@@ -4,8 +4,8 @@
 #include <algorithm>
 
 #include <rpp/config.h>
-#include <rpp/views/batch.hpp>
 #include <rpp/utility.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/linalg/vector_add.hpp>
@@ -13,10 +13,18 @@
 #include <rpp/gpu/block/strategy.hpp>
 
 namespace rpp::ops {
-template<typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
-class VectorAdd<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > : public BaseOperation<
-            gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture> > {
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
+template <typename Accum_,
+          unsigned BlockSize,
+          unsigned MaxBlockSize,
+          typename Architecture>
+class VectorAdd<
+    gpu::strategies::
+        BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>>
+    : public BaseOperation<
+          gpu::strategies::
+              BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
+    using Strategy = gpu::strategies::
+        BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
@@ -24,13 +32,19 @@ class VectorAdd<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, 
 public:
     static constexpr bool is_implemented = true;
 
-    template<typename VectorOut, typename VectorLhs, typename VectorRhs>
-    RPP_DEVICE void operator()(Context const &ctx, VectorOut &out, VectorLhs const &lhs, VectorRhs const &rhs,
-                               Accum alpha = Accum{1}, Accum beta = Accum{1}) const noexcept {
+    template <typename VectorOut, typename VectorLhs, typename VectorRhs>
+    RPP_DEVICE void operator()(Context const& ctx,
+                               VectorOut& out,
+                               VectorLhs const& lhs,
+                               VectorRhs const& rhs,
+                               Accum alpha = Accum{1},
+                               Accum beta = Accum{1}) const noexcept {
         using Scalar = typename VectorOut::value_type;
-        auto const &basis = out.basis();
-        const auto min_degree = std::max({out.min_degree(), lhs.min_degree(), rhs.min_degree()});
-        const auto max_degree = std::min({out.max_degree(), lhs.max_degree(), rhs.max_degree()});
+        auto const& basis = out.basis();
+        const auto min_degree =
+            std::max({out.min_degree(), lhs.min_degree(), rhs.min_degree()});
+        const auto max_degree =
+            std::min({out.max_degree(), lhs.max_degree(), rhs.max_degree()});
         if (max_degree < min_degree) {
             return;
         }

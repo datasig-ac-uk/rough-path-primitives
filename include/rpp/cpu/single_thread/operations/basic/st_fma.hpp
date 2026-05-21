@@ -16,8 +16,11 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class STFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
-    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+class STFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
+    : public BaseOperation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    using Strategy =
+        cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;
@@ -26,13 +29,11 @@ class STFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : publi
     using Bitmask = typename Strategy::Bitmask;
 
     template <typename Basis, typename TensorB, typename TensorC>
-    static Accum shuffle_product_coefficient(
-        Basis const& basis,
-        TensorB const& b,
-        TensorC const& c,
-        Degree degree,
-        Index index
-    ) noexcept {
+    static Accum shuffle_product_coefficient(Basis const& basis,
+                                             TensorB const& b,
+                                             TensorC const& c,
+                                             Degree degree,
+                                             Index index) noexcept {
         std::array<Letter, Strategy::Architecture::max_depth> letters{};
         basis.unpack_index_to_letters(letters, degree, index);
 
@@ -43,18 +44,17 @@ class STFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : publi
             Index lhs_idx{0};
             Degree rhs_degree{0};
             Index rhs_idx{0};
-            basis.pack_masked_index(
-                letters,
-                degree,
-                mask,
-                lhs_degree,
-                lhs_idx,
-                rhs_degree,
-                rhs_idx
-            );
+            basis.pack_masked_index(letters,
+                                    degree,
+                                    mask,
+                                    lhs_degree,
+                                    lhs_idx,
+                                    rhs_degree,
+                                    rhs_idx);
 
             if (b.has_degree(lhs_degree) && c.has_degree(rhs_degree)) {
-                acc += Accum{b.degree_view(lhs_degree)[lhs_idx]} * Accum{c.degree_view(rhs_degree)[rhs_idx]};
+                acc += Accum{b.degree_view(lhs_degree)[lhs_idx]} *
+                    Accum{c.degree_view(rhs_degree)[rhs_idx]};
             }
         }
         return acc;
@@ -63,16 +63,17 @@ class STFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : publi
 public:
     static constexpr bool is_implemented = true;
 
-    template <typename TensorOut, typename TensorA, typename TensorB, typename TensorC>
-    void operator()(
-        Context const& ctx,
-        TensorOut& out,
-        TensorA const& a,
-        TensorB const& b,
-        TensorC const& c,
-        Accum alpha = Accum{1},
-        Accum beta = Accum{1}
-    ) const noexcept {
+    template <typename TensorOut,
+              typename TensorA,
+              typename TensorB,
+              typename TensorC>
+    void operator()(Context const& ctx,
+                    TensorOut& out,
+                    TensorA const& a,
+                    TensorB const& b,
+                    TensorC const& c,
+                    Accum alpha = Accum{1},
+                    Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorOut::value_type;
         ignore_unused(ctx);
 
@@ -97,7 +98,8 @@ public:
                 if (a.has_degree(degree)) {
                     value += alpha * Accum{a.degree_view(degree)[i]};
                 }
-                value += beta * shuffle_product_coefficient(basis, b, c, degree, i);
+                value +=
+                    beta * shuffle_product_coefficient(basis, b, c, degree, i);
                 out_level[i] = static_cast<Scalar>(value);
             }
         }

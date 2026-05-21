@@ -9,17 +9,25 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/intermediate/ft_exp.hpp>
 
-#include <rpp/gpu/block/strategy.hpp>
 #include <rpp/gpu/block/operations/basic/ft_inplace_mul.hpp>
 #include <rpp/gpu/block/operations/basic/tensor_add_identity.hpp>
 #include <rpp/gpu/block/operations/basic/tensor_set_identity.hpp>
+#include <rpp/gpu/block/strategy.hpp>
 
 namespace rpp::ops {
 
-template <typename Accum_, unsigned BlockSize, unsigned MaxBlockSize, typename Architecture>
-class FTExp<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> : public BaseOperation<gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
+template <typename Accum_,
+          unsigned BlockSize,
+          unsigned MaxBlockSize,
+          typename Architecture>
+class FTExp<gpu::strategies::
+                BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>>
+    : public BaseOperation<
+          gpu::strategies::
+              BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
 public:
-    using Strategy = gpu::strategies::BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
+    using Strategy = gpu::strategies::
+        BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;
@@ -38,14 +46,18 @@ public:
     static constexpr bool is_implemented = true;
 
     template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        return std::max(InplaceMul::scratch_space_size(strategy, basis),
-                        std::max(SetIdentity::scratch_space_size(strategy, basis),
-                                 AddIdentity::scratch_space_size(strategy, basis)));
+    static constexpr size_t scratch_space_size(Strategy const& strategy,
+                                               Basis const& basis) noexcept {
+        return std::max(
+            InplaceMul::scratch_space_size(strategy, basis),
+            std::max(SetIdentity::scratch_space_size(strategy, basis),
+                     AddIdentity::scratch_space_size(strategy, basis)));
     }
 
     template <typename TensorOut, typename TensorArg>
-    RPP_DEVICE void operator()(Context const& ctx, TensorOut& out, TensorArg const& arg) const noexcept {
+    RPP_DEVICE void operator()(Context const& ctx,
+                               TensorOut& out,
+                               TensorArg const& arg) const noexcept {
         auto const& basis = out.basis();
         constexpr Accum one{1};
         set_identity(ctx, out);

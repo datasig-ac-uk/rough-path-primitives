@@ -9,9 +9,9 @@
 
 #include <rpp/config.h>
 #include <rpp/support/error.hpp>
+#include <rpp/support/iterator_traits.hpp>
 #include <rpp/support/span.hpp>
 #include <rpp/support/tagged_pointer.hpp>
-#include <rpp/support/iterator_traits.hpp>
 
 #include <rpp/gpu/architecture.hpp>
 
@@ -22,135 +22,133 @@ struct DeviceLaunchConfig {
 };
 
 
-inline
-Error<char const *> map_cuda_error(cudaError_t err) {
+inline Error<char const*> map_cuda_error(cudaError_t err) {
     ErrorCode code = ErrorCode::Unknown;
 
     switch (err) {
-        case cudaSuccess:
-            // code = ErrorCode::Ok;
-            return Error<char const *>{ErrorCode::Success, nullptr};
-            break;
+    case cudaSuccess:
+        // code = ErrorCode::Ok;
+        return Error<char const*>{ErrorCode::Success, nullptr};
+        break;
 
-        case cudaErrorInvalidValue:
-        case cudaErrorInvalidDevice:
-        case cudaErrorInvalidSymbol:
-        case cudaErrorInvalidPitchValue:
-        case cudaErrorInvalidTexture:
-        case cudaErrorInvalidTextureBinding:
-        case cudaErrorInvalidChannelDescriptor:
-        case cudaErrorInvalidMemcpyDirection:
-        case cudaErrorInvalidFilterSetting:
-        case cudaErrorInvalidNormSetting:
-        case cudaErrorInvalidResourceHandle:
-        case cudaErrorInvalidConfiguration:
-        case cudaErrorInvalidSurface:
-        case cudaErrorInvalidAddressSpace:
-        case cudaErrorInvalidPtx:
-        case cudaErrorInvalidGraphicsContext:
-        case cudaErrorInvalidSource:
-        case cudaErrorInvalidKernelImage:
-        case cudaErrorInvalidClusterSize:
-            code = ErrorCode::InvalidArgument;
-            break;
+    case cudaErrorInvalidValue:
+    case cudaErrorInvalidDevice:
+    case cudaErrorInvalidSymbol:
+    case cudaErrorInvalidPitchValue:
+    case cudaErrorInvalidTexture:
+    case cudaErrorInvalidTextureBinding:
+    case cudaErrorInvalidChannelDescriptor:
+    case cudaErrorInvalidMemcpyDirection:
+    case cudaErrorInvalidFilterSetting:
+    case cudaErrorInvalidNormSetting:
+    case cudaErrorInvalidResourceHandle:
+    case cudaErrorInvalidConfiguration:
+    case cudaErrorInvalidSurface:
+    case cudaErrorInvalidAddressSpace:
+    case cudaErrorInvalidPtx:
+    case cudaErrorInvalidGraphicsContext:
+    case cudaErrorInvalidSource:
+    case cudaErrorInvalidKernelImage:
+    case cudaErrorInvalidClusterSize:
+        code = ErrorCode::InvalidArgument;
+        break;
 
-        case cudaErrorMemoryAllocation:
-        case cudaErrorLaunchOutOfResources:
-        case cudaErrorOperatingSystem:
-        case cudaErrorSetOnActiveProcess:
-            code = ErrorCode::OutOfResources;
-            break;
+    case cudaErrorMemoryAllocation:
+    case cudaErrorLaunchOutOfResources:
+    case cudaErrorOperatingSystem:
+    case cudaErrorSetOnActiveProcess:
+        code = ErrorCode::OutOfResources;
+        break;
 
-        case cudaErrorLaunchTimeout:
-            code = ErrorCode::Timeout;
-            break;
+    case cudaErrorLaunchTimeout:
+        code = ErrorCode::Timeout;
+        break;
 
-        case cudaErrorNotReady:
-            code = ErrorCode::Cancelled;
-            break;
+    case cudaErrorNotReady:
+        code = ErrorCode::Cancelled;
+        break;
 
-        case cudaErrorNotSupported:
-        case cudaErrorUnsupportedLimit:
-        case cudaErrorUnsupportedPtxVersion:
-        case cudaErrorJitCompilerNotFound:
-        case cudaErrorCallRequiresNewerDriver:
-        case cudaErrorCompatNotSupportedOnDevice:
-        case cudaErrorStreamCaptureUnsupported:
-            code = ErrorCode::NotImplemented;
-            break;
+    case cudaErrorNotSupported:
+    case cudaErrorUnsupportedLimit:
+    case cudaErrorUnsupportedPtxVersion:
+    case cudaErrorJitCompilerNotFound:
+    case cudaErrorCallRequiresNewerDriver:
+    case cudaErrorCompatNotSupportedOnDevice:
+    case cudaErrorStreamCaptureUnsupported:
+        code = ErrorCode::NotImplemented;
+        break;
 
-        case cudaErrorMissingConfiguration:
-        case cudaErrorLaunchFailure:
-        case cudaErrorLaunchIncompatibleTexturing:
-        case cudaErrorAssert:
-        case cudaErrorTooManyPeers:
-        case cudaErrorHostMemoryAlreadyRegistered:
-        case cudaErrorHostMemoryNotRegistered:
-        case cudaErrorPeerAccessAlreadyEnabled:
-        case cudaErrorPeerAccessNotEnabled:
-        case cudaErrorContextIsDestroyed:
-        case cudaErrorIllegalState:
-        case cudaErrorStreamCaptureInvalidated:
-        case cudaErrorStreamCaptureMerge:
-        case cudaErrorStreamCaptureUnmatched:
-        case cudaErrorStreamCaptureUnjoined:
-        case cudaErrorStreamCaptureIsolation:
-        case cudaErrorStreamCaptureImplicit:
-        case cudaErrorCapturedEvent:
-        case cudaErrorStreamCaptureWrongThread:
-        case cudaErrorIllegalAddress:
-        case cudaErrorIllegalInstruction:
-        case cudaErrorMisalignedAddress:
-        case cudaErrorHardwareStackError:
-            code = ErrorCode::ContractViolation;
-            break;
+    case cudaErrorMissingConfiguration:
+    case cudaErrorLaunchFailure:
+    case cudaErrorLaunchIncompatibleTexturing:
+    case cudaErrorAssert:
+    case cudaErrorTooManyPeers:
+    case cudaErrorHostMemoryAlreadyRegistered:
+    case cudaErrorHostMemoryNotRegistered:
+    case cudaErrorPeerAccessAlreadyEnabled:
+    case cudaErrorPeerAccessNotEnabled:
+    case cudaErrorContextIsDestroyed:
+    case cudaErrorIllegalState:
+    case cudaErrorStreamCaptureInvalidated:
+    case cudaErrorStreamCaptureMerge:
+    case cudaErrorStreamCaptureUnmatched:
+    case cudaErrorStreamCaptureUnjoined:
+    case cudaErrorStreamCaptureIsolation:
+    case cudaErrorStreamCaptureImplicit:
+    case cudaErrorCapturedEvent:
+    case cudaErrorStreamCaptureWrongThread:
+    case cudaErrorIllegalAddress:
+    case cudaErrorIllegalInstruction:
+    case cudaErrorMisalignedAddress:
+    case cudaErrorHardwareStackError:
+        code = ErrorCode::ContractViolation;
+        break;
 
-        case cudaErrorMapBufferObjectFailed:
-        case cudaErrorUnmapBufferObjectFailed:
-        case cudaErrorArrayIsMapped:
-        case cudaErrorAlreadyMapped:
-        case cudaErrorNoKernelImageForDevice:
-        case cudaErrorECCUncorrectable:
-        case cudaErrorSharedObjectSymbolNotFound:
-        case cudaErrorSharedObjectInitFailed:
-        case cudaErrorDevicesUnavailable:
-        case cudaErrorStartupFailure:
-        case cudaErrorCudartUnloading:
-        case cudaErrorSystemNotReady:
-        case cudaErrorSystemDriverMismatch:
-        case cudaErrorUnknown:
-            code = ErrorCode::Internal;
-            break;
+    case cudaErrorMapBufferObjectFailed:
+    case cudaErrorUnmapBufferObjectFailed:
+    case cudaErrorArrayIsMapped:
+    case cudaErrorAlreadyMapped:
+    case cudaErrorNoKernelImageForDevice:
+    case cudaErrorECCUncorrectable:
+    case cudaErrorSharedObjectSymbolNotFound:
+    case cudaErrorSharedObjectInitFailed:
+    case cudaErrorDevicesUnavailable:
+    case cudaErrorStartupFailure:
+    case cudaErrorCudartUnloading:
+    case cudaErrorSystemNotReady:
+    case cudaErrorSystemDriverMismatch:
+    case cudaErrorUnknown:
+        code = ErrorCode::Internal;
+        break;
 
-        case cudaErrorInitializationError:
-        case cudaErrorInsufficientDriver:
-        case cudaErrorNoDevice:
-        case cudaErrorDeviceAlreadyInUse:
-        case cudaErrorProfilerDisabled:
-            code = ErrorCode::OutOfResources;
-            break;
+    case cudaErrorInitializationError:
+    case cudaErrorInsufficientDriver:
+    case cudaErrorNoDevice:
+    case cudaErrorDeviceAlreadyInUse:
+    case cudaErrorProfilerDisabled:
+        code = ErrorCode::OutOfResources;
+        break;
 
-        default:
-            code = ErrorCode::Unknown;
-            break;
+    default:
+        code = ErrorCode::Unknown;
+        break;
     }
 
-    return Error<char const *>(code, cudaGetErrorString(err));
+    return Error<char const*>(code, cudaGetErrorString(err));
 }
 
 
 template <typename Architecture_>
 class DataMapper {
     cudaStream_t stream_;
-    std::vector<void *> allocations_;
+    std::vector<void*> allocations_;
 
 public:
-
     using Architecture = Architecture_;
     using Index = typename Architecture::Index;
     using Degree = typename Architecture::Degree;
 
-    using Error = Error<char const *>;
+    using Error = Error<char const*>;
 
     template <typename T>
     using Result = Result<T, Error>;
@@ -159,25 +157,23 @@ public:
     using Ptr = typename Architecture::template Ptr<T>;
 
 
-    explicit constexpr DataMapper(cudaStream_t stream) : stream_(stream) {
-    }
+    explicit constexpr DataMapper(cudaStream_t stream) : stream_(stream) {}
 
     ~DataMapper() noexcept {
-        for (auto ptr: allocations_) {
+        for (auto ptr : allocations_) {
             cudaFreeAsync(ptr, stream_);
         }
     }
 
     template <typename It>
-    RPP_NODISCARD
-    static constexpr bool has_data() noexcept {
+    RPP_NODISCARD static constexpr bool has_data() noexcept {
         return traits::is_gpu_location_v<traits::location_of_t<It>>;
     }
 
 private:
-    template<typename T=std::byte>
+    template <typename T = std::byte>
     Result<Ptr<T>> allocate(size_t size) noexcept {
-        T *ptr = nullptr;
+        T* ptr = nullptr;
         size_t size_bytes = size * sizeof(T);
 
         auto err = cudaMallocAsync(&ptr, size_bytes, stream_);
@@ -190,19 +186,18 @@ private:
     }
 
 public:
-    template<typename T, size_t N>
+    template <typename T, size_t N>
     Result<Ptr<T>> copy(Span<const T, N> host_data) noexcept {
         auto allocation = allocate<T>(host_data.size());
         if (!allocation) {
             return allocation;
         }
 
-        auto err = cudaMemcpyAsync(
-            static_cast<void *>(allocation.value()),
-            static_cast<void const *>(host_data.data()),
-            host_data.size_bytes(),
-            cudaMemcpyHostToDevice,
-            stream_);
+        auto err = cudaMemcpyAsync(static_cast<void*>(allocation.value()),
+                                   static_cast<void const*>(host_data.data()),
+                                   host_data.size_bytes(),
+                                   cudaMemcpyHostToDevice,
+                                   stream_);
 
         if (err != cudaSuccess) {
             return map_cuda_error(err);
@@ -211,22 +206,29 @@ public:
         return allocation;
     }
 
-    template <typename T, typename S, size_t N, typename=std::enable_if_t<!std::is_same_v<T, std::remove_cv_t<S>>>>
+    template <
+        typename T,
+        typename S,
+        size_t N,
+        typename = std::enable_if_t<!std::is_same_v<T, std::remove_cv_t<S>>>>
     Result<Ptr<T>> copy(Span<S, N> host_data) noexcept {
         std::vector<T> data(host_data.begin(), host_data.end());
         return copy(data);
     }
 
-    template<typename T, typename It>
+    template <typename T, typename It>
     Result<Ptr<T>> copy(It begin, It end) noexcept {
         using Traits = traits::IteratorTraits<It>;
         using Value = std::remove_cv_t<typename Traits::value_type>;
 
         if constexpr (std::is_pointer_v<It> && std::is_same_v<Value, T>) {
-            return copy(Span<const T>{ begin, static_cast<size_t>(end - begin) });
-        } else if constexpr (traits::is_tagged_ptr_for_v<T, It>) {
-            return copy(Span<const T>{ begin.raw_ptr(), static_cast<size_t>(end - begin.raw_ptr()) });
-        } else {
+            return copy(Span<const T>{begin, static_cast<size_t>(end - begin)});
+        }
+        else if constexpr (traits::is_tagged_ptr_for_v<T, It>) {
+            return copy(Span<const T>{
+                begin.raw_ptr(), static_cast<size_t>(end - begin.raw_ptr())});
+        }
+        else {
             std::vector<T> data(begin, end);
             return copy(data);
         }
@@ -236,10 +238,8 @@ public:
     Result<Ptr<T>> copy_n(It begin, size_t count) noexcept {
         copy(begin, begin + count);
     }
-
-
 };
 
 } // namespace rpp::gpu
 
-#endif //RPP_GPU_DEVICE_HPP
+#endif // RPP_GPU_DEVICE_HPP

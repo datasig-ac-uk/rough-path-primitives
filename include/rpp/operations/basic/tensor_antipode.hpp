@@ -8,35 +8,36 @@
 
 namespace rpp::ops {
 
-template <typename Strategy, typename BatchOut, typename BatchArg, typename Basis>
-auto tensor_antipode(
-    Strategy const& strategy,
-    typename Strategy::LaunchConfig config,
-    BatchOut const& out,
-    BatchArg const& arg,
-    Basis const& basis,
-    typename Strategy::Index num_batches
-    ) noexcept {
+template <typename Strategy,
+          typename BatchOut,
+          typename BatchArg,
+          typename Basis>
+auto tensor_antipode(Strategy const& strategy,
+                     typename Strategy::LaunchConfig config,
+                     BatchOut const& out,
+                     BatchArg const& arg,
+                     Basis const& basis,
+                     typename Strategy::Index num_batches) noexcept {
     using Op = TensorAntipode<Strategy>;
 
     static_assert(
         Op::is_implemented,
-        "The operation object \"TensorAntipode\" that implements \"tensor_antipode\" "
-        "is not implemented. This either means that the Strategy object is invalid, "
+        "The operation object \"TensorAntipode\" that implements "
+        "\"tensor_antipode\" "
+        "is not implemented. This either means that the Strategy object is "
+        "invalid, "
         "or that the necessary specialisation headers have not been included. "
         "For example, you may need to add the following include directive to "
         "bring in the single-threaded CPU implementation of this operation:\n\n"
-        "    #include <rpp/cpu/single_thread/operations/basic/tensor_antipode.hpp>"
-        );
+        "    #include "
+        "<rpp/cpu/single_thread/operations/basic/tensor_antipode.hpp>");
 
-    return strategy.template launch<Op>(
-        std::move(config),
-        std::make_tuple(out, arg),
-        make_basis_pack(basis),
-        num_batches
-        );
+    return strategy.template launch<Op>(std::move(config),
+                                        std::make_tuple(out, arg),
+                                        make_basis_pack(basis),
+                                        num_batches);
 }
 
 } // namespace rpp::ops
 
-#endif //RPP_OPERATIONS_BASIC_TENSOR_ANTIPODE_HPP
+#endif // RPP_OPERATIONS_BASIC_TENSOR_ANTIPODE_HPP

@@ -48,7 +48,8 @@ public:
 template <typename Data>
 constexpr auto make_scalar_batch(Data&& data) noexcept {
     using StoredData = std::decay_t<Data>;
-    using BatchType = Batch<ScalarView<StoredData>, layouts::NoStrideLayout, std::tuple<>>;
+    using BatchType =
+        Batch<ScalarView<StoredData>, layouts::NoStrideLayout, std::tuple<>>;
     return BatchType{
         std::forward<Data>(data), layouts::NoStrideLayout{}, std::make_tuple()};
 }

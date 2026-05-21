@@ -1,10 +1,10 @@
 #ifndef RPP_OPERATIONS_INTERMEDIATE_FT_EXP_HPP
 #define RPP_OPERATIONS_INTERMEDIATE_FT_EXP_HPP
 
+#include <algorithm>
 #include <cstddef>
 #include <tuple>
 #include <utility>
-#include <algorithm>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -15,7 +15,7 @@
 #include <rpp/operations/basic/tensor_set_identity.hpp>
 
 namespace rpp::ops {
-template<typename Strategy, typename=void>
+template <typename Strategy, typename = void>
 class FTExp : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
@@ -30,20 +30,23 @@ class FTExp : public BaseOperation<Strategy> {
     AddIdentity add_identity;
 
 public:
-    static constexpr bool is_implemented = InplaceMul::is_implemented && SetIdentity::is_implemented &&
-                                           AddIdentity::is_implemented;
+    static constexpr bool is_implemented = InplaceMul::is_implemented &&
+        SetIdentity::is_implemented && AddIdentity::is_implemented;
 
-    template<typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const &strategy, Basis const &basis) noexcept {
-        return std::max(InplaceMul::scratch_space_size(strategy, basis),
-                        std::max(SetIdentity::scratch_space_size(strategy, basis),
-                                 AddIdentity::scratch_space_size(strategy, basis)));
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const& strategy,
+                                               Basis const& basis) noexcept {
+        return std::max(
+            InplaceMul::scratch_space_size(strategy, basis),
+            std::max(SetIdentity::scratch_space_size(strategy, basis),
+                     AddIdentity::scratch_space_size(strategy, basis)));
     }
 
-    template<typename TensorOut, typename TensorArg>
-    RPP_HOST_DEVICE
-    void operator()(Context const &ctx, TensorOut &out, TensorArg const &arg) const noexcept {
-        auto const &basis = out.basis();
+    template <typename TensorOut, typename TensorArg>
+    RPP_HOST_DEVICE void operator()(Context const& ctx,
+                                    TensorOut& out,
+                                    TensorArg const& arg) const noexcept {
+        auto const& basis = out.basis();
         const Accum one{1};
 
         set_identity(ctx, out);
@@ -61,35 +64,35 @@ public:
     }
 };
 
-template <typename Strategy, typename BatchOut, typename BatchArg, typename Basis>
-auto ft_exp(
-    Strategy const& strategy,
-    typename Strategy::LaunchConfig config,
-    BatchOut const& out,
-    BatchArg const& arg,
-    Basis const& basis,
-    typename Strategy::Index num_batches
-    ) noexcept {
+template <typename Strategy,
+          typename BatchOut,
+          typename BatchArg,
+          typename Basis>
+auto ft_exp(Strategy const& strategy,
+            typename Strategy::LaunchConfig config,
+            BatchOut const& out,
+            BatchArg const& arg,
+            Basis const& basis,
+            typename Strategy::Index num_batches) noexcept {
     using Op = FTExp<Strategy>;
 
     static_assert(
         Op::is_implemented,
         "The operation object \"FTExp\" that implements \"ft_exp\" "
-        "is not implemented. This either means that the Strategy object is invalid, "
+        "is not implemented. This either means that the Strategy object is "
+        "invalid, "
         "or that the necessary specialisation headers have not been included. "
         "For example, you may need to add the following include directive to "
         "bring in the single-threaded CPU implementation of this operation:\n\n"
-        "    #include <rpp/cpu/single_thread/operations/intermediate/ft_exp.hpp>"
-        );
+        "    #include "
+        "<rpp/cpu/single_thread/operations/intermediate/ft_exp.hpp>");
 
-    return strategy.template launch<Op>(
-        std::move(config),
-        std::make_tuple(out, arg),
-        make_basis_pack(basis),
-        num_batches
-        );
+    return strategy.template launch<Op>(std::move(config),
+                                        std::make_tuple(out, arg),
+                                        make_basis_pack(basis),
+                                        num_batches);
 }
 } // namespace rpp::ops
 
 
-#endif //RPP_OPERATIONS_INTERMEDIATE_FT_EXP_HPP
+#endif // RPP_OPERATIONS_INTERMEDIATE_FT_EXP_HPP

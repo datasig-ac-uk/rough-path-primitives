@@ -3,30 +3,31 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <type_traits>
 #include <tuple>
+#include <type_traits>
 
 #include <rpp/config.h>
 
 namespace rpp {
-template<typename... Args>
+template <typename... Args>
 inline constexpr bool static_assert_fail = false;
 
-template<typename... Args>
-RPP_HOST_DEVICE
-constexpr void ignore_unused(Args &&... arg RPP_MAYBE_UNUSED) noexcept {
-}
+template <typename... Args>
+RPP_HOST_DEVICE constexpr void
+ignore_unused(Args&&... arg RPP_MAYBE_UNUSED) noexcept {}
 
 
 template <typename T>
-RPP_HOST_DEVICE constexpr T* raw_pointer_cast(T* ptr) noexcept { return ptr; }
+RPP_HOST_DEVICE constexpr T* raw_pointer_cast(T* ptr) noexcept {
+    return ptr;
+}
 
-template<typename I>
+template <typename I>
 RPP_HOST_DEVICE constexpr bool is_pow_2(I val) noexcept {
     return (val > 0) && (val & (val - 1)) == I{0};
 }
 
-template<typename I, typename E>
+template <typename I, typename E>
 RPP_HOST_DEVICE constexpr I const_power(I base, E exp) noexcept {
     I result = 1;
     while (exp > 0) {
@@ -39,25 +40,27 @@ RPP_HOST_DEVICE constexpr I const_power(I base, E exp) noexcept {
     return result;
 }
 
-template<typename T, typename S>
-RPP_HOST_DEVICE
-constexpr T align_up(T value, S alignment) noexcept {
-    return (value + static_cast<T>(alignment) - 1) & ~(static_cast<T>(alignment) - 1);
+template <typename T, typename S>
+RPP_HOST_DEVICE constexpr T align_up(T value, S alignment) noexcept {
+    return (value + static_cast<T>(alignment) - 1) &
+        ~(static_cast<T>(alignment) - 1);
 }
 
 
-template<unsigned Alignment, typename T>
-RPP_HOST_DEVICE inline T *align_up(T *ptr) noexcept {
+template <unsigned Alignment, typename T>
+RPP_HOST_DEVICE inline T* align_up(T* ptr) noexcept {
     if constexpr (std::is_void_v<T>) {
         return ptr;
-    } else {
+    }
+    else {
         const auto modifier = static_cast<uintptr_t>(Alignment - 1);
-        return reinterpret_cast<T *>((reinterpret_cast<uintptr_t>(ptr) + modifier) & ~modifier);
+        return reinterpret_cast<T*>(
+            (reinterpret_cast<uintptr_t>(ptr) + modifier) & ~modifier);
     }
 }
 
 
-template<typename I, size_t N>
+template <typename I, size_t N>
 RPP_HOST_DEVICE constexpr I maximum(const I (&elements)[N]) noexcept {
     static_assert(N > 0, "Maximum of empty array is not defined");
     I max = elements[0];
@@ -68,13 +71,13 @@ RPP_HOST_DEVICE constexpr I maximum(const I (&elements)[N]) noexcept {
 }
 
 
-template<typename... I>
+template <typename... I>
 RPP_HOST_DEVICE constexpr auto maximum(I... elements) noexcept {
     std::common_type_t<I...> vals{elements...};
     return maximum(vals);
 }
 
-template<typename I, size_t N>
+template <typename I, size_t N>
 RPP_HOST_DEVICE constexpr I minimum(const I (&elements)[N]) noexcept {
     static_assert(N > 0, "Minimum of empty array is not defined");
     I max = elements[0];
@@ -85,7 +88,7 @@ RPP_HOST_DEVICE constexpr I minimum(const I (&elements)[N]) noexcept {
 }
 
 
-template<typename... I>
+template <typename... I>
 RPP_HOST_DEVICE constexpr auto minimum(I... elements) noexcept {
     std::common_type_t<I...> vals{elements...};
     return minimum(vals);
@@ -100,53 +103,60 @@ RPP_HOST_DEVICE constexpr bool in_range(I arg, I lower, I upper) noexcept {
 
 namespace traits {
 namespace detail {
-template<typename... Ts>
+template <typename... Ts>
 struct AllSameTypeImpl;
 
-template<typename T>
+template <typename T>
 struct AllSameTypeImpl<T> {
     static constexpr bool value = true;
     using type = T;
 };
 
 
-
-template<typename T, typename... Ts>
+template <typename T, typename... Ts>
 struct AllSameTypeImpl<T, Ts...> {
     using Next = AllSameTypeImpl<Ts...>;
     using type = T;
-    static constexpr bool value = Next::value && std::is_same_v<T, typename Next::type>;
+    static constexpr bool value =
+        Next::value && std::is_same_v<T, typename Next::type>;
 };
 } // namespace detail
 
-template<typename... Ts>
+template <typename... Ts>
 inline constexpr bool all_same_type_v = detail::AllSameTypeImpl<Ts...>::value;
 
-template<typename... Ts>
-using all_same_type_t = std::enable_if_t<detail::AllSameTypeImpl<Ts...>::value, typename detail::AllSameTypeImpl<Ts
-    ...>::type>;
-
+template <typename... Ts>
+using all_same_type_t =
+    std::enable_if_t<detail::AllSameTypeImpl<Ts...>::value,
+                     typename detail::AllSameTypeImpl<Ts...>::type>;
 
 
 template <typename T>
 inline constexpr bool is_pointer_v = std::is_pointer_v<T>;
 
 
-} //namespace traits
-
-
+} // namespace traits
 
 
 namespace detail {
 
-template <template <typename...> class Tuple, typename... Ts, typename Fn, size_t... Is>
-constexpr auto map_tuple(Tuple<Ts...> const& arg, Fn&& fn, std::index_sequence<Is...>) noexcept {
+template <template <typename...> class Tuple,
+          typename... Ts,
+          typename Fn,
+          size_t... Is>
+constexpr auto map_tuple(Tuple<Ts...> const& arg,
+                         Fn&& fn,
+                         std::index_sequence<Is...>) noexcept {
     using RetType = Tuple<decltype(fn(std::get<Is>(arg)))...>;
     return RetType(fn(std::get<Is>(arg))...);
 }
 
-template <template <typename...> class Tuple, typename... Ts, typename Fn, size_t... Is>
-constexpr auto map_tuple(Tuple<Ts...>&& arg, Fn&& fn, std::index_sequence<Is...>) noexcept {
+template <template <typename...> class Tuple,
+          typename... Ts,
+          typename Fn,
+          size_t... Is>
+constexpr auto
+map_tuple(Tuple<Ts...>&& arg, Fn&& fn, std::index_sequence<Is...>) noexcept {
     using RetType = Tuple<decltype(fn(std::get<Is>(std::move(arg))))...>;
     return RetType(fn(std::get<Is>(std::move(arg)))...);
 }
@@ -155,11 +165,13 @@ constexpr auto map_tuple(Tuple<Ts...>&& arg, Fn&& fn, std::index_sequence<Is...>
 
 template <template <typename...> class Tuple, typename... Ts, typename Fn>
 constexpr auto map_tuple(Tuple<Ts...> const& arg, Fn&& fn) noexcept {
-    return detail::map_tuple(arg, std::forward<Fn>(fn), std::index_sequence_for<Ts...>{});
+    return detail::map_tuple(
+        arg, std::forward<Fn>(fn), std::index_sequence_for<Ts...>{});
 }
 template <template <typename...> class Tuple, typename... Ts, typename Fn>
-constexpr auto map_tuple(Tuple<Ts...> && arg, Fn&& fn) noexcept {
-    return detail::map_tuple(std::move(arg), std::forward<Fn>(fn), std::index_sequence_for<Ts...>{});
+constexpr auto map_tuple(Tuple<Ts...>&& arg, Fn&& fn) noexcept {
+    return detail::map_tuple(
+        std::move(arg), std::forward<Fn>(fn), std::index_sequence_for<Ts...>{});
 }
 
 template <template <typename...> class Tuple, typename... Ts, typename Fn>
@@ -169,8 +181,7 @@ constexpr auto map_to_tuple(Fn&& fn, Ts... args) noexcept {
 }
 
 
-
-}
+} // namespace rpp
 
 
 #endif // RPP_UTILITY_HPP

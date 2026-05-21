@@ -24,8 +24,8 @@
 #include <rpp/cpu/single_thread/operations/basic/tensor_set_identity.hpp>
 
 #include <rpp/cpu/single_thread/operations/linalg/vector_assign.hpp>
-#include <rpp/cpu/single_thread/operations/linalg/vector_set_constant.hpp>
 #include <rpp/cpu/single_thread/operations/linalg/vector_inplace_add.hpp>
+#include <rpp/cpu/single_thread/operations/linalg/vector_set_constant.hpp>
 
 #include <rpp/cpu/single_thread/operations/intermediate/ft_exp.hpp>
 #include <rpp/cpu/single_thread/operations/intermediate/ft_fmexp.hpp>

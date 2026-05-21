@@ -9,16 +9,18 @@
 
 #include <rpp/operations/intermediate/ft_fmexp.hpp>
 
-#include <rpp/cpu/single_thread/strategy.hpp>
-#include <rpp/cpu/single_thread/operations/linalg/vector_inplace_add.hpp>
-#include <rpp/cpu/single_thread/operations/linalg/vector_assign.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_inplace_mul.hpp>
+#include <rpp/cpu/single_thread/operations/linalg/vector_assign.hpp>
+#include <rpp/cpu/single_thread/operations/linalg/vector_inplace_add.hpp>
+#include <rpp/cpu/single_thread/strategy.hpp>
 
 namespace rpp {
-template<typename Accum_, typename Architecture>
-class ops::FTFMExp<cpu::strategies::SingleThreadStrategy<Accum_,
-            Architecture> > : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture> > {
-    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+template <typename Accum_, typename Architecture>
+class ops::FTFMExp<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
+    : public BaseOperation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    using Strategy =
+        cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
 
     using Degree = typename Strategy::Degree;
@@ -31,10 +33,14 @@ class ops::FTFMExp<cpu::strategies::SingleThreadStrategy<Accum_,
 public:
     static constexpr bool is_implemented = true;
 
-    template<typename TensorOut, typename TensorMultiplier, typename TensorExponent>
-    void operator()(Context const &ctx, TensorOut &out, TensorMultiplier const &multiplier,
-                    TensorExponent const &exponent) const noexcept {
-        auto const &basis = out.basis();
+    template <typename TensorOut,
+              typename TensorMultiplier,
+              typename TensorExponent>
+    void operator()(Context const& ctx,
+                    TensorOut& out,
+                    TensorMultiplier const& multiplier,
+                    TensorExponent const& exponent) const noexcept {
+        auto const& basis = out.basis();
         const Accum one{1};
 
         assign(ctx, out, multiplier);

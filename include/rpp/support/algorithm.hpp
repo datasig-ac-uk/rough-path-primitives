@@ -9,8 +9,8 @@ namespace rpp::algo {
 
 
 template <typename It, typename I, typename J, typename Compare>
-RPP_HOST_DEVICE
-constexpr I index_lower_bound(It const& it, I pos, I end, J const& val, Compare comp) noexcept {
+RPP_HOST_DEVICE constexpr I index_lower_bound(
+    It const& it, I pos, I end, J const& val, Compare comp) noexcept {
     I count = end - pos;
 
     while (count > 0) {
@@ -19,7 +19,8 @@ constexpr I index_lower_bound(It const& it, I pos, I end, J const& val, Compare 
         if (comp(it[pos + half], val)) {
             pos = pos + half + 1;
             count -= half + 1;
-        } else {
+        }
+        else {
             count = half;
         }
     }
@@ -29,14 +30,14 @@ constexpr I index_lower_bound(It const& it, I pos, I end, J const& val, Compare 
 
 
 template <typename It, typename I, typename J>
-RPP_HOST_DEVICE
-constexpr I index_lower_bound(It const& it, I pos, I end, J const& val) noexcept {
+RPP_HOST_DEVICE constexpr I
+index_lower_bound(It const& it, I pos, I end, J const& val) noexcept {
     return index_lower_bound(it, pos, end, val, std::less<>{});
 }
 
 template <typename It, typename I, typename J, typename Compare>
-RPP_HOST_DEVICE
-constexpr I index_upper_bound(It const& it, I pos, I end, J const& val, Compare comp) noexcept {
+RPP_HOST_DEVICE constexpr I index_upper_bound(
+    It const& it, I pos, I end, J const& val, Compare comp) noexcept {
     I count = end - pos;
 
     while (count > 0) {
@@ -45,7 +46,8 @@ constexpr I index_upper_bound(It const& it, I pos, I end, J const& val, Compare 
         if (!comp(val, it[pos + half])) {
             pos = pos + half + 1;
             count -= half + 1;
-        } else {
+        }
+        else {
             count = half;
         }
     }
@@ -55,11 +57,10 @@ constexpr I index_upper_bound(It const& it, I pos, I end, J const& val, Compare 
 
 
 template <typename It, typename I, typename J>
-RPP_HOST_DEVICE
-constexpr I index_upper_bound(It const& it, I pos, I end, J const& val) noexcept {
+RPP_HOST_DEVICE constexpr I
+index_upper_bound(It const& it, I pos, I end, J const& val) noexcept {
     return index_upper_bound(it, pos, end, val, std::less<>{});
 }
-
 
 
 } // namespace rpp::algo

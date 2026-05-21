@@ -7,13 +7,13 @@
 
 #include <rpp/basis/tensor_basis.hpp>
 
-#include <rpp/views/dense_graded_vector_view.hpp>
 #include <rpp/views/batch.hpp>
+#include <rpp/views/dense_graded_vector_view.hpp>
 
 namespace rpp {
 
 
-template<typename It_, typename Basis_>
+template <typename It_, typename Basis_>
 class DenseTensorView : public DenseGradedVectorView<It_, Basis_> {
     using Base = DenseGradedVectorView<It_, Basis_>;
 
@@ -23,48 +23,68 @@ public:
     using typename Base::Degree;
     using typename Base::MetaData;
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr DenseTensorView truncate(Degree min_degree, Degree max_degree) const noexcept {
-        return {
-            this->data(),
-            this->basis(),
-            std::max(min_degree, this->min_degree()),
-            std::min(max_degree, this->max_degree())
-        };
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr DenseTensorView
+    truncate(Degree min_degree, Degree max_degree) const noexcept {
+        return {this->data(),
+                this->basis(),
+                std::max(min_degree, this->min_degree()),
+                std::min(max_degree, this->max_degree())};
     }
 };
 
-template <typename Data, typename Layout, typename BasisOrTag, typename MinDegree, typename MaxDegree>
-constexpr auto make_tensor_batch(Data&& data, Layout&& layout, BasisOrTag&& basis_or_tag, MinDegree min_degree, MaxDegree max_degree) noexcept {
+template <typename Data,
+          typename Layout,
+          typename BasisOrTag,
+          typename MinDegree,
+          typename MaxDegree>
+constexpr auto make_tensor_batch(Data&& data,
+                                 Layout&& layout,
+                                 BasisOrTag&& basis_or_tag,
+                                 MinDegree min_degree,
+                                 MaxDegree max_degree) noexcept {
     using StoredData = std::decay_t<Data>;
     using StoredLayout = std::decay_t<Layout>;
-    using RealLayout = std::conditional_t<std::is_integral_v<StoredLayout>, layouts::StrideLayout<StoredLayout>, StoredLayout>;
+    using RealLayout = std::conditional_t<std::is_integral_v<StoredLayout>,
+                                          layouts::StrideLayout<StoredLayout>,
+                                          StoredLayout>;
     using StoredBasisOrTag = std::decay_t<BasisOrTag>;
     using MetaData = std::tuple<StoredBasisOrTag, MinDegree, MaxDegree>;
-    using Basis = std::conditional_t<is_basis_tag_v<StoredBasisOrTag>, basis::TensorBasis<traits::arch_of_t<StoredData>>, StoredBasisOrTag>;
-    using BatchType = Batch<DenseTensorView<StoredData, Basis>, RealLayout, MetaData>;
+    using Basis =
+        std::conditional_t<is_basis_tag_v<StoredBasisOrTag>,
+                           basis::TensorBasis<traits::arch_of_t<StoredData>>,
+                           StoredBasisOrTag>;
+    using BatchType =
+        Batch<DenseTensorView<StoredData, Basis>, RealLayout, MetaData>;
 
-    return BatchType {
-        std::forward<Data>(data),
-        RealLayout { std::forward<Layout>(layout) },
-        std::make_tuple(std::forward<BasisOrTag>(basis_or_tag), min_degree, max_degree)
-    };
+    return BatchType{std::forward<Data>(data),
+                     RealLayout{std::forward<Layout>(layout)},
+                     std::make_tuple(std::forward<BasisOrTag>(basis_or_tag),
+                                     min_degree,
+                                     max_degree)};
 }
 
-template <typename Data, typename Layout, typename MinDegree, typename MaxDegree>
-constexpr auto make_tensor_batch(Data&& data, Layout&& layout, MinDegree min_degree, MaxDegree max_degree) noexcept {
+template <typename Data,
+          typename Layout,
+          typename MinDegree,
+          typename MaxDegree>
+constexpr auto make_tensor_batch(Data&& data,
+                                 Layout&& layout,
+                                 MinDegree min_degree,
+                                 MaxDegree max_degree) noexcept {
     using StoredData = std::decay_t<Data>;
     using StoredLayout = std::decay_t<Layout>;
-    using RealLayout = std::conditional_t<std::is_integral_v<StoredLayout>, layouts::StrideLayout<StoredLayout>, StoredLayout>;
+    using RealLayout = std::conditional_t<std::is_integral_v<StoredLayout>,
+                                          layouts::StrideLayout<StoredLayout>,
+                                          StoredLayout>;
     using MetaData = std::tuple<basis::TensorBasisTag, MinDegree, MaxDegree>;
     using Basis = basis::TensorBasis<traits::arch_of_t<StoredData>>;
-    using BatchType = Batch<DenseTensorView<StoredData, Basis>, RealLayout, MetaData>;
+    using BatchType =
+        Batch<DenseTensorView<StoredData, Basis>, RealLayout, MetaData>;
 
-    return BatchType {
+    return BatchType{
         std::forward<Data>(data),
-        RealLayout { std::forward<Layout>(layout) },
-        std::make_tuple(basis::TensorBasisTag{}, min_degree, max_degree)
-    };
+        RealLayout{std::forward<Layout>(layout)},
+        std::make_tuple(basis::TensorBasisTag{}, min_degree, max_degree)};
 }
 
 

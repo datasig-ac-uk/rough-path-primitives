@@ -12,8 +12,7 @@ struct HostLocation {};
 namespace traits {
 
 template <typename Iterator, typename = void>
-struct IteratorTraits : std::iterator_traits<Iterator> {
-};
+struct IteratorTraits : std::iterator_traits<Iterator> {};
 
 
 template <typename It>
@@ -30,22 +29,19 @@ using iter_difference_t = typename IteratorTraits<It>::difference_type;
 
 
 template <typename It>
-inline constexpr bool is_random_access_v = std::is_base_of_v<
-    std::random_access_iterator_tag,
-    typename IteratorTraits<It>::iterator_category
->;
+inline constexpr bool is_random_access_v =
+    std::is_base_of_v<std::random_access_iterator_tag,
+                      typename IteratorTraits<It>::iterator_category>;
 
 template <typename It>
-inline constexpr bool is_bidirectional_v = std::is_base_of_v<
-    std::random_access_iterator_tag,
-    typename IteratorTraits<It>::iterator_category
->;
+inline constexpr bool is_bidirectional_v =
+    std::is_base_of_v<std::random_access_iterator_tag,
+                      typename IteratorTraits<It>::iterator_category>;
 
 template <typename It>
-inline constexpr bool is_forward_v = std::is_base_of_v<
-    std::forward_iterator_tag,
-    typename IteratorTraits<It>::iterator_category
->;
+inline constexpr bool is_forward_v =
+    std::is_base_of_v<std::forward_iterator_tag,
+                      typename IteratorTraits<It>::iterator_category>;
 
 
 namespace detail {
@@ -70,4 +66,4 @@ using location_of_t = typename detail::LocationOfImpl<T>::type;
 
 } // namespace rpp
 
-#endif //RPP_SUPPORT_ITERATOR_TRAITS_HPP
+#endif // RPP_SUPPORT_ITERATOR_TRAITS_HPP

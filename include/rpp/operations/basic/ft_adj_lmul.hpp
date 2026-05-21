@@ -6,15 +6,15 @@
 #include <utility>
 
 #include <rpp/config.h>
-#include <rpp/utility.hpp>
 #include <rpp/support/error.hpp>
+#include <rpp/utility.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 
 namespace rpp::ops {
 
 
-template <typename Strategy, typename=void>
+template <typename Strategy, typename = void>
 class FTAdjLMul : public BaseOperation<Strategy> {
 public:
     static constexpr bool is_implemented = false;
@@ -22,50 +22,55 @@ public:
     using Context = typename Strategy::Context;
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>
-    RPP_HOST_DEVICE
-    void operator()(Context const& ctx, TensorOut& out, TensorOp const& op, TensorArg const& arg) const noexcept {
+    RPP_HOST_DEVICE void operator()(Context const& ctx,
+                                    TensorOut& out,
+                                    TensorOp const& op,
+                                    TensorArg const& arg) const noexcept {
         static_assert(
-            static_assert_fail<Strategy, Context, TensorOut, TensorOp, TensorArg>,
+            static_assert_fail<Strategy,
+                               Context,
+                               TensorOut,
+                               TensorOp,
+                               TensorArg>,
             "rpp::ops::FTAdjLMul has no implementation for this Strategy. "
-            "Use an operation specialization for the selected strategy and include its header."
-        );
+            "Use an operation specialization for the selected strategy and "
+            "include its header.");
     }
 };
 
 
-
-
-template <typename Strategy, typename BatchOut, typename BatchOp, typename BatchArg, typename Basis>
-auto ft_adj_lmul(
-    Strategy const& strategy,
-    typename Strategy::LaunchConfig config,
-    BatchOut const& out,
-    BatchOp const& op,
-    BatchArg const& arg,
-    Basis const& basis,
-    typename Strategy::Index num_batches
-    ) noexcept {
+template <typename Strategy,
+          typename BatchOut,
+          typename BatchOp,
+          typename BatchArg,
+          typename Basis>
+auto ft_adj_lmul(Strategy const& strategy,
+                 typename Strategy::LaunchConfig config,
+                 BatchOut const& out,
+                 BatchOp const& op,
+                 BatchArg const& arg,
+                 Basis const& basis,
+                 typename Strategy::Index num_batches) noexcept {
     using Op = FTAdjLMul<Strategy>;
 
     static_assert(
         Op::is_implemented,
         "The operation object \"FTAdjLMul\" that implements \"ft_adj_lmul\" "
-        "is not implemented. This either means that the Strategy object is invalid, "
+        "is not implemented. This either means that the Strategy object is "
+        "invalid, "
         "or that the necessary specialisation headers have not been included. "
         "For example, you may need to add the following include directive to "
         "bring in the single-threaded CPU implementation of this operation:\n\n"
-        "    #include <rpp/cpu/single_thread/operations/basic/ft_adj_lmul.hpp>"
-        );
+        "    #include "
+        "<rpp/cpu/single_thread/operations/basic/ft_adj_lmul.hpp>");
 
-    return strategy.template launch<Op>(
-        std::move(config),
-        std::make_tuple(out, op, arg),
-        make_basis_pack(basis),
-        num_batches
-        );
+    return strategy.template launch<Op>(std::move(config),
+                                        std::make_tuple(out, op, arg),
+                                        make_basis_pack(basis),
+                                        num_batches);
 }
 
 } // namespace rpp::ops
 
 
-#endif //RPP_OPERATIONS_BASIC_FT_ADJ_LMUL_HPP
+#endif // RPP_OPERATIONS_BASIC_FT_ADJ_LMUL_HPP

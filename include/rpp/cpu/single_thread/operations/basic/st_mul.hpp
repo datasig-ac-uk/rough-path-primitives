@@ -16,8 +16,11 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class STMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
-    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+class STMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
+    : public BaseOperation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    using Strategy =
+        cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Degree = typename Strategy::Degree;
@@ -26,13 +29,11 @@ class STMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : publi
     using Bitmask = typename Strategy::Bitmask;
 
     template <typename Basis, typename TensorLhs, typename TensorRhs>
-    static Accum shuffle_product_coefficient(
-        Basis const& basis,
-        TensorLhs const& lhs,
-        TensorRhs const& rhs,
-        Degree degree,
-        Index index
-    ) noexcept {
+    static Accum shuffle_product_coefficient(Basis const& basis,
+                                             TensorLhs const& lhs,
+                                             TensorRhs const& rhs,
+                                             Degree degree,
+                                             Index index) noexcept {
         std::array<Letter, Strategy::Architecture::max_depth> letters{};
         basis.unpack_index_to_letters(letters, degree, index);
 
@@ -43,18 +44,17 @@ class STMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : publi
             Index lhs_idx{0};
             Degree rhs_degree{0};
             Index rhs_idx{0};
-            basis.pack_masked_index(
-                letters,
-                degree,
-                mask,
-                lhs_degree,
-                lhs_idx,
-                rhs_degree,
-                rhs_idx
-            );
+            basis.pack_masked_index(letters,
+                                    degree,
+                                    mask,
+                                    lhs_degree,
+                                    lhs_idx,
+                                    rhs_degree,
+                                    rhs_idx);
 
             if (lhs.has_degree(lhs_degree) && rhs.has_degree(rhs_degree)) {
-                acc += Accum{lhs.degree_view(lhs_degree)[lhs_idx]} * Accum{rhs.degree_view(rhs_degree)[rhs_idx]};
+                acc += Accum{lhs.degree_view(lhs_degree)[lhs_idx]} *
+                    Accum{rhs.degree_view(rhs_degree)[rhs_idx]};
             }
         }
         return acc;
@@ -64,7 +64,11 @@ public:
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>
-    void operator()(Context const& ctx, TensorOut& out, TensorLhs const& lhs, TensorRhs const& rhs, Accum beta = Accum{1}) const noexcept {
+    void operator()(Context const& ctx,
+                    TensorOut& out,
+                    TensorLhs const& lhs,
+                    TensorRhs const& rhs,
+                    Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorOut::value_type;
         ignore_unused(ctx);
 
@@ -82,7 +86,9 @@ public:
         for (Degree degree = min_degree; degree <= out.max_degree(); ++degree) {
             auto out_level = out.degree_view(degree);
             for (Index i = 0; i < out_level.size(); ++i) {
-                out_level[i] = static_cast<Scalar>(beta * shuffle_product_coefficient(basis, lhs, rhs, degree, i));
+                out_level[i] = static_cast<Scalar>(
+                    beta *
+                    shuffle_product_coefficient(basis, lhs, rhs, degree, i));
             }
         }
     }

@@ -1,20 +1,21 @@
 #ifndef INCLUDE_RPP_SUPPORT_STRIDED_ITERATOR_HPP
 #define INCLUDE_RPP_SUPPORT_STRIDED_ITERATOR_HPP
 
-#include <type_traits>
 #include <iterator>
+#include <type_traits>
 
 #include <rpp/config.h>
 
-#include <rpp/support/iterator_traits.hpp>
 #include <rpp/architecture.hpp>
+#include <rpp/support/iterator_traits.hpp>
 
 namespace rpp {
 
 
 template <typename It>
 class StridedIterator {
-    static_assert(traits::is_random_access_v<It>, "base iterator must support random access");
+    static_assert(traits::is_random_access_v<It>,
+                  "base iterator must support random access");
 
     using Traits = traits::IteratorTraits<It>;
     It base_;
@@ -31,23 +32,26 @@ public:
 
     RPP_HOST_DEVICE
     constexpr StridedIterator(It base, difference_type stride) noexcept
-        : base_(base), stride_(stride)
-    {}
+        : base_(base), stride_(stride) {}
 
     RPP_HOST_DEVICE
-    constexpr StridedIterator(It base, difference_type stride, difference_type offset) noexcept
-        : base_(base + offset * stride), stride_(stride)
-    {}
+    constexpr StridedIterator(It base,
+                              difference_type stride,
+                              difference_type offset) noexcept
+        : base_(base + offset * stride), stride_(stride) {}
 
-    RPP_HOST_DEVICE RPP_NODISCARD constexpr reference operator*() const noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr reference
+    operator*() const noexcept {
         return *base_;
     }
 
-    RPP_HOST_DEVICE RPP_NODISCARD constexpr reference operator->() const noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr reference
+    operator->() const noexcept {
         return base_;
     }
 
-    RPP_HOST_DEVICE RPP_NODISCARD constexpr reference operator[](difference_type i) const noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr reference
+    operator[](difference_type i) const noexcept {
         return base_[i * stride_];
     }
 
@@ -90,112 +94,136 @@ public:
     }
 
     RPP_HOST_DEVICE
-    friend constexpr StridedIterator operator+(StridedIterator const& iter, difference_type offset) noexcept {
-        return { iter.base_, iter.stride_, offset };
+    friend constexpr StridedIterator
+    operator+(StridedIterator const& iter, difference_type offset) noexcept {
+        return {iter.base_, iter.stride_, offset};
     }
 
     RPP_HOST_DEVICE
-    friend constexpr StridedIterator operator+(difference_type offset, StridedIterator const& iter) noexcept {
-        return { iter.base_, iter.stride_, offset };
+    friend constexpr StridedIterator
+    operator+(difference_type offset, StridedIterator const& iter) noexcept {
+        return {iter.base_, iter.stride_, offset};
     }
 
     RPP_HOST_DEVICE
-    friend constexpr StridedIterator operator-(StridedIterator const& iter, difference_type offset) noexcept {
-        return { iter.base_, iter.stride_, -offset };
+    friend constexpr StridedIterator
+    operator-(StridedIterator const& iter, difference_type offset) noexcept {
+        return {iter.base_, iter.stride_, -offset};
     }
 
     RPP_HOST_DEVICE
-    friend constexpr difference_type operator-(StridedIterator const& iter, StridedIterator const& other) noexcept {
-        return static_cast<difference_type>(iter.base_ - other.base_) / static_cast<difference_type>(other.stride_);
+    friend constexpr difference_type
+    operator-(StridedIterator const& iter,
+              StridedIterator const& other) noexcept {
+        return static_cast<difference_type>(iter.base_ - other.base_) /
+            static_cast<difference_type>(other.stride_);
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator==(StridedIterator const& iter, StridedIterator const& other) noexcept {
+    friend constexpr bool operator==(StridedIterator const& iter,
+                                     StridedIterator const& other) noexcept {
         return iter.base_ == other.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator==(StridedIterator const& iter, It const& other) noexcept {
+    friend constexpr bool operator==(StridedIterator const& iter,
+                                     It const& other) noexcept {
         return iter.base_ == other;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator==(It const& other, StridedIterator const& iter) noexcept {
+    friend constexpr bool operator==(It const& other,
+                                     StridedIterator const& iter) noexcept {
         return other == iter.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator!=(StridedIterator const& iter, StridedIterator const& other) noexcept {
+    friend constexpr bool operator!=(StridedIterator const& iter,
+                                     StridedIterator const& other) noexcept {
         return iter.base_ != other.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator!=(StridedIterator const& iter, It const& other) noexcept {
+    friend constexpr bool operator!=(StridedIterator const& iter,
+                                     It const& other) noexcept {
         return iter.base_ != other;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator!=(It const& other, StridedIterator const& iter) noexcept {
+    friend constexpr bool operator!=(It const& other,
+                                     StridedIterator const& iter) noexcept {
         return other != iter.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator<(StridedIterator const& iter, StridedIterator const& other) noexcept {
+    friend constexpr bool operator<(StridedIterator const& iter,
+                                    StridedIterator const& other) noexcept {
         return iter.base_ < other.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator<(StridedIterator const& iter, It const& other) noexcept {
+    friend constexpr bool operator<(StridedIterator const& iter,
+                                    It const& other) noexcept {
         return iter.base_ < other;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator<(It const& other, StridedIterator const& iter) noexcept {
+    friend constexpr bool operator<(It const& other,
+                                    StridedIterator const& iter) noexcept {
         return other < iter.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator<=(StridedIterator const& iter, StridedIterator const& other) noexcept {
+    friend constexpr bool operator<=(StridedIterator const& iter,
+                                     StridedIterator const& other) noexcept {
         return iter.base_ <= other.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator<=(StridedIterator const& iter, It const& other) noexcept {
+    friend constexpr bool operator<=(StridedIterator const& iter,
+                                     It const& other) noexcept {
         return iter.base_ <= other;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator<=(It const& other, StridedIterator const& iter) noexcept {
+    friend constexpr bool operator<=(It const& other,
+                                     StridedIterator const& iter) noexcept {
         return other <= iter.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator>(StridedIterator const& iter, StridedIterator const& other) noexcept {
+    friend constexpr bool operator>(StridedIterator const& iter,
+                                    StridedIterator const& other) noexcept {
         return iter.base_ > other.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator<(StridedIterator const& iter, It const& other) noexcept {
+    friend constexpr bool operator<(StridedIterator const& iter,
+                                    It const& other) noexcept {
         return iter.base_ > other;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator<(It const& other, StridedIterator const& iter) noexcept {
+    friend constexpr bool operator<(It const& other,
+                                    StridedIterator const& iter) noexcept {
         return other > iter.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator>=(StridedIterator const& iter, StridedIterator const& other) noexcept {
+    friend constexpr bool operator>=(StridedIterator const& iter,
+                                     StridedIterator const& other) noexcept {
         return iter.base_ >= other.base_;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator>=(StridedIterator const& iter, It const& other) noexcept {
+    friend constexpr bool operator>=(StridedIterator const& iter,
+                                     It const& other) noexcept {
         return iter.base_ >= other;
     }
 
     RPP_HOST_DEVICE
-    friend constexpr bool operator>=(It const& other, StridedIterator const& iter) noexcept {
+    friend constexpr bool operator>=(It const& other,
+                                     StridedIterator const& iter) noexcept {
         return other >= iter.base_;
     }
 
@@ -204,21 +232,18 @@ public:
 
     RPP_HOST_DEVICE
     constexpr It base_at(difference_type offset) const noexcept {
-        return base_ + stride_*offset;
+        return base_ + stride_ * offset;
     }
-
-
 };
 
 namespace traits {
 
 template <typename It>
-struct IteratorTraits<StridedIterator<It>> : IteratorTraits<It> {
-};
+struct IteratorTraits<StridedIterator<It>> : IteratorTraits<It> {};
 
-}
+} // namespace traits
 
 
 } // namespace rpp
 
-#endif //INCLUDE_RPP_SUPPORT_STRIDED_ITERATOR_HPP
+#endif // INCLUDE_RPP_SUPPORT_STRIDED_ITERATOR_HPP

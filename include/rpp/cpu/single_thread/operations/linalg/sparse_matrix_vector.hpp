@@ -6,8 +6,8 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
-#include <rpp/views/batch.hpp>
 #include <rpp/sparse/matrix.hpp>
+#include <rpp/views/batch.hpp>
 
 #include <rpp/operations/linalg/sparse_matrix_vector.hpp>
 

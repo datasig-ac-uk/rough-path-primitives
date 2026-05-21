@@ -1,8 +1,8 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_LINALG_VECTOR_ASSIGN_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_LINALG_VECTOR_ASSIGN_HPP
 
-#include <cstddef>
 #include <algorithm>
+#include <cstddef>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -15,15 +15,20 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class VectorAssign<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
-    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+class VectorAssign<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
+    : public BaseOperation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    using Strategy =
+        cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
 
 public:
     static constexpr bool is_implemented = true;
 
     template <typename VectorOut, typename VectorArg>
-    void operator()(Context const& ctx, VectorOut& out, VectorArg const& arg) const noexcept {
+    void operator()(Context const& ctx,
+                    VectorOut& out,
+                    VectorArg const& arg) const noexcept {
         auto const& basis = out.basis();
         const auto min_deg = std::max(out.min_degree(), arg.min_degree());
         const auto max_deg = std::min(out.max_degree(), arg.max_degree());

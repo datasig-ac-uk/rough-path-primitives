@@ -14,8 +14,12 @@
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
-class TensorSetIdentity<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> : public BaseOperation<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
-    using Strategy = cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
+class TensorSetIdentity<
+    cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
+    : public BaseOperation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    using Strategy =
+        cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 
@@ -23,7 +27,9 @@ public:
     static constexpr bool is_implemented = true;
 
     template <typename Tensor>
-    void operator()(Context const& ctx, Tensor& tensor, Accum scalar = Accum{1}) const noexcept {
+    void operator()(Context const& ctx,
+                    Tensor& tensor,
+                    Accum scalar = Accum{1}) const noexcept {
         tensor[0] = scalar;
         std::fill(tensor.begin() + 1, tensor.end(), Accum{0});
     }

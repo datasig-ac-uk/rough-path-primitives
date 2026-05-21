@@ -20,39 +20,39 @@ struct GradedBasis {
     Degree depth;
     DBPtr degree_begin;
 
-    GradedBasis(Degree width_, Degree depth_, Index const *degree_begin_) noexcept
-        : width(width_), depth(depth_), degree_begin(degree_begin_) {
-    }
+    GradedBasis(Degree width_,
+                Degree depth_,
+                Index const* degree_begin_) noexcept
+        : width(width_), depth(depth_), degree_begin(degree_begin_) {}
 
     GradedBasis(Degree width_, Degree depth_, DBPtr degree_begin_) noexcept
-        : width(width_), depth(depth_), degree_begin(degree_begin_) {
-    }
+        : width(width_), depth(depth_), degree_begin(degree_begin_) {}
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr Index size() const noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Index size() const noexcept {
         return degree_begin[depth + 1];
     }
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr Index true_size() const noexcept { return size(); }
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Index true_size() const noexcept {
+        return size();
+    }
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr Index start_of_degree(Degree d) const noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Index
+    start_of_degree(Degree d) const noexcept {
         return degree_begin[d];
     }
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr Index end_of_degree(Degree d) const noexcept {
-        return degree_begin[d+1];
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Index
+    end_of_degree(Degree d) const noexcept {
+        return degree_begin[d + 1];
     }
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr Index size_of_degree(Degree d) const noexcept {
-        return degree_begin[d+1] - degree_begin[d];
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Index
+    size_of_degree(Degree d) const noexcept {
+        return degree_begin[d + 1] - degree_begin[d];
     }
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr Degree degree(Index idx) const noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Degree
+    degree(Index idx) const noexcept {
         Degree diff = this->depth + 1;
         Degree pos = 0;
         while (diff > 0) {
@@ -62,15 +62,16 @@ struct GradedBasis {
             if (this->degree_begin[new_pos] <= idx) {
                 pos = new_pos + 1;
                 diff -= half + 1;
-            } else {
+            }
+            else {
                 diff = half;
             }
         }
         return pos - 1;
     }
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr Degree degree_linear(Index idx) const noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Degree
+    degree_linear(Index idx) const noexcept {
         Degree result = 0;
         while (result <= depth && degree_begin[result] <= idx) {
             ++result;
@@ -79,25 +80,28 @@ struct GradedBasis {
     }
 
     template <typename DataMapper>
-    RPP_NODISCARD
-    friend typename DataMapper::template Result<GradedBasis<typename DataMapper::Architecture, Tag_>>
+    RPP_NODISCARD friend typename DataMapper::template Result<
+        GradedBasis<typename DataMapper::Architecture, Tag_>>
     map_data(GradedBasis const& basis, DataMapper& mapper) noexcept {
-        if constexpr (std::is_same_v<Architecture_, typename DataMapper::Architecture>) {
+        if constexpr (std::is_same_v<Architecture_,
+                                     typename DataMapper::Architecture>) {
             return basis;
-        } else {
+        }
+        else {
             using TgtIndex = typename DataMapper::Architecture::Index;
 
-            auto mapped_db = mapper.template copy_n<TgtIndex>(basis.degree_begin, basis.depth + 2);
-            if (!mapped_db) { return std::move(mapped_db).error(); }
+            auto mapped_db = mapper.template copy_n<TgtIndex>(
+                basis.degree_begin, basis.depth + 2);
+            if (!mapped_db) {
+                return std::move(mapped_db).error();
+            }
 
             return GradedBasis<typename DataMapper::Architecture, Tag_>{
-                mapped_db.width, mapped_db.depth, mapped_db.value()
-            };
+                mapped_db.width, mapped_db.depth, mapped_db.value()};
         }
     }
-
 };
 
 } // namespace rpp::basis
 
-#endif //RPP_BASIS_GRADED_BASIS_HPP
+#endif // RPP_BASIS_GRADED_BASIS_HPP

@@ -3,4 +3,4 @@
 
 #include <rpp/cpu/single_thread/strategy.hpp>
 
-#endif //RPP_CPU_STRATEGIES_HPP
+#endif // RPP_CPU_STRATEGIES_HPP

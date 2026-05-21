@@ -6,24 +6,20 @@
 
 namespace rpp::basis {
 
-template<typename T>
+template <typename T>
 inline constexpr bool is_basis_tag_v = false;
 
 
 template <typename Tag>
 struct InputBasisTag : Tag {
-    static_assert(is_basis_tag_v<Tag>,
-        "only valid tags can be annotated"
-        );
+    static_assert(is_basis_tag_v<Tag>, "only valid tags can be annotated");
 };
 template <typename Tag>
 inline constexpr bool is_basis_tag_v<InputBasisTag<Tag>> = true;
 
 template <typename Tag>
 struct OutputBasisTag : Tag {
-    static_assert(is_basis_tag_v<Tag>,
-        "only valid tags can be annotated"
-    );
+    static_assert(is_basis_tag_v<Tag>, "only valid tags can be annotated");
 };
 template <typename Tag>
 inline constexpr bool is_basis_tag_v<OutputBasisTag<Tag>> = true;
@@ -31,9 +27,7 @@ inline constexpr bool is_basis_tag_v<OutputBasisTag<Tag>> = true;
 template <size_t Index, typename Tag>
 struct IndexedBasisTag : Tag {
     static constexpr size_t index = Index;
-    static_assert(is_basis_tag_v<Tag>,
-        "only valid tags can be annotated"
-        );
+    static_assert(is_basis_tag_v<Tag>, "only valid tags can be annotated");
 };
 
 template <size_t Index, typename Tag>
@@ -52,10 +46,11 @@ struct OutputBasisTagger {
 template <size_t Index>
 struct IndexBasisTagger {
     template <typename T>
-    using tagger = std::conditional_t<is_basis_tag_v<T>, IndexedBasisTag<Index, T>, T>;
+    using tagger =
+        std::conditional_t<is_basis_tag_v<T>, IndexedBasisTag<Index, T>, T>;
 };
 
-template<typename Tagger, typename T>
+template <typename Tagger, typename T>
 using apply_tagger = typename Tagger::template tagger<T>;
 
 
@@ -63,13 +58,13 @@ using apply_tagger = typename Tagger::template tagger<T>;
 
 namespace rpp {
 
-template<typename T>
+template <typename T>
 inline constexpr bool is_basis_tag_v = basis::is_basis_tag_v<T>;
 
-template<typename Tag>
+template <typename Tag>
 using InputBasisTag = basis::InputBasisTag<Tag>;
 
-template<typename Tag>
+template <typename Tag>
 using OutputBasisTag = basis::OutputBasisTag<Tag>;
 
 template <size_t Index, typename Tag>
@@ -81,16 +76,16 @@ using OutputBasisTagger = basis::OutputBasisTagger;
 template <size_t Index>
 using IndexBasisTagger = basis::IndexBasisTagger<Index>;
 
-template<typename Tagger, typename T>
+template <typename Tagger, typename T>
 using apply_tagger = basis::apply_tagger<Tagger, T>;
 
 } // namespace rpp
 
 
-#define RPP_MAKE_BASIS_TAG(basis_name) \
-    struct basis_name ## Tag {}; \
-    template <> \
-    inline constexpr bool is_basis_tag_v<basis_name ## Tag> = true; \
+#define RPP_MAKE_BASIS_TAG(basis_name)                                         \
+    struct basis_name##Tag {};                                                 \
+    template <>                                                                \
+    inline constexpr bool is_basis_tag_v<basis_name##Tag> = true;
 
 
-#endif //RPP_BASIS_BASIS_TAGS_HPP
+#endif // RPP_BASIS_BASIS_TAGS_HPP

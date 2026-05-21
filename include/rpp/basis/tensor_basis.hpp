@@ -23,9 +23,10 @@ RPP_MAKE_BASIS_TAG(TensorBasis);
  * `GradedBasis` and implements utilities for:
  *
  * - Truncating the basis depth (`truncate`).
- * - Unpacking a flat index into an array of letter components (`unpack_index_to_letters`).
- * - Packing a set of letters into a masked index, separating left‑ and right‑hand
- *   degree components (`pack_masked_index`).
+ * - Unpacking a flat index into an array of letter components
+ * (`unpack_index_to_letters`).
+ * - Packing a set of letters into a masked index, separating left‑ and
+ * right‑hand degree components (`pack_masked_index`).
  * - Reversing a packed index back into a flat representation (`reverse_index`).
  *
  * The class is templated on the numeric degree type and the index type, and
@@ -43,23 +44,19 @@ struct TensorBasis : GradedBasis<Architecture_, TensorBasisTag> {
     using Architecture = typename Base::Architecture;
 
     using Base::Base;
-    using Base::size;
     using Base::degree;
+    using Base::size;
 
-    RPP_HOST RPP_NODISCARD
-    constexpr TensorBasis truncate(Degree new_depth) const noexcept {
+    RPP_HOST RPP_NODISCARD constexpr TensorBasis
+    truncate(Degree new_depth) const noexcept {
         return {
-            this->width, std::min(this->depth, new_depth),
-            this->degree_begin
-        };
+            this->width, std::min(this->depth, new_depth), this->degree_begin};
     }
 
     template <typename Array>
-    RPP_HOST_DEVICE void unpack_index_to_letters(
-        Array& letters,
-        Degree degree,
-        Index index
-    ) const noexcept {
+    RPP_HOST_DEVICE void unpack_index_to_letters(Array& letters,
+                                                 Degree degree,
+                                                 Index index) const noexcept {
         using Letter = std::remove_reference_t<decltype(letters[0])>;
         for (Degree d = 0; d < degree; ++d) {
             letters[d] = static_cast<Letter>(index % this->width);
@@ -68,16 +65,13 @@ struct TensorBasis : GradedBasis<Architecture_, TensorBasisTag> {
     }
 
     template <typename Array, typename BitMask>
-    RPP_HOST_DEVICE
-    void pack_masked_index(
-        Array const& letters,
-        Degree degree,
-        BitMask const& bitmask,
-        Degree& lhs_deg,
-        Index& lhs_idx,
-        Degree& rhs_deg,
-        Index& rhs_idx
-    ) const noexcept {
+    RPP_HOST_DEVICE void pack_masked_index(Array const& letters,
+                                           Degree degree,
+                                           BitMask const& bitmask,
+                                           Degree& lhs_deg,
+                                           Index& lhs_idx,
+                                           Degree& rhs_deg,
+                                           Index& rhs_idx) const noexcept {
         lhs_deg = 0;
         rhs_deg = 0;
         lhs_idx = 0;
@@ -86,15 +80,16 @@ struct TensorBasis : GradedBasis<Architecture_, TensorBasisTag> {
             if (((bitmask >> degree) & BitMask{1}) != 0) {
                 ++lhs_deg;
                 lhs_idx = lhs_idx * this->width + letters[degree];
-            } else {
+            }
+            else {
                 ++rhs_deg;
                 rhs_idx = rhs_idx * this->width + letters[degree];
             }
         }
     }
 
-    RPP_HOST_DEVICE RPP_NODISCARD
-    constexpr Index reverse_index(Index idx, Degree degree) const noexcept {
+    RPP_HOST_DEVICE RPP_NODISCARD constexpr Index
+    reverse_index(Index idx, Degree degree) const noexcept {
         Index result = 0;
         for (Degree d = 0; d < degree; ++d) {
             result *= this->width;
@@ -108,9 +103,9 @@ struct TensorBasis : GradedBasis<Architecture_, TensorBasisTag> {
 using StandardTensorBasis = TensorBasis<arch::NativeArchitecture>;
 
 template <typename Index, typename Width, typename Degree>
-RPP_HOST_DEVICE RPP_NODISCARD
-constexpr Index tensor_dimension(Width width, Degree degree) noexcept {
-    Index result { 1 };
+RPP_HOST_DEVICE RPP_NODISCARD constexpr Index
+tensor_dimension(Width width, Degree degree) noexcept {
+    Index result{1};
     for (Degree d = 0; d < degree; ++d) {
         result = Index{1} + static_cast<Index>(width) * result;
     }
