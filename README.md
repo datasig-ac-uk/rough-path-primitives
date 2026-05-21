@@ -71,8 +71,8 @@ Operations are defined in two stages.
 
 1. A public operation interface in `include/rpp/operations/...`
 2. One or more device/strategy-specific implementations in headers such as:
-   - `include/rpp/cpu/operations/single_thread/...`
-   - `include/rpp/gpu/operations/block/...`
+   - `include/rpp/cpu/single_thread/operations/...`
+   - `include/rpp/gpu/block/operations/...`
 
 This gives the library a stable mathematical API with backend-specific implementations selected by the strategy type and the included specialization headers.
 
@@ -132,7 +132,7 @@ The project uses CMake and currently builds as a header-only interface library, 
 Main options:
 
 - `RPP_ENABLE_CUDA`
-  Enable CUDA support and the `RPP::GPU` target.
+  Enable CUDA language support in the build tree so CUDA tests and benchmarks can be built.
 
 - `RPP_ENABLE_TESTS`
   Build the test suite.
@@ -150,6 +150,8 @@ cmake -S . -B build
 cmake --build build
 ```
 
+If GoogleTest, Google Benchmark, and `libalgebra-lite` are already installed and discoverable, the build can configure offline. Otherwise, CMake will fetch the missing test and benchmark dependencies from GitHub during configuration.
+
 With CUDA enabled:
 
 ```bash
@@ -157,13 +159,4 @@ cmake -S . -B build -DRPP_ENABLE_CUDA=ON
 cmake --build build
 ```
 
-## Current Direction
-
-The library is moving toward a cleaner separation between:
-
-- basis metadata
-- dense views
-- generic batch construction
-- operation implementations
-
-That direction is intended to make the kernel code simpler, make view construction more uniform, and reduce type duplication in the batching layer without weakening the mathematical structure of the interfaces.
+The repository also provides `CMakePresets.json` presets for common debug, release, and CUDA-enabled developer builds.
