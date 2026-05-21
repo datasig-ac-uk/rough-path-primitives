@@ -227,7 +227,7 @@ if (PROJECT_IS_TOP_LEVEL)
             DESTINATION ${RPP_CMAKE_INSTALL_DIR})
 
     install(EXPORT RoughPathPrimitivesTargets_GPU
-            FILE RoughPathPrimitive_GPU.cmake
+            FILE RoughPathPrimitivesTargets_GPU.cmake
             NAMESPACE RPP::
             DESTINATION ${RPP_CMAKE_INSTALL_DIR})
 
