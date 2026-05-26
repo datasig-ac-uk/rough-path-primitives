@@ -24,10 +24,10 @@ class FTMul : public BaseOperation<Strategy> {
 public:
     static constexpr bool is_implemented = FMA::is_implemented;
 
-    template <typename Basis>
+    template <typename BasisPack>
     static constexpr size_t scratch_space_size(Strategy const& strategy,
-                                               Basis const& basis) noexcept {
-        return FMA::scratch_space_size(strategy, basis);
+                                               BasisPack const& pack) noexcept {
+        return FMA::scratch_space_size(strategy, pack);
     }
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>

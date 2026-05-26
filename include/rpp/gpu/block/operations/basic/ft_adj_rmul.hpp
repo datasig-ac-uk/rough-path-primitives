@@ -34,10 +34,10 @@ public:
 
     static constexpr bool is_implemented = true;
 
-    template <typename Basis>
+    template <typename BasisPack>
     static constexpr size_t scratch_space_size(Strategy const& strategy,
-                                               Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
+                                               BasisPack const& pack) noexcept {
+        ignore_unused(strategy, pack);
         return sizeof(typename Strategy::BlockReduceArray);
     }
 

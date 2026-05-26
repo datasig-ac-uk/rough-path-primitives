@@ -1,6 +1,9 @@
 #ifndef RPP_BASIS_BASIS_PACK_HPP
 #define RPP_BASIS_BASIS_PACK_HPP
 
+#include <tuple>
+#include <utility>
+
 #include <rpp/basis/basis_tags.hpp>
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -11,7 +14,9 @@ namespace rpp::basis {
 template <typename... Bases>
 struct BasisPack;
 
+
 namespace detail {
+
 
 template <typename Tag, typename Basis>
 struct BasisHolder : Basis {
@@ -21,27 +26,6 @@ struct BasisHolder : Basis {
     explicit constexpr BasisHolder(Basis&& basis) : Basis(std::move(basis)) {}
 };
 
-template <typename Tag, typename Pack>
-constexpr Pack const& get_basis(Pack const& pack RPP_MAYBE_UNUSED) {
-    static_assert(static_assert_fail<Tag, Pack>,
-                  "this pack does not contain the specified tag");
-    return pack;
-}
-
-template <typename Tag, typename Basis>
-constexpr Basis const& get_basis(BasisHolder<Tag, Basis> const& h) {
-    return static_cast<Basis const&>(h);
-}
-
-template <typename Tag, typename First, typename... Rest>
-constexpr decltype(auto) get_basis(First const& first, Rest const&... rest) {
-    if constexpr (std::is_same_v<Tag, typename First::BasisTag>) {
-        return get_basis<Tag>(first);
-    }
-    else {
-        return get_basis<Tag>(rest...);
-    }
-}
 
 template <typename T>
 struct HolderOfImpl {
@@ -69,6 +53,44 @@ struct BasisTagOfImpl<BasisHolder<Tag, Basis>> {
 template <typename T>
 using BasisTagOf = typename BasisTagOfImpl<T>::type;
 
+
+template <typename... B>
+using BasisPackBase = std::tuple<HolderOf<B>...>;
+
+
+template <typename Tag, typename Pack>
+RPP_HOST_DEVICE
+constexpr Pack const&
+get_basis(Pack const& pack RPP_MAYBE_UNUSED,
+          std::index_sequence<> seq RPP_MAYBE_UNUSED = {}) {
+    static_assert(static_assert_fail<Tag, Pack>,
+                  "this pack does not contain the specified tag");
+    return pack;
+}
+
+template <typename Tag, typename Basis>
+RPP_HOST_DEVICE
+constexpr Basis const& get_basis(BasisHolder<Tag, Basis> const& h) {
+    return static_cast<Basis const&>(h);
+}
+
+template <typename Tag, typename Pack, size_t I, size_t... Is>
+RPP_HOST_DEVICE
+constexpr decltype(auto)
+get_basis(Pack const& pack,
+          std::index_sequence<I, Is...> seq RPP_MAYBE_UNUSED) noexcept {
+    using EltType = std::tuple_element_t<I, Pack>;
+
+    if constexpr (std::is_same_v<Tag, typename EltType::BasisTag>) {
+        return get_basis(std::get<I>(pack));
+    }
+    else {
+        return get_basis<Tag>(pack, std::index_sequence<Is...>{});
+    }
+}
+
+
+#ifndef RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK
 template <typename Target, typename T, typename... Ts>
 constexpr bool has_type() noexcept {
     if constexpr (std::is_same_v<Target, T>) {
@@ -128,6 +150,7 @@ constexpr bool check_unique(T t, Ts... ts) noexcept {
     return check_unique_recurse(std::tuple<T>{}, ts...);
 }
 
+#endif
 
 } // namespace detail
 
@@ -152,25 +175,47 @@ constexpr bool check_unique(T t, Ts... ts) noexcept {
  * compile‑time uniqueness check is omitted.
  */
 template <typename... Bases>
-struct BasisPack : detail::HolderOf<Bases>... {
+struct BasisPack : public detail::BasisPackBase<Bases...> {
+    using Base = detail::BasisPackBase<Bases...>;
 #ifndef RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK
     static_assert(
         detail::check_unique(typename detail::HolderOf<Bases>::BasisTag{}...),
         "each basis in the pack must have a unique tag");
 #endif // RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK
 
-    // ReSharper disable once CppNonExplicitConvertingConstructor
+    RPP_HOST_DEVICE
     constexpr BasisPack(Bases&&... bases)
-        : detail::HolderOf<Bases>{std::move(bases)}... {}
+        : Base(std::move(bases)...)
+    {}
+
+    template <size_t I>
+    RPP_HOST_DEVICE
+    constexpr decltype(auto) get() const noexcept {
+        return std::get<I>(static_cast<Base const&>(*this));
+    }
+
+    template <size_t I>
+    RPP_HOST_DEVICE
+    friend constexpr decltype(auto) get(BasisPack const& pack) noexcept {
+        return std::get<I>(static_cast<Base const &>(pack));
+    }
+
+    template <size_t I>
+    RPP_HOST_DEVICE
+    friend constexpr decltype(auto) get(BasisPack&& pack) noexcept {
+        return std::get<I>(static_cast<Base&&>(pack));
+    }
 };
 
 
 template <typename TagOrBasis, typename... Bases>
+RPP_HOST_DEVICE
 constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis,
                                    BasisPack<Bases...> const& basis_pack) {
     if constexpr (is_basis_tag_v<TagOrBasis>) {
         return detail::get_basis<TagOrBasis>(
-            static_cast<detail::HolderOf<Bases> const&>(basis_pack)...);
+            basis_pack,
+            std::make_index_sequence<std::tuple_size_v<BasisPack<Bases...>>>{});
     }
     else {
         return tag_or_basis;
@@ -178,6 +223,7 @@ constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis,
 }
 
 template <typename TagOrBasis, typename Basis>
+RPP_HOST_DEVICE
 constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis,
                                    Basis const& basis) {
     if constexpr (is_basis_tag_v<TagOrBasis>) {
@@ -188,6 +234,12 @@ constexpr decltype(auto) get_basis(TagOrBasis const& tag_or_basis,
     else {
         return tag_or_basis;
     }
+}
+
+template <size_t I, typename... Bases>
+RPP_HOST_DEVICE
+constexpr decltype(auto) get_basis(BasisPack<Bases...> const& pack) noexcept {
+    return detail::get_basis(pack.template get<I>());
 }
 
 template <typename Basis>
@@ -234,5 +286,17 @@ constexpr BasisPack<Bases...> make_basis_pack(Bases... bases) {
 }
 
 } // namespace rpp::basis
+
+
+
+template <typename... Bases>
+struct std::tuple_size<rpp::basis::BasisPack<Bases...>> : integral_constant<size_t, sizeof...(Bases)> {}; // NOLINT(*-dcl58-cpp)
+
+template <size_t I, typename... Bases>
+struct std::tuple_element<I, rpp::basis::BasisPack<Bases...>> // NOLINT(*-dcl58-cpp)
+    : std::tuple_element<I, rpp::basis::detail::BasisPackBase<Bases...>> {};
+
+
+
 
 #endif // RPP_BASIS_BASIS_PACK_HPP

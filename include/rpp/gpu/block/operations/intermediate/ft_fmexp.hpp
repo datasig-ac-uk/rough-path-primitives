@@ -42,11 +42,11 @@ private:
 public:
     static constexpr bool is_implemented = true;
 
-    template <typename Basis>
+    template <typename BasisPack>
     static constexpr size_t scratch_space_size(Strategy const& strategy,
-                                               Basis const& basis) noexcept {
-        return std::max(InplaceFMA123::scratch_space_size(strategy, basis),
-                        Assign::scratch_space_size(strategy, basis));
+                                               BasisPack const& pack) noexcept {
+        return std::max(InplaceFMA123::scratch_space_size(strategy, pack),
+                        Assign::scratch_space_size(strategy, pack));
     }
 
     template <typename TensorOut,

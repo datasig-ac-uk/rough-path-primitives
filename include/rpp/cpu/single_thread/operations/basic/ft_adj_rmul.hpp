@@ -6,6 +6,7 @@
 
 #include <rpp/utility.hpp>
 
+#include <rpp/basis/basis_pack.hpp>
 #include <rpp/views/batch.hpp>
 #include <rpp/views/dense_tensor_view.hpp>
 
@@ -45,10 +46,12 @@ class FTAdjRMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
 public:
     static constexpr bool is_implemented = true;
 
-    template <typename Basis>
+    template <typename BasisPack>
     static constexpr std::size_t
-    scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
+    scratch_space_size(Strategy const& strategy,
+                       BasisPack const& pack) noexcept {
         ignore_unused(strategy);
+        auto const& basis = basis::get_basis(basis::TensorBasisTag{}, pack);
         return 3 * batch_stride(basis.size());
     }
 

@@ -114,10 +114,11 @@ class SparseMatrixVectorProduct<
 public:
     static constexpr bool is_implemented = true;
 
-    template <typename Basis>
+    template <typename BasisPack>
     static constexpr std::size_t
-    scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        return VectorSetConstant<Strategy>::scratch_space_size(strategy, basis);
+    scratch_space_size(Strategy const& strategy,
+                       BasisPack const& pack) noexcept {
+        return VectorSetConstant<Strategy>::scratch_space_size(strategy, pack);
     }
 
     template <typename VectorOut,

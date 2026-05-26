@@ -35,13 +35,13 @@ public:
     static constexpr bool is_implemented = InplaceMul::is_implemented &&
         AddIdentity::is_implemented && SetConstant::is_implemented;
 
-    template <typename Basis>
+    template <typename BasisPack>
     static constexpr size_t scratch_space_size(Strategy const& strategy,
-                                               Basis const& basis) noexcept {
+                                               BasisPack const& pack) noexcept {
         return std::max(
-            SetConstant::scratch_space_size(strategy, basis),
-            std::max(InplaceMul::scratch_space_size(strategy, basis),
-                     AddIdentity::scratch_space_size(strategy, basis)));
+            SetConstant::scratch_space_size(strategy, pack),
+            std::max(InplaceMul::scratch_space_size(strategy, pack),
+                     AddIdentity::scratch_space_size(strategy, pack)));
     }
 
     template <typename TensorOut, typename TensorArg>

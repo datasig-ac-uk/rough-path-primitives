@@ -45,10 +45,10 @@ class LieToTensor : public BaseOperation<Strategy> {
 public:
     static constexpr bool is_implemented = Impl::is_implemented;
 
-    template <typename Basis>
+    template <typename BasisPack>
     static constexpr size_t scratch_space_size(Strategy const& strategy,
-                                               Basis const& basis) noexcept {
-        return Impl::scratch_space_size(strategy, basis);
+                                               BasisPack const& pack) noexcept {
+        return Impl::scratch_space_size(strategy, pack);
     }
 
     template <typename TensorOut, typename LieIn, typename... MatrixArgs>

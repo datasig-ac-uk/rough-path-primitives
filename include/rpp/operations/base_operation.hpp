@@ -10,6 +10,8 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/basis/basis_pack.hpp>
+
 namespace rpp::ops {
 template <typename Strategy_, typename = void>
 class BaseOperation {
@@ -18,10 +20,10 @@ public:
     using Context = typename Strategy::Context;
     using Index = typename Strategy::Index;
 
-    template <typename Basis>
+    template <typename BasisPack>
     RPP_HOST static constexpr size_t
-    scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
+    scratch_space_size(Strategy const& strategy, BasisPack const& pack) noexcept {
+        ignore_unused(strategy, pack);
         return 0;
     }
 

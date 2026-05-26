@@ -120,10 +120,10 @@ private:
 
 public:
     static constexpr bool is_implemented = true;
-    template <typename Basis>
+    template <typename BasisPack>
     static constexpr size_t scratch_space_size(Strategy const& strategy,
-                                               Basis const& basis) noexcept {
-        ignore_unused(basis);
+                                               BasisPack const& pack) noexcept {
+        ignore_unused(pack);
         return strategy.block_size * sizeof(Accum_);
     }
 
