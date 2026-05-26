@@ -327,7 +327,8 @@ BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture_>::launch(
     }
 
     using BatchesT = std::remove_cv_t<std::remove_reference_t<Batches>>;
-    using BasesT = std::remove_cv_t<std::remove_reference_t<Bases>>;
+    using BasesT = typename std::remove_cv_t<
+        std::remove_reference_t<decltype(mapped_bases)>>::value_type;
     using ExtrasT = typename std::remove_cv_t<
         std::remove_reference_t<decltype(mapped_extras)>>::value_type;
 
@@ -347,8 +348,12 @@ BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture_>::launch(
     config.numAttrs =
         static_cast<unsigned int>(launch_config.launch_attributes.size());
 
-    auto err = cudaLaunchKernelEx(
-        &config, kernel, batches, std::move(mapped_bases).value(), batch_size, mapped_extras.value());
+    auto err = cudaLaunchKernelEx(&config,
+                                  kernel,
+                                  batches,
+                                  std::move(mapped_bases).value(),
+                                  batch_size,
+                                  mapped_extras.value());
     return map_cuda_error(err);
 }
 } // namespace rpp::gpu::strategies
