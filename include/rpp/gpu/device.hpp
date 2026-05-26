@@ -236,7 +236,7 @@ public:
 
     template <typename T, typename It>
     Result<Ptr<T>> copy_n(It begin, size_t count) noexcept {
-        copy(begin, begin + count);
+        return copy(begin, begin + count);
     }
 };
 
