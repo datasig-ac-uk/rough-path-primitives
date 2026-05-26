@@ -214,13 +214,21 @@ struct GpuBlockTestHelper {
     [[nodiscard]] static auto device_vector_batch(DeviceVector<Scalar>& data,
                                                   Basis const& basis) {
         return rpp::make_graded_vector_batch(
-            device_data(data), basis.size(), basis, Degree{0}, basis.depth);
+            device_data(data),
+            basis.size(),
+            rpp::basis::TensorBasisTag{},
+            Degree{0},
+            basis.depth);
     }
 
     [[nodiscard]] static auto
     device_vector_batch(DeviceVector<Scalar> const& data, Basis const& basis) {
         return rpp::make_graded_vector_batch(
-            device_data(data), basis.size(), basis, Degree{0}, basis.depth);
+            device_data(data),
+            basis.size(),
+            rpp::basis::TensorBasisTag{},
+            Degree{0},
+            basis.depth);
     }
 
     [[nodiscard]] static auto host_tensor_batch(HostVector<Scalar>& data,
@@ -238,13 +246,13 @@ struct GpuBlockTestHelper {
     [[nodiscard]] static auto device_tensor_batch(DeviceVector<Scalar>& data,
                                                   Basis const& basis) {
         return rpp::make_tensor_batch(
-            device_data(data), basis.size(), basis, Degree{0}, basis.depth);
+            device_data(data), basis.size(), Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto
     device_tensor_batch(DeviceVector<Scalar> const& data, Basis const& basis) {
         return rpp::make_tensor_batch(
-            device_data(data), basis.size(), basis, Degree{0}, basis.depth);
+            device_data(data), basis.size(), Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto device_scalar_batch(DeviceVector<Scalar>& data) {
