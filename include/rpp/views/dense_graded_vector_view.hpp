@@ -24,10 +24,9 @@ public:
     using Data = It_;
 
     using Architecture = traits::arch_of_t<It_>;
-    using Index = typename Traits::difference_type;
     using Basis = Basis_;
-    using Degree = typename Basis::Degree;
-    using Index_ = typename Basis::Index;
+    using Degree = typename Architecture::Degree;
+    using Index = typename Architecture::Index;
 
     using Fragment = detail::VectorFragment<It_>;
     using MetaData = std::tuple<Basis const&, Degree, Degree>;
@@ -145,10 +144,6 @@ make_graded_vector_batch(Data data,
                             RealLayout,
                             MetaData>;
 
-    static_assert(
-        !is_basis_tag_v<std::decay_t<Basis>>,
-        "basis tags are not supported by this function, only real basis objects"
-        " can be used here.");
 
     return BatchType{std::move(data),
                      RealLayout{std::move(layout)},
