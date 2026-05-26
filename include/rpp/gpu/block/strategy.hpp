@@ -316,6 +316,11 @@ BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture_>::launch(
     Extras... extras) const noexcept {
 
     DataMapper<Architecture> mapper(launch_config.stream);
+    auto mapped_bases = map_data(mapper, bases);
+    if (!mapped_bases) {
+        return std::move(mapped_bases).error();
+    }
+
     auto mapped_extras = map_data_args<std::tuple>(mapper, extras...);
     if (!mapped_extras) {
         return std::move(mapped_extras).error();
@@ -343,7 +348,7 @@ BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture_>::launch(
         static_cast<unsigned int>(launch_config.launch_attributes.size());
 
     auto err = cudaLaunchKernelEx(
-        &config, kernel, batches, bases, batch_size, mapped_extras.value());
+        &config, kernel, batches, std::move(mapped_bases).value(), batch_size, mapped_extras.value());
     return map_cuda_error(err);
 }
 } // namespace rpp::gpu::strategies
