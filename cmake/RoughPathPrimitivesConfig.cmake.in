@@ -45,7 +45,7 @@ endforeach()
 
 
 foreach(_comp ${_components_to_load})
-    include(${CMAKE_CURRENT_LIST_DIR}/RoughPathPrimitivesTargets_${_comp})
+    include("${CMAKE_CURRENT_LIST_DIR}/RoughPathPrimitivesTargets_${_comp}.cmake")
 endforeach()
 
 
