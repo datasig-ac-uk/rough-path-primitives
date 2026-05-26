@@ -229,7 +229,7 @@ public:
     friend constexpr auto map_data(DataMapper& mapper, BasisPack const& pack) noexcept {
         using ReturnType = BasisPack<traits::data_mapped_t<DataMapper, Bases>...>;
         using Result = typename DataMapper::template Result<ReturnType>;
-        auto mapped_base = map_data(mapper, static_cast<DataMapper const&>(pack));
+        auto mapped_base = map_data(mapper, static_cast<Base const&>(pack));
         if (!mapped_base) {
             return std::move(mapped_base).error();
         }
