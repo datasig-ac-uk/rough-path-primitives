@@ -150,8 +150,8 @@ public:
     }
 
     template <typename DataMapper>
-    RPP_NODISCARD friend auto map_data(CompressedMatrix const& matrix,
-                                       DataMapper& mapper) noexcept
+    RPP_NODISCARD friend auto map_data(DataMapper& mapper,
+                                       CompressedMatrix const& matrix) noexcept
         -> traits::data_map_result_t<
             DataMapper,
             CompressedMatrix<traits::data_map_value_t<DataMapper, DataIter>,

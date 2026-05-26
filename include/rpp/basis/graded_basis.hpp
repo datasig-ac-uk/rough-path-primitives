@@ -82,7 +82,7 @@ struct GradedBasis {
     template <typename DataMapper>
     RPP_NODISCARD friend typename DataMapper::template Result<
         GradedBasis<typename DataMapper::Architecture, Tag_>>
-    map_data(GradedBasis const& basis, DataMapper& mapper) noexcept {
+    map_data(DataMapper& mapper, GradedBasis const& basis) noexcept {
         if constexpr (std::is_same_v<Architecture_,
                                      typename DataMapper::Architecture>) {
             return basis;

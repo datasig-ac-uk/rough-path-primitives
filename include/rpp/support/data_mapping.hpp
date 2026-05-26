@@ -29,15 +29,35 @@ using data_map_index_t = data_map_value_t<Mapper, It, typename Mapper::Index>;
 
 template <typename Mapper, typename It>
 using data_map_degree_t = data_map_value_t<Mapper, It, typename Mapper::Degree>;
+
+template <typename Mapper, typename T>
+struct DataMapped {
+    using type = decltype(map_data(std::declval<Mapper&>(), std::declval<T const&>()));
+};
+
+template <typename Mapper, typename T>
+using data_mapped_t = typename DataMapped<Mapper, T>::type;
+
+
 } // namespace traits
 
 
-template <typename T, typename DataMapper>
-constexpr auto map_data(T&& arg, DataMapper& mapper) noexcept ->
+template <typename DataMapper, typename T>
+constexpr auto map_data(DataMapper& mapper, T&& arg) noexcept ->
     typename DataMapper::template Result<std::decay_t<T>> {
     ignore_unused(mapper);
+    using ValueType = std::decay_t<T>;
     using RetType = typename DataMapper::template Result<std::decay_t<T>>;
-    return RetType{std::forward<T>(arg)};
+    return RetType(ValueType(std::forward<T>(arg)));
+}
+
+
+template <typename DataMapper, typename... Ts>
+constexpr auto map_data(DataMapper& mapper, std::tuple<Ts...> const& arg) noexcept
+    -> traits::data_map_result_t<DataMapper, std::tuple<traits::data_mapped_t<DataMapper, Ts>...>>
+{
+    auto mapped = map_tuple(arg, [&](auto const& tv) { return map_data(mapper, tv); });
+    return map_result_tuple(std::move(mapped));
 }
 
 template <template <typename...> class Tuple,
@@ -51,7 +71,7 @@ constexpr auto map_data_args(DataMapper& mapper, Ts&&... args) noexcept {
     else {
         return map_result_tuple(map_to_tuple<Tuple>(
             [&](auto&& arg) {
-                return map_data(std::forward<decltype(arg)>(arg), mapper);
+                return map_data(mapper, std::forward<decltype(arg)>(arg));
             },
             std::forward<Ts>(args)...));
     }
@@ -130,6 +150,7 @@ map_degree_range(DataMapper& mapper, It begin, Size size) noexcept {
         return typename DataMapper::template Result<It>(begin);
     }
 }
+
 
 } // namespace rpp
 

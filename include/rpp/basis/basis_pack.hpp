@@ -8,6 +8,7 @@
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
+#include <rpp/support/data_mapping.hpp>
 
 namespace rpp::basis {
 
@@ -25,6 +26,16 @@ struct BasisHolder : Basis {
 
     explicit constexpr BasisHolder(Basis&& basis) : Basis(std::move(basis)) {}
 };
+
+
+template <typename Mapper, typename Tag, typename Basis>
+constexpr typename Mapper::template Result<BasisHolder<Tag, traits::data_mapped_t<Mapper, Basis>>>
+map_data(Mapper& mapper, BasisHolder<Tag, Basis> const& h) noexcept {
+    using Holder = BasisHolder<Tag, traits::data_mapped_t<Mapper, Basis>>;
+    auto mapped_basis = map_data(mapper, static_cast<Basis const&>(h));
+    if (!mapped_basis) { return std::move(mapped_basis).error(); }
+    return Holder{std::move(mapped_basis).value()};
+}
 
 
 template <typename T>
@@ -182,7 +193,13 @@ struct BasisPack : public detail::BasisPackBase<Bases...> {
         detail::check_unique(typename detail::HolderOf<Bases>::BasisTag{}...),
         "each basis in the pack must have a unique tag");
 #endif // RPP_DISABLE_BASIS_PACK_UNIQUENESS_CHECK
+private:
 
+    RPP_HOST_DEVICE
+    explicit constexpr BasisPack(Base&& base) : Base(std::move(base))
+    {}
+
+public:
     RPP_HOST_DEVICE
     constexpr BasisPack(Bases&&... bases)
         : Base(std::move(bases)...)
@@ -204,6 +221,20 @@ struct BasisPack : public detail::BasisPackBase<Bases...> {
     RPP_HOST_DEVICE
     friend constexpr decltype(auto) get(BasisPack&& pack) noexcept {
         return std::get<I>(static_cast<Base&&>(pack));
+    }
+
+
+    template <typename DataMapper>
+    RPP_HOST
+    friend constexpr auto map_data(DataMapper& mapper, BasisPack const& pack) noexcept {
+        using ReturnType = BasisPack<traits::data_mapped_t<DataMapper, Bases>...>;
+        using Result = typename DataMapper::template Result<ReturnType>;
+        auto mapped_base = map_data(mapper, static_cast<DataMapper const&>(pack));
+        if (!mapped_base) {
+            return std::move(mapped_base).error();
+        }
+
+        return Result{std::move(mapped_base).value()};
     }
 };
 

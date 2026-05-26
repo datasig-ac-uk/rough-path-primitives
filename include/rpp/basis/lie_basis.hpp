@@ -144,7 +144,7 @@ struct LieBasis : GradedBasis<Architecture_, LieBasisTag>, Ordering {
     template <typename DataMapper>
     RPP_NODISCARD friend typename DataMapper::template Result<
         LieBasis<typename DataMapper::Architecture, Ordering>>
-    map_data(LieBasis const& basis, DataMapper& mapper) noexcept {
+    map_data(DataMapper& mapper, LieBasis const& basis) noexcept {
         if constexpr (std::is_same_v<Architecture_,
                                      typename DataMapper::Architecture>) {
             return basis;
