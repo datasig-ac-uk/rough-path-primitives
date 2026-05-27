@@ -190,7 +190,7 @@ struct TagMetaDataImpl;
 template <typename Tagger, template <typename...> class Tuple, typename... Args>
 struct TagMetaDataImpl<Tagger, Tuple<Args...>> {
     using type =
-        Tuple<basis::apply_tagger_t<typename Tagger::BasisTagger, Args>...>;
+        Tuple<basis::apply_tagger_t<typename Tagger::BasisTagger, std::decay_t<Args>>...>;
 };
 
 
