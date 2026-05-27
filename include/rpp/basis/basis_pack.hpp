@@ -29,9 +29,10 @@ struct BasisHolder : Basis {
 
 
 template <typename Mapper, typename Tag, typename Basis>
-constexpr typename Mapper::template Result<BasisHolder<Tag, traits::data_mapped_t<Mapper, Basis>>>
+constexpr typename Mapper::template Result<
+    BasisHolder<Tag, traits::mapped_value_t<Mapper, Basis>>>
 map_data(Mapper& mapper, BasisHolder<Tag, Basis> const& h) noexcept {
-    using Holder = BasisHolder<Tag, traits::data_mapped_t<Mapper, Basis>>;
+    using Holder = BasisHolder<Tag, traits::mapped_value_t<Mapper, Basis>>;
     auto mapped_basis = map_data(mapper, static_cast<Basis const&>(h));
     if (!mapped_basis) { return std::move(mapped_basis).error(); }
     return Holder{std::move(mapped_basis).value()};
@@ -226,15 +227,21 @@ public:
 
     template <typename DataMapper>
     RPP_HOST
-    friend constexpr auto map_data(DataMapper& mapper, BasisPack const& pack) noexcept {
-        using ReturnType = BasisPack<traits::data_mapped_t<DataMapper, Bases>...>;
+    friend constexpr typename DataMapper::template Result<
+        BasisPack<traits::mapped_value_t<DataMapper, Bases>...>>
+    map_data(DataMapper& mapper, BasisPack const& pack) noexcept {
+        using ReturnType = BasisPack<traits::mapped_value_t<DataMapper, Bases>...>;
         using Result = typename DataMapper::template Result<ReturnType>;
         auto mapped_base = map_data(mapper, static_cast<Base const&>(pack));
         if (!mapped_base) {
-            return std::move(mapped_base).error();
+            return Result{std::move(mapped_base).error()};
         }
 
-        return Result{std::move(mapped_base).value()};
+        return Result{std::apply(
+            [](auto&&... bases) {
+                return ReturnType{std::forward<decltype(bases)>(bases)...};
+            },
+            std::move(mapped_base).value())};
     }
 };
 

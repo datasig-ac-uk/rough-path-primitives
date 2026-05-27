@@ -18,6 +18,13 @@ namespace traits {
 template <typename DataMapper, typename T>
 using data_map_result_t = typename DataMapper::template Result<T>;
 
+template <typename DataMapper, typename T>
+using map_result_t = decltype(map_data(std::declval<DataMapper&>(),
+                                       std::declval<T const&>()));
+
+template <typename DataMapper, typename T>
+using mapped_value_t = typename map_result_t<DataMapper, T>::value_type;
+
 template <typename Mapper, typename It, typename Value = iter_value_t<It>>
 using data_map_value_t =
     std::conditional_t<Mapper::template has_data<It>() &&
@@ -31,31 +38,23 @@ using data_map_index_t = data_map_value_t<DataMapper, It, typename DataMapper::I
 template <typename DataMapper, typename It>
 using data_map_degree_t = data_map_value_t<DataMapper, It, typename DataMapper::Degree>;
 
-template <typename DataMapper, typename T>
-struct DataMapped {
-    using type = decltype(map_data(std::declval<DataMapper&>(), std::declval<T>()));
-};
-
-template <typename Mapper, typename T>
-using data_mapped_t = typename DataMapped<Mapper, T>::type;
-
 
 } // namespace traits
 
 
 template <typename DataMapper, typename T>
-constexpr auto map_data(DataMapper& mapper, T&& arg) noexcept ->
-    typename DataMapper::template Result<std::decay_t<T>> {
+constexpr auto map_data(DataMapper& mapper, T const& arg) noexcept ->
+    typename DataMapper::template Result<T> {
     ignore_unused(mapper);
-    using ValueType = std::decay_t<T>;
-    using RetType = typename DataMapper::template Result<std::decay_t<T>>;
-    return RetType(ValueType(std::forward<T>(arg)));
+    using RetType = typename DataMapper::template Result<T>;
+    return RetType{T{arg}};
 }
 
 
 template <typename DataMapper, typename... Ts>
 constexpr auto map_data(DataMapper& mapper, std::tuple<Ts...> const& arg) noexcept
-    -> traits::data_map_result_t<DataMapper, std::tuple<traits::data_mapped_t<DataMapper, Ts>...>>
+    -> traits::data_map_result_t<DataMapper,
+                                 std::tuple<traits::mapped_value_t<DataMapper, Ts>...>>
 {
     auto mapped = map_tuple(arg, [&](auto const& tv) { return map_data(mapper, tv); });
     return map_result_tuple(std::move(mapped));
@@ -64,17 +63,17 @@ constexpr auto map_data(DataMapper& mapper, std::tuple<Ts...> const& arg) noexce
 template <template <typename...> class Tuple,
           typename DataMapper,
           typename... Ts>
-constexpr auto map_data_args(DataMapper& mapper, Ts&&... args) noexcept {
+constexpr auto map_data_args(DataMapper& mapper, Ts const&... args) noexcept {
     if constexpr (sizeof...(Ts) == 0) {
         return Result<std::tuple<>, typename DataMapper::Error>(
             std::make_tuple());
     }
     else {
         return map_result_tuple(map_to_tuple<Tuple>(
-            [&](auto&& arg) {
+            [&](auto const& arg) {
                 return map_data(mapper, std::forward<decltype(arg)>(arg));
             },
-            std::forward<Ts>(args)...));
+            args...));
     }
 }
 
@@ -83,6 +82,17 @@ constexpr auto map_value_range(DataMapper& mapper, It begin, It end) noexcept {
     if constexpr (!mapper.template has_data<It>()) {
         return mapper.template copy_n<It>(std::move(begin),
                                           std::distance(begin, end));
+    }
+    else {
+        return typename DataMapper::template Result<It>(begin);
+    }
+}
+
+template <typename DataMapper, typename It, typename Size>
+constexpr auto
+map_value_range(DataMapper& mapper, It begin, Size size) noexcept {
+    if constexpr (!mapper.template has_data<It>()) {
+        return mapper.template copy_n<It>(std::move(begin), size);
     }
     else {
         return typename DataMapper::template Result<It>(begin);

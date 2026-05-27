@@ -158,31 +158,41 @@ public:
                              traits::data_map_index_t<DataMapper, IndexIter>,
                              traits::data_map_index_t<DataMapper, OffsetsIter>,
                              Format>> {
+        using Result = traits::data_map_result_t<
+            DataMapper,
+            CompressedMatrix<traits::data_map_value_t<DataMapper, DataIter>,
+                             traits::data_map_index_t<DataMapper, IndexIter>,
+                             traits::data_map_index_t<DataMapper, OffsetsIter>,
+                             Format>>;
 
         auto mapped_data = map_value_range(mapper, matrix.data(), matrix.nnz());
         if (!mapped_data) {
-            return std::move(mapped_data).error();
+            return Result{std::move(mapped_data).error()};
         }
 
         auto mapped_indices =
             map_index_range(mapper, matrix.indices(), matrix.nnz());
         if (!mapped_indices) {
-            return std::move(mapped_indices).error();
+            return Result{std::move(mapped_indices).error()};
         }
 
         auto mapped_offsets =
             map_index_range(mapper, matrix.offsets(), matrix.outer_dim() + 1);
 
         if (!mapped_offsets) {
-            return std::move(mapped_offsets).error();
+            return Result{std::move(mapped_offsets).error()};
         }
 
-        return {std::move(mapped_data).value(),
-                std::move(mapped_indices).value(),
-                std::move(mapped_offsets).value(),
-                matrix.nnz(),
-                matrix.outer_dim(),
-                matrix.inner_dim()};
+        return Result{CompressedMatrix<
+            traits::data_map_value_t<DataMapper, DataIter>,
+            traits::data_map_index_t<DataMapper, IndexIter>,
+            traits::data_map_index_t<DataMapper, OffsetsIter>,
+            Format>{std::move(mapped_data).value(),
+                    std::move(mapped_indices).value(),
+                    std::move(mapped_offsets).value(),
+                    matrix.nnz(),
+                    matrix.outer_dim(),
+                    matrix.inner_dim()}};
     }
 };
 
