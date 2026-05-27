@@ -226,7 +226,7 @@ public:
         }
         else if constexpr (traits::is_tagged_ptr_for_v<T, It>) {
             return copy(Span<const T>{
-                begin.raw_ptr(), static_cast<size_t>(end - begin.raw_ptr())});
+                begin.data(), static_cast<size_t>(end - begin)});
         }
         else {
             std::vector<T> data(begin, end);
@@ -236,7 +236,7 @@ public:
 
     template <typename T, typename It>
     Result<Ptr<T>> copy_n(It begin, size_t count) noexcept {
-        return copy(begin, begin + count);
+        return copy<T>(begin, begin + count);
     }
 };
 
