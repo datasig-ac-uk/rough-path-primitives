@@ -99,11 +99,11 @@ public:
     }
 
     template <typename Container>
-    RPP_HOST_DEVICE constexpr Span(Container& container) noexcept
+    constexpr Span(Container& container) noexcept
         : Extent(container.size()), data_(container.data()) {}
 
     template <typename Container>
-    RPP_HOST_DEVICE constexpr Span(Container const& container) noexcept
+    constexpr Span(Container const& container) noexcept
         : Extent(container.size()), data_(container.data()) {}
 
     template <size_t ArraySize>
