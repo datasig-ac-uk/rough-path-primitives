@@ -182,7 +182,7 @@ private:
         }
 
         allocations_.push_back(ptr);
-        return tag_pointer<Architecture>(ptr);
+        return Ptr<T>(ptr);
     }
 
 public:
@@ -230,7 +230,7 @@ public:
         }
         else {
             std::vector<T> data(begin, end);
-            return copy(data);
+            return copy(Span<const T> (data));
         }
     }
 
