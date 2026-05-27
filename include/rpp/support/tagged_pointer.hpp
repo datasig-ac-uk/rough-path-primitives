@@ -40,6 +40,10 @@ public:
     RPP_HOST_DEVICE constexpr TaggedPtr(U* ptr)
         : Tags{}..., ptr_(static_cast<T*>(ptr)) {}
 
+    template <typename U,
+              typename = std::enable_if_t<std::is_convertible_v<U*, T*>>>
+    RPP_HOST_DEVICE constexpr TaggedPtr(TaggedPtr<U, Tags...> ptr)
+        : Tags{}..., ptr_(static_cast<T*>(ptr)) {}
 
     template <typename U,
               typename = std::enable_if_t<std::is_convertible_v<T*, U*>>>
