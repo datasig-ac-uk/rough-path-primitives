@@ -9,7 +9,6 @@ namespace {
 
 TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
-    using GpuOp = rpp::ops::TensorPairing<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
 
     for (auto const& config : rpp::tests::gpu_block_test_configs) {
@@ -24,17 +23,22 @@ TEST(GpuBlockTensorPairingTests, MatchesCpuForSingleElementBatches) {
             Helper::make_batch(2, basis, Helper::Scalar{0.01});
         Helper::Scalar expected = 0;
 
-        auto const cpu_ctx = Helper::CpuStrategy::make_context(nullptr);
-        auto functional =
-            Helper::host_tensor_batch(functional_data, basis).view(0);
-        auto arg = Helper::host_tensor_batch(arg_data, basis).view(0);
-        rpp::ops::TensorPairing<Helper::CpuStrategy>{}(
-            cpu_ctx, expected, functional, arg);
+        auto expected_batch = Helper::HostVector<Helper::Scalar>(1);
+        auto const cpu_err = rpp::ops::tensor_pairing(
+            cpu_strategy,
+            Helper::CpuStrategy::LaunchConfig{},
+            rpp::make_scalar_batch(Helper::host_data(expected_batch)),
+            Helper::host_tensor_batch(functional_data, basis),
+            Helper::host_tensor_batch(arg_data, basis),
+            basis,
+            1);
+        ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
+        ASSERT_EQ(expected_batch.size(), std::size_t{1});
+        expected = expected_batch[0];
 
         Helper::DeviceVector<Helper::Scalar> device_functional(functional_data);
         Helper::DeviceVector<Helper::Scalar> device_arg(arg_data);
         Helper::DeviceVector<Helper::Scalar> device_actual(1);
-        Helper::DeviceBasis device_basis(basis_data);
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;

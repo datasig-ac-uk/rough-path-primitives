@@ -9,7 +9,6 @@ namespace {
 
 TEST(GpuBlockFtFmaTests, MatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
-    using GpuOp = rpp::ops::FTFma<Helper::GpuStrategy>;
     RPP_REQUIRE_CUDA_DEVICE();
 
     for (auto const& config : rpp::tests::gpu_block_test_configs) {
@@ -30,7 +29,6 @@ TEST(GpuBlockFtFmaTests, MatchesCpuForSingleElementBatches) {
         Helper::DeviceVector<Helper::Scalar> device_a(a);
         Helper::DeviceVector<Helper::Scalar> device_b(b);
         Helper::DeviceVector<Helper::Scalar> device_c(c);
-        Helper::DeviceBasis device_basis(basis_data);
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
@@ -48,10 +46,8 @@ TEST(GpuBlockFtFmaTests, MatchesCpuForSingleElementBatches) {
         ASSERT_TRUE(static_cast<bool>(err)) << err.message();
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
-        auto const cpu_err = Helper::launch_cpu([&](auto const& strategy,
-                                                    auto config) {
-            return rpp::ops::ft_fma(strategy,
-                                    std::move(config),
+        auto const cpu_err =  rpp::ops::ft_fma(cpu_strategy,
+                                    Helper::CpuStrategy::LaunchConfig{},
                                     Helper::host_tensor_batch(expected, basis),
                                     Helper::host_tensor_batch(a, basis),
                                     Helper::host_tensor_batch(b, basis),
@@ -60,7 +56,6 @@ TEST(GpuBlockFtFmaTests, MatchesCpuForSingleElementBatches) {
                                     Helper::tensor_count,
                                     alpha,
                                     beta);
-        });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);

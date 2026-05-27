@@ -11,9 +11,6 @@ namespace {
 TEST(GpuBlockFtInplaceFmaTests,
      AEqualsBCPlusAMatchesCpuForSingleElementBatches) {
     using Helper = rpp::tests::GpuBlockTestHelper;
-    using GpuOp =
-        rpp::ops::FTInplaceFma<Helper::GpuStrategy,
-                               rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>;
     RPP_REQUIRE_CUDA_DEVICE();
 
     for (auto const& config : rpp::tests::gpu_block_test_configs) {
@@ -32,7 +29,6 @@ TEST(GpuBlockFtInplaceFmaTests,
         Helper::DeviceVector<Helper::Scalar> device_actual(actual);
         Helper::DeviceVector<Helper::Scalar> device_b(b);
         Helper::DeviceVector<Helper::Scalar> device_c(c);
-        Helper::DeviceBasis device_basis(basis_data);
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
@@ -51,11 +47,9 @@ TEST(GpuBlockFtInplaceFmaTests,
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const cpu_err =
-            Helper::launch_cpu([&](auto const& strategy, auto config) {
-                return rpp::ops::ft_inplace_fma<
-                    rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(
-                    strategy,
-                    std::move(config),
+             rpp::ops::ft_inplace_fma<
+                    rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(cpu_strategy,
+                                    Helper::CpuStrategy::LaunchConfig{},
                     Helper::host_tensor_batch(expected, basis),
                     Helper::host_tensor_batch(b, basis),
                     Helper::host_tensor_batch(c, basis),
@@ -63,7 +57,6 @@ TEST(GpuBlockFtInplaceFmaTests,
                     Helper::tensor_count,
                     alpha,
                     beta);
-            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
@@ -99,7 +92,6 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference) {
         Helper::DeviceVector<Helper::Scalar> device_ab(actual_ab);
         Helper::DeviceVector<Helper::Scalar> device_b(b);
         Helper::DeviceVector<Helper::Scalar> device_c(c);
-        Helper::DeviceBasis device_basis(basis_data);
 
         rpp::gpu::DeviceLaunchConfig launch_config_ab;
         launch_config_ab.stream = nullptr;
@@ -118,10 +110,8 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference) {
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const cpu_err_ab =
-            Helper::launch_cpu([&](auto const& strategy, auto config) {
-                return rpp::ops::ft_fma(
-                    strategy,
-                    std::move(config),
+             rpp::ops::ft_fma(cpu_strategy,
+                                    Helper::CpuStrategy::LaunchConfig{},
                     Helper::host_tensor_batch(expected_ab, basis),
                     Helper::host_tensor_batch(c, basis),
                     Helper::host_tensor_batch(initial_a, basis),
@@ -130,7 +120,6 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference) {
                     Helper::tensor_count,
                     alpha,
                     beta);
-            });
         ASSERT_TRUE(static_cast<bool>(cpu_err_ab)) << cpu_err_ab.message();
 
         actual_ab = Helper::copy_to_host(device_ab);
@@ -157,10 +146,8 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference) {
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const cpu_err_ba =
-            Helper::launch_cpu([&](auto const& strategy, auto config) {
-                return rpp::ops::ft_fma(
-                    strategy,
-                    std::move(config),
+             rpp::ops::ft_fma(cpu_strategy,
+                                    Helper::CpuStrategy::LaunchConfig{},
                     Helper::host_tensor_batch(expected_ba, basis),
                     Helper::host_tensor_batch(c, basis),
                     Helper::host_tensor_batch(b, basis),
@@ -169,7 +156,6 @@ TEST(GpuBlockFtInplaceFmaTests, OrderedVariantsMatchCpuFmaReference) {
                     Helper::tensor_count,
                     alpha,
                     beta);
-            });
         ASSERT_TRUE(static_cast<bool>(cpu_err_ba)) << cpu_err_ba.message();
 
         actual_ba = Helper::copy_to_host(device_ba);

@@ -60,9 +60,10 @@ namespace rpp::tests {
 struct GpuBlockTestHelper {
     using Scalar = float;
     using GpuArchitecture = gpu::arch::Architecture32;
-    using Degree = typename GpuArchitecture::Degree;
-    using Index = typename GpuArchitecture::Index;
-    using Basis = basis::TensorBasis<GpuArchitecture>;
+    using HostArchitecture = arch::NativeArchitecture;
+    using Degree = typename HostArchitecture::Degree;
+    using Index = typename HostArchitecture::Index;
+    using Basis = basis::TensorBasis<HostArchitecture>;
 
     template <typename T>
     using HostVector = thrust::host_vector<T>;
@@ -98,7 +99,7 @@ struct GpuBlockTestHelper {
 
         BasisData(Degree width, Degree depth)
             : degree_begin(make_degree_begin(width, depth)),
-              basis(width, depth, degree_begin.data()) {}
+              basis{width, depth, degree_begin.data()} {}
     };
 
     struct DeviceBasis {
@@ -158,11 +159,6 @@ struct GpuBlockTestHelper {
 
     [[nodiscard]] static CpuStrategy cpu_strategy() noexcept {
         return CpuStrategy{};
-    }
-
-    template <typename Fn>
-    [[nodiscard]] static auto launch_cpu(Fn&& fn) {
-        return fn(cpu_strategy(), typename CpuStrategy::LaunchConfig{});
     }
 
     [[nodiscard]] static GpuStrategy gpu_strategy() noexcept {
@@ -232,7 +228,7 @@ struct GpuBlockTestHelper {
     [[nodiscard]] static auto host_tensor_batch(HostVector<Scalar> const& data,
                                                 Basis const& basis) {
         return rpp::make_tensor_batch(
-            host_data(data), basis.size(), basis, Degree{0}, basis.depth);
+            host_data(data), basis.size(),  Degree{0}, basis.depth);
     }
 
     [[nodiscard]] static auto device_tensor_batch(DeviceVector<Scalar>& data,

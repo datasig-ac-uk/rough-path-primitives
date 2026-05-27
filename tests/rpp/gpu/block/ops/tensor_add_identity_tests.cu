@@ -22,7 +22,6 @@ TEST(GpuBlockTensorAddIdentityTests, MatchesCpuForSingleElementBatches) {
         auto actual = expected;
 
         Helper::DeviceVector<Helper::Scalar> device_actual(actual);
-        Helper::DeviceBasis device_basis(basis_data);
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
@@ -37,15 +36,12 @@ TEST(GpuBlockTensorAddIdentityTests, MatchesCpuForSingleElementBatches) {
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const cpu_err =
-            Helper::launch_cpu([&](auto const& strategy, auto config) {
-                return rpp::ops::tensor_add_identity(
-                    strategy,
-                    std::move(config),
+             rpp::ops::tensor_add_identity(cpu_strategy,
+                                    Helper::CpuStrategy::LaunchConfig{},
                     Helper::host_tensor_batch(expected, basis),
                     basis,
                     Helper::tensor_count,
                     scalar);
-            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);

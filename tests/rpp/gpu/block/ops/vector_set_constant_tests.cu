@@ -22,7 +22,6 @@ TEST(GpuBlockVectorSetConstantTests, MatchesCpuForSingleElementBatches) {
         auto actual = expected;
 
         Helper::DeviceVector<Helper::Scalar> device_actual(actual);
-        Helper::DeviceBasis device_basis(basis_data);
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
@@ -37,15 +36,12 @@ TEST(GpuBlockVectorSetConstantTests, MatchesCpuForSingleElementBatches) {
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const cpu_err =
-            Helper::launch_cpu([&](auto const& strategy, auto config) {
-                return rpp::ops::vector_set_constant(
-                    strategy,
-                    std::move(config),
+             rpp::ops::vector_set_constant(cpu_strategy,
+                                    Helper::CpuStrategy::LaunchConfig{},
                     Helper::host_vector_batch(expected, basis),
                     basis,
                     Helper::tensor_count,
                     value);
-            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
@@ -67,7 +63,6 @@ TEST(GpuBlockVectorSetZeroTests, MatchesCpuForSingleElementBatches) {
         auto actual = expected;
 
         Helper::DeviceVector<Helper::Scalar> device_actual(actual);
-        Helper::DeviceBasis device_basis(basis_data);
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
@@ -82,15 +77,12 @@ TEST(GpuBlockVectorSetZeroTests, MatchesCpuForSingleElementBatches) {
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         auto const cpu_err =
-            Helper::launch_cpu([&](auto const& strategy, auto config) {
-                return rpp::ops::vector_set_constant(
-                    strategy,
-                    std::move(config),
+             rpp::ops::vector_set_constant(cpu_strategy,
+                                    Helper::CpuStrategy::LaunchConfig{},
                     Helper::host_vector_batch(expected, basis),
                     basis,
                     Helper::tensor_count,
                     Helper::Scalar{0});
-            });
         ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
 
         actual = Helper::copy_to_host(device_actual);
