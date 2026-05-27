@@ -35,7 +35,7 @@ inline constexpr bool is_basis_tag_v<IndexedBasisTag<Index, Tag>> = true;
 
 struct InputBasisTagger {
     template <typename T>
-    using tagger = std::conditional_t<is_basis_tag_v<T>, OutputBasisTag<T>, T>;
+    using tagger = std::conditional_t<is_basis_tag_v<T>, InputBasisTag<T>, T>;
 };
 
 struct OutputBasisTagger {
