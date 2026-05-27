@@ -164,6 +164,7 @@ public:
                              traits::data_map_index_t<DataMapper, IndexIter>,
                              traits::data_map_index_t<DataMapper, OffsetsIter>,
                              Format>>;
+        using MappedIndex = typename DataMapper::Index;
 
         auto mapped_data = map_value_range(mapper, matrix.data(), matrix.nnz());
         if (!mapped_data) {
@@ -190,9 +191,9 @@ public:
             Format>{std::move(mapped_data).value(),
                     std::move(mapped_indices).value(),
                     std::move(mapped_offsets).value(),
-                    matrix.nnz(),
-                    matrix.outer_dim(),
-                    matrix.inner_dim()}};
+                    static_cast<MappedIndex>(matrix.nnz()),
+                    static_cast<MappedIndex>(matrix.outer_dim()),
+                    static_cast<MappedIndex>(matrix.inner_dim())}};
     }
 };
 
