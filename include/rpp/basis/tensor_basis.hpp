@@ -106,7 +106,7 @@ struct TensorBasis : GradedBasis<Architecture_, TensorBasisTag> {
     map_data(DataMapper& mapper, TensorBasis const& basis) noexcept {
         using MappedBasis = TensorBasis<typename DataMapper::Architecture>;
 
-        auto mapped_db = map_index_range(mapper, basis.degree_begin, basis.depth+1);
+        auto mapped_db = map_index_range(mapper, basis.degree_begin, basis.depth+2);
         if (!mapped_db) {
             return std::move(mapped_db).error();
         }

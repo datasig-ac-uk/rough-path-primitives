@@ -85,7 +85,7 @@ struct GradedBasis {
         GradedBasis<typename DataMapper::Architecture, Tag_>>
     map_data(DataMapper& mapper, GradedBasis const& basis) noexcept {
 
-        auto mapped_db = map_index_range(mapper, basis.degree_begin, basis.depth+1);
+        auto mapped_db = map_index_range(mapper, basis.degree_begin, basis.depth+2);
         if (!mapped_db) {
             return std::move(mapped_db).error();
         }

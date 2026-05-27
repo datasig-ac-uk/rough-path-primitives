@@ -146,11 +146,11 @@ struct LieBasis : GradedBasis<Architecture_, LieBasisTag>, Ordering {
         LieBasis<typename DataMapper::Architecture, Ordering>>
     map_data(DataMapper& mapper, LieBasis const& basis) noexcept {
 
-        auto mapped_db = map_index_range(mapper, basis.degree_begin, basis.depth + 1);
+        auto mapped_db = map_index_range(mapper, basis.degree_begin, basis.depth + 2);
         if (!mapped_db) {
             return std::move(mapped_db).error();
         }
-        auto mapped_data = map_index_range(mapper, basis.data, basis.size());
+        auto mapped_data = map_index_range(mapper, basis.data, 2*basis.true_size());
         if (!mapped_data) {
             return std::move(mapped_data).error();
         }
