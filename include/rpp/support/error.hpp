@@ -190,7 +190,7 @@ public:
                   !std::is_same_v<std::remove_cv_t<U>, Result>>>
     // ReSharper disable once CppNonExplicitConvertingConstructor
     constexpr Result(U&& v) noexcept
-        : stored_(std::in_place_type<U>, std::forward<U>(v)) {}
+        : stored_(std::in_place_type<T>, std::forward<U>(v)) {}
 
     // ReSharper disable once CppNonExplicitConvertingConstructor
     constexpr Result(E err) noexcept
