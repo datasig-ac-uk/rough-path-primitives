@@ -4,6 +4,7 @@
 #include <rpp/architecture.hpp>
 #include <rpp/config.h>
 #include <rpp/support/tagged_pointer.hpp>
+#include <rpp/support/data_mapping.hpp>
 
 namespace rpp::basis {
 
@@ -83,22 +84,14 @@ struct GradedBasis {
     RPP_NODISCARD friend typename DataMapper::template Result<
         GradedBasis<typename DataMapper::Architecture, Tag_>>
     map_data(DataMapper& mapper, GradedBasis const& basis) noexcept {
-        if constexpr (std::is_same_v<Architecture_,
-                                     typename DataMapper::Architecture>) {
-            return basis;
-        }
-        else {
-            using TgtIndex = typename DataMapper::Architecture::Index;
 
-            auto mapped_db = mapper.template copy_n<TgtIndex>(
-                basis.degree_begin, basis.depth + 2);
-            if (!mapped_db) {
-                return std::move(mapped_db).error();
-            }
-
-            return GradedBasis<typename DataMapper::Architecture, Tag_>{
-                mapped_db.width, mapped_db.depth, mapped_db.value()};
+        auto mapped_db = map_index_range(mapper, basis.degree_begin, basis.depth+1);
+        if (!mapped_db) {
+            return std::move(mapped_db).error();
         }
+
+        return GradedBasis<typename DataMapper::Architecture, Tag_>{
+            mapped_db.width, mapped_db.depth, mapped_db.value()};
     }
 };
 

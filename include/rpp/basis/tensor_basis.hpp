@@ -7,6 +7,7 @@
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
+#include <rpp/support/data_mapping.hpp>
 
 #include <rpp/basis/basis_tags.hpp>
 #include <rpp/basis/graded_basis.hpp>
@@ -97,6 +98,21 @@ struct TensorBasis : GradedBasis<Architecture_, TensorBasisTag> {
             idx /= this->width;
         }
         return result;
+    }
+
+    template <typename DataMapper>
+    RPP_NODISCARD friend typename DataMapper::template Result<
+        TensorBasis<typename DataMapper::Architecture>>
+    map_data(DataMapper& mapper, TensorBasis const& basis) noexcept {
+        using MappedBasis = TensorBasis<typename DataMapper::Architecture>;
+
+        auto mapped_db = map_index_range(mapper, basis.degree_begin, basis.depth+1);
+        if (!mapped_db) {
+            return std::move(mapped_db).error();
+        }
+
+        return MappedBasis{
+            basis.width, basis.depth, std::move(mapped_db).value()};
     }
 };
 
