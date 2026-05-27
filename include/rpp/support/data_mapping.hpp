@@ -80,7 +80,8 @@ constexpr auto map_data_args(DataMapper& mapper, Ts const&... args) noexcept {
 template <typename DataMapper, typename It>
 constexpr auto map_value_range(DataMapper& mapper, It begin, It end) noexcept {
     if constexpr (!mapper.template has_data<It>()) {
-        return mapper.template copy_n<It>(std::move(begin),
+        using Traits = traits::IteratorTraits<It>;
+        return mapper.template copy_n<typename Traits::value_type>(std::move(begin),
                                           std::distance(begin, end));
     }
     else {
@@ -92,7 +93,8 @@ template <typename DataMapper, typename It, typename Size>
 constexpr auto
 map_value_range(DataMapper& mapper, It begin, Size size) noexcept {
     if constexpr (!mapper.template has_data<It>()) {
-        return mapper.template copy_n<It>(std::move(begin), size);
+        using Traits = traits::IteratorTraits<It>;
+        return mapper.template copy_n<typename Traits::value_type>(std::move(begin), size);
     }
     else {
         return typename DataMapper::template Result<It>(begin);
