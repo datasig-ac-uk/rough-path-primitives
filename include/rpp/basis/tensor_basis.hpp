@@ -111,8 +111,8 @@ struct TensorBasis : GradedBasis<Architecture_, TensorBasisTag> {
             return std::move(mapped_db).error();
         }
 
-        return MappedBasis{
-            basis.width, basis.depth, std::move(mapped_db).value()};
+        return MappedBasis(
+            basis.width, basis.depth, std::move(mapped_db).value());
     }
 };
 
