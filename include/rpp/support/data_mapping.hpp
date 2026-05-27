@@ -10,6 +10,7 @@
 #include <rpp/utility.hpp>
 
 
+
 namespace rpp {
 
 
@@ -24,15 +25,15 @@ using data_map_value_t =
                        It,
                        typename Mapper::template Ptr<Value>>;
 
-template <typename Mapper, typename It>
-using data_map_index_t = data_map_value_t<Mapper, It, typename Mapper::Index>;
+template <typename DataMapper, typename It>
+using data_map_index_t = data_map_value_t<DataMapper, It, typename DataMapper::Index>;
 
-template <typename Mapper, typename It>
-using data_map_degree_t = data_map_value_t<Mapper, It, typename Mapper::Degree>;
+template <typename DataMapper, typename It>
+using data_map_degree_t = data_map_value_t<DataMapper, It, typename DataMapper::Degree>;
 
-template <typename Mapper, typename T>
+template <typename DataMapper, typename T>
 struct DataMapped {
-    using type = decltype(map_data(std::declval<Mapper&>(), std::declval<T const&>()));
+    using type = decltype(map_data(std::declval<DataMapper&>(), std::declval<T>()));
 };
 
 template <typename Mapper, typename T>
