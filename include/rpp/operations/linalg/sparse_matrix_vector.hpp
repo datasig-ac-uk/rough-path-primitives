@@ -86,8 +86,7 @@ auto sparse_matrix_vector_product(
 
     return strategy.template launch<Op>(
         std::move(config),
-        std::make_tuple(tag_batch(out, OutputBasisTagger{}),
-                        tag_batch(arg, InputBasisTagger{})),
+        std::make_tuple(batch::out(out), batch::in(arg)),
         make_basis_pack(basis::out(out_basis), basis::in(arg_basis)),
         num_batches,
         matrix,
