@@ -45,7 +45,7 @@ constexpr auto make_lie_batch(Data&& data,
                                           layouts::StrideLayout<Layout>,
                                           Layout>;
     using MetaData = std::tuple<BasisOrTag, MinDegree, MaxDegree>;
-    using Basis = std::conditional_t<is_basis_tag_v<BasisOrTag>,
+    using Basis = std::conditional_t<basis::is_basis_tag_v<BasisOrTag>,
                                      basis::LieBasis<traits::arch_of_t<Data>>,
                                      BasisOrTag>;
     using BatchType = Batch<DenseLieView<Data, Basis>, RealLayout, MetaData>;

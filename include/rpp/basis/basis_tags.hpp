@@ -51,35 +51,11 @@ struct IndexBasisTagger {
 };
 
 template <typename Tagger, typename T>
-using apply_tagger = typename Tagger::template tagger<T>;
+using apply_tagger_t = typename Tagger::template tagger<T>;
 
 
 } // namespace rpp::basis
 
-namespace rpp {
-
-template <typename T>
-inline constexpr bool is_basis_tag_v = basis::is_basis_tag_v<T>;
-
-template <typename Tag>
-using InputBasisTag = basis::InputBasisTag<Tag>;
-
-template <typename Tag>
-using OutputBasisTag = basis::OutputBasisTag<Tag>;
-
-template <size_t Index, typename Tag>
-using IndexedBasisTag = basis::IndexedBasisTag<Index, Tag>;
-
-using InputBasisTagger = basis::InputBasisTagger;
-using OutputBasisTagger = basis::OutputBasisTagger;
-
-template <size_t Index>
-using IndexBasisTagger = basis::IndexBasisTagger<Index>;
-
-template <typename Tagger, typename T>
-using apply_tagger = basis::apply_tagger<Tagger, T>;
-
-} // namespace rpp
 
 
 #define RPP_MAKE_BASIS_TAG(basis_name)                                         \

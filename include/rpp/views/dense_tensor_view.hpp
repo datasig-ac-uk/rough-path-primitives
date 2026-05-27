@@ -50,7 +50,7 @@ constexpr auto make_tensor_batch(Data&& data,
     using StoredBasisOrTag = std::decay_t<BasisOrTag>;
     using MetaData = std::tuple<StoredBasisOrTag, MinDegree, MaxDegree>;
     using Basis =
-        std::conditional_t<is_basis_tag_v<StoredBasisOrTag>,
+        std::conditional_t<basis::is_basis_tag_v<StoredBasisOrTag>,
                            basis::TensorBasis<traits::arch_of_t<StoredData>>,
                            StoredBasisOrTag>;
     using BatchType =

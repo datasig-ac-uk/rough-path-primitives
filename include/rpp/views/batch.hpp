@@ -142,10 +142,6 @@ public:
     }
 };
 
-template <typename View, typename Layout, typename MetaData, typename Tagger>
-RPP_HOST_DEVICE constexpr auto
-tag_batch(Batch<View, Layout, MetaData> const& batch,
-          Tagger tagger RPP_MAYBE_UNUSED) noexcept;
 
 namespace detail {
 
@@ -174,13 +170,14 @@ struct ViewMetaData<T, std::void_t<typename T::MetaData>> {
 
 namespace batch {
 
-template <typename BasisTagger>
+template <typename BasisTaggerT>
 struct MetaDataTagger {
+    using BasisTagger = BasisTaggerT;
 
     template <typename T>
-    constexpr basis::apply_tagger<BasisTagger, T>
+    constexpr basis::apply_tagger_t<BasisTagger, std::decay_t<T>>
     operator()(T&& arg) const noexcept {
-        using Out = basis::apply_tagger<BasisTagger, T>;
+        using Out = basis::apply_tagger_t<BasisTagger, std::decay_t<T>>;
         return Out{std::forward<T>(arg)};
     }
 };
@@ -192,9 +189,9 @@ struct TagMetaDataImpl;
 
 template <typename Tagger, template <typename...> class Tuple, typename... Args>
 struct TagMetaDataImpl<Tagger, Tuple<Args...>> {
-    using type = Tuple<basis::apply_tagger<Tagger, Args>...>;
+    using type =
+        Tuple<basis::apply_tagger_t<typename Tagger::BasisTagger, Args>...>;
 };
-
 
 
 template <typename Tagger, typename T>
@@ -217,21 +214,30 @@ tag_batch(Batch<View, Layout, MetaData> const& batch,
 }
 
 template <typename View, typename Layout, typename MetaData>
-constexpr detail::tagged_batch_t<basis::InputBasisTagger, View, Layout, MetaData>
+constexpr detail::tagged_batch_t<MetaDataTagger<basis::InputBasisTagger>,
+                                 View,
+                                 Layout,
+                                 MetaData>
 in(Batch<View, Layout, MetaData> const& batch) noexcept {
     using Tagger = MetaDataTagger<basis::InputBasisTagger>;
     return tag_batch(batch, Tagger{});
 }
 
 template <typename View, typename Layout, typename MetaData>
-constexpr detail::tagged_batch_t<basis::OutputBasisTagger, View, Layout, MetaData>
+constexpr detail::tagged_batch_t<MetaDataTagger<basis::OutputBasisTagger>,
+                                 View,
+                                 Layout,
+                                 MetaData>
 out(Batch<View, Layout, MetaData> const& batch) noexcept {
     using Tagger = MetaDataTagger<basis::OutputBasisTagger>;
     return tag_batch(batch, Tagger{});
 }
 
 template <size_t Index, typename View, typename Layout, typename MetaData>
-constexpr detail::tagged_batch_t<basis::IndexBasisTagger<Index>, View, Layout, MetaData>
+constexpr detail::tagged_batch_t<MetaDataTagger<basis::IndexBasisTagger<Index>>,
+                                 View,
+                                 Layout,
+                                 MetaData>
 idx(Batch<View, Layout, MetaData> const& batch) noexcept {
     using Tagger = MetaDataTagger<basis::IndexBasisTagger<Index>>;
     return tag_batch(batch, Tagger{});
