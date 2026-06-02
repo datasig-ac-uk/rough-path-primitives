@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
         LibalgebraLite
         GIT_REPOSITORY https://github.com/datasig-ac-uk/libalgebra-lite.git
-        GIT_TAG 5adf56d2211df9faec7b0990ce332cfae0c42396
+        GIT_TAG 44464c1acd2ccf053e8145178083bd63aab697d5
 )
 
 set(LIBALGEBRA_LITE_RATIONAL_COEFFS ON CACHE INTERNAL "Use rational coefficients in CPU algebra tests")
