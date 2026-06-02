@@ -251,3 +251,7 @@ if (PROJECT_IS_TOP_LEVEL)
     )
 
 endif ()
+
+if(PROJECT_IS_TOP_LEVEL)
+    add_subdirectory(packaging)
+endif()

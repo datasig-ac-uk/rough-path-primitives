@@ -1,0 +1,39 @@
+
+
+
+set(CPACK_PACKAGE_NAME      RoughPathPrimitives)
+set(CPACK_PACKAGE_VENDOR    DataSig)
+set(CPACK_PACKAGE_DESCRIPTION "Collection of primitives for computational rough path theory")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CPACK_PACKAGE_NAME}")
+set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(CPACK_VERBATIM_VARIABLES YES)
+#set(CPACK_RESOURCE_DESCRIPTION_FILE )
+set(CPACK_RESOURCE_FILE_LICENSE ${PROJECT_SOURCE_DIR}/LICENSE.txt)
+set(CPACK_RESOURCE_FILE_README ${PROJECT_SOURCE_DIR}/README.md)
+
+if(WIN32)
+    set(CPACK_GENERATOR ZIP WIX)
+elseif(APPLE)
+    set(CPACK_GENERATOR TGZ productbuild)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CPACK_GENERATOR TGZ RPM)
+else()
+    set(CPACK_GENERATOR TGZ)
+endif()
+
+set(CPACK_SOURCE_IGNORE_FILES
+        /\\.git/
+        /build/
+        /cmake-.*
+        /Testing/
+        /CMakeUserPresets.json
+)
+
+include(CPack)
+
+
+
+
+
