@@ -3,6 +3,7 @@
 
 set(CPACK_PACKAGE_NAME      RoughPathPrimitives)
 set(CPACK_PACKAGE_VENDOR    DataSig)
+set(CPACK_PACKAGE_CONTACT   info@datasig.ac.uk)
 set(CPACK_PACKAGE_DESCRIPTION "Collection of primitives for computational rough path theory")
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CPACK_PACKAGE_NAME}")
 set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
