@@ -22,6 +22,16 @@ protected:
     static constexpr Degree width = 2;
     static constexpr Degree depth = 4;
 
+    [[nodiscard]] static std::vector<Scalar> zero_tensor(Basis const& basis) {
+        return std::vector<Scalar>(static_cast<std::size_t>(basis.size()));
+    }
+
+    [[nodiscard]] static std::vector<Scalar> identity_tensor(Basis const& basis) {
+        auto result = zero_tensor(basis);
+        result[0] = Scalar{1};
+        return result;
+    }
+
     [[nodiscard]] static std::vector<Scalar>
     make_positive_degree_tensor(char marker, Basis const& basis) {
         auto result = make_tensor(marker, basis);
@@ -120,6 +130,20 @@ TEST_F(FreeTensorExpLogTests, ExpLogRoundTripForExponentialInput) {
     auto const exp_log_exp_x = apply_exp(basis, log_exp_x);
 
     EXPECT_EQ(exp_log_exp_x, exp_x);
+}
+
+TEST_F(FreeTensorExpLogTests, ExpOfZeroIsIdentity) {
+    auto const basis_data = BasisData(width, depth);
+    auto const& basis = basis_data.basis;
+
+    EXPECT_EQ(apply_exp(basis, zero_tensor(basis)), identity_tensor(basis));
+}
+
+TEST_F(FreeTensorExpLogTests, LogOfIdentityIsZero) {
+    auto const basis_data = BasisData(width, depth);
+    auto const& basis = basis_data.basis;
+
+    EXPECT_EQ(apply_log(basis, identity_tensor(basis)), zero_tensor(basis));
 }
 
 TEST_F(FreeTensorExpLogTests, ExpMatchesUntruncatedHornerDefinition) {

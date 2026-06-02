@@ -16,6 +16,21 @@ class ShuffleTensorFmaTests : public testing::Test,
 protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
+
+    [[nodiscard]] static std::vector<Scalar> zero_outside_range(
+        std::vector<Scalar> value,
+        Basis const& basis,
+        Degree min_degree,
+        Degree max_degree) {
+        for (Degree degree = 0; degree <= basis.depth; ++degree) {
+            if (degree < min_degree || degree > max_degree) {
+                const auto begin = basis.start_of_degree(degree);
+                const auto end = basis.end_of_degree(degree);
+                std::fill(value.begin() + begin, value.begin() + end, Scalar{0});
+            }
+        }
+        return value;
+    }
 };
 
 TEST_F(ShuffleTensorFmaTests, AccumulatesShuffleProduct) {
@@ -114,6 +129,54 @@ TEST_F(ShuffleTensorFmaTests, KernelWrapperMatchesDirectOperation) {
         });
 
     EXPECT_EQ(actual, expected);
+}
+
+TEST_F(ShuffleTensorFmaTests, MatchesZeroExtendedOperandsForTruncatedViews) {
+    auto const basis_data = BasisData(width, depth);
+    auto const& basis = basis_data.basis;
+
+    auto out = make_tensor('o', basis);
+    auto const addend = make_tensor('a', basis);
+    auto const lhs = make_tensor('b', basis);
+    auto const rhs = make_tensor('c', basis);
+    auto expected = out;
+
+    auto const addend_min = Degree{1};
+    auto const addend_max = Degree{3};
+    auto const lhs_min = Degree{0};
+    auto const lhs_max = Degree{2};
+    auto const rhs_min = Degree{2};
+    auto const rhs_max = Degree{4};
+    auto const alpha = make_scalar({{{{'p', 1}}, 3, 2}});
+    auto const beta = make_scalar({{{{'q', 2}}, 5, 3}});
+
+    TensorView<Scalar*> out_view(out.data(), basis);
+    TensorView<Scalar const*> addend_view(
+        addend.data(), basis, addend_min, addend_max);
+    TensorView<Scalar const*> lhs_view(lhs.data(), basis, lhs_min, lhs_max);
+    TensorView<Scalar const*> rhs_view(rhs.data(), basis, rhs_min, rhs_max);
+
+    auto const ctx = make_context();
+    rpp::ops::STFma<Strategy>{}(
+        ctx, out_view, addend_view, lhs_view, rhs_view, alpha, beta);
+
+    auto const extended_addend =
+        zero_outside_range(addend, basis, addend_min, addend_max);
+    auto const extended_lhs = zero_outside_range(lhs, basis, lhs_min, lhs_max);
+    auto const extended_rhs = zero_outside_range(rhs, basis, rhs_min, rhs_max);
+    TensorView<Scalar*> expected_view(expected.data(), basis);
+    TensorView<Scalar const*> expected_addend_view(extended_addend.data(), basis);
+    TensorView<Scalar const*> expected_lhs_view(extended_lhs.data(), basis);
+    TensorView<Scalar const*> expected_rhs_view(extended_rhs.data(), basis);
+    rpp::ops::STFma<Strategy>{}(ctx,
+                                expected_view,
+                                expected_addend_view,
+                                expected_lhs_view,
+                                expected_rhs_view,
+                                alpha,
+                                beta);
+
+    EXPECT_EQ(out, expected);
 }
 
 } // namespace

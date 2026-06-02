@@ -18,6 +18,12 @@ protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 
+    [[nodiscard]] static Scalar one() { return make_scalar({{{}, 1, 1}}); }
+
+    [[nodiscard]] static std::vector<Scalar> zero_tensor(Basis const& basis) {
+        return std::vector<Scalar>(static_cast<std::size_t>(basis.size()));
+    }
+
     [[nodiscard]] static Scalar pairing(Basis const& basis,
                                         std::vector<Scalar> const& lhs,
                                         std::vector<Scalar> const& rhs) {
@@ -64,7 +70,7 @@ protected:
     apply_adj_mul(Basis const& basis,
                   std::vector<Scalar> const& op,
                   std::vector<Scalar> const& arg) {
-        std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
+        auto out = zero_tensor(basis);
 
         TensorView<Scalar*> out_view(out.data(), basis);
         TensorView<Scalar const*> op_view(op.data(), basis);
@@ -73,6 +79,13 @@ protected:
         auto const ctx = make_context();
         rpp::ops::STAdjMul<Strategy>{}(ctx, out_view, op_view, arg_view);
         return out;
+    }
+
+    [[nodiscard]] static std::vector<Scalar>
+    make_identity_operator(Basis const& basis) {
+        auto result = zero_tensor(basis);
+        result[0] = one();
+        return result;
     }
 };
 
@@ -121,6 +134,25 @@ TEST_F(ShuffleTensorAdjointMulTests, IsBilinearInOperatorAndArgument) {
     }
 
     EXPECT_EQ(lhs, rhs);
+}
+
+TEST_F(ShuffleTensorAdjointMulTests,
+       IdentityOperatorReturnsArgumentForTruncatedView) {
+    auto const basis_data = BasisData(width, depth);
+    auto const& basis = basis_data.basis;
+
+    auto const op = make_identity_operator(basis);
+    auto const arg = make_tensor('x', basis);
+    auto out = zero_tensor(basis);
+
+    TensorView<Scalar*> out_view(out.data(), basis);
+    TensorView<Scalar const*> op_view(op.data(), basis, Degree{0}, Degree{0});
+    TensorView<Scalar const*> arg_view(arg.data(), basis);
+
+    auto const ctx = make_context();
+    rpp::ops::STAdjMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+
+    EXPECT_EQ(out, arg);
 }
 
 TEST_F(ShuffleTensorAdjointMulTests, KernelWrapperMatchesDirectOperation) {

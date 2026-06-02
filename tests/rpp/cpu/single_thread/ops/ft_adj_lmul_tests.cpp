@@ -19,6 +19,12 @@ protected:
     static constexpr Degree width = 3;
     static constexpr Degree depth = 4;
 
+    [[nodiscard]] static Scalar one() { return make_scalar({{{}, 1, 1}}); }
+
+    [[nodiscard]] static std::vector<Scalar> zero_tensor(Basis const& basis) {
+        return std::vector<Scalar>(static_cast<std::size_t>(basis.size()));
+    }
+
     [[nodiscard]] static Scalar pairing(Basis const& basis,
                                         std::vector<Scalar> const& lhs,
                                         std::vector<Scalar> const& rhs) {
@@ -62,7 +68,7 @@ protected:
     apply_adj_mul(Basis const& basis,
                   std::vector<Scalar> const& op,
                   std::vector<Scalar> const& arg) {
-        std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
+        auto out = zero_tensor(basis);
 
         TensorView<Scalar*> out_view(out.data(), basis);
         TensorView<Scalar const*> op_view(op.data(), basis);
@@ -71,6 +77,39 @@ protected:
         auto const ctx = make_context();
         rpp::ops::FTAdjLMul<Strategy>{}(ctx, out_view, op_view, arg_view);
         return out;
+    }
+
+    [[nodiscard]] static std::vector<Scalar>
+    make_identity_operator(Basis const& basis) {
+        auto result = zero_tensor(basis);
+        result[0] = one();
+        return result;
+    }
+
+    [[nodiscard]] static std::vector<Scalar>
+    make_letter_operator(Basis const& basis, Index letter_index) {
+        auto result = zero_tensor(basis);
+        result[static_cast<std::size_t>(basis.start_of_degree(1) + letter_index)] =
+            one();
+        return result;
+    }
+
+    [[nodiscard]] static std::vector<Scalar>
+    expected_left_shift(Basis const& basis,
+                        std::vector<Scalar> const& arg,
+                        Index letter_index) {
+        auto result = zero_tensor(basis);
+        for (Degree degree = 0; degree < basis.depth; ++degree) {
+            const auto level_size = basis.size_of_degree(degree);
+            const auto src_begin =
+                basis.start_of_degree(degree + 1) + letter_index * level_size;
+            const auto dst_begin = basis.start_of_degree(degree);
+            for (Index idx = 0; idx < level_size; ++idx) {
+                result[static_cast<std::size_t>(dst_begin + idx)] =
+                    arg[static_cast<std::size_t>(src_begin + idx)];
+            }
+        }
+        return result;
     }
 };
 
@@ -121,6 +160,48 @@ TEST_F(FreeTensorAdjointLeftMulTests, IsBilinearInOperatorAndArgument) {
     EXPECT_EQ(lhs, rhs);
 }
 
+TEST_F(FreeTensorAdjointLeftMulTests,
+       IdentityOperatorReturnsArgumentForTruncatedView) {
+    auto const basis_data = BasisData(width, depth);
+    auto const& basis = basis_data.basis;
+
+    auto const op = make_identity_operator(basis);
+    auto const arg = make_tensor('x', basis);
+    auto const actual = [&] {
+        auto out = zero_tensor(basis);
+        TensorView<Scalar*> out_view(out.data(), basis);
+        TensorView<Scalar const*> op_view(op.data(), basis, Degree{0}, Degree{0});
+        TensorView<Scalar const*> arg_view(arg.data(), basis);
+
+        auto const ctx = make_context();
+        rpp::ops::FTAdjLMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        return out;
+    }();
+
+    EXPECT_EQ(actual, arg);
+}
+
+TEST_F(FreeTensorAdjointLeftMulTests, LetterOperatorShiftsCoefficientsLeft) {
+    auto const basis_data = BasisData(width, depth);
+    auto const& basis = basis_data.basis;
+
+    constexpr Index letter_index = 1;
+    auto const op = make_letter_operator(basis, letter_index);
+    auto const arg = make_tensor('x', basis);
+    auto const actual = [&] {
+        auto out = zero_tensor(basis);
+        TensorView<Scalar*> out_view(out.data(), basis);
+        TensorView<Scalar const*> op_view(op.data(), basis, Degree{1}, Degree{1});
+        TensorView<Scalar const*> arg_view(arg.data(), basis);
+
+        auto const ctx = make_context();
+        rpp::ops::FTAdjLMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        return out;
+    }();
+
+    EXPECT_EQ(actual, expected_left_shift(basis, arg, letter_index));
+}
+
 TEST_F(FreeTensorAdjointLeftMulTests, KernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 
@@ -148,6 +229,49 @@ TEST_F(FreeTensorAdjointLeftMulTests, KernelWrapperMatchesDirectOperation) {
             auto operator_arg = Wrapper::tensor_view(op_arg, basis, tensor_idx);
             auto operand = Wrapper::tensor_view(arg, basis, tensor_idx);
             op(ctx, out, operator_arg, operand);
+        });
+
+    EXPECT_EQ(actual, expected);
+}
+
+TEST_F(FreeTensorAdjointLeftMulTests,
+       KernelWrapperMatchesDirectOperationForIdentityOperator) {
+    using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
+
+    auto const basis_data = Wrapper::BasisData(Wrapper::width, Wrapper::depth);
+    auto const& basis = basis_data.basis;
+    auto const strategy = Wrapper::Strategy{};
+
+    auto actual = Wrapper::make_batch('o', basis);
+    auto expected = actual;
+    auto op = Wrapper::make_batch('a', basis);
+    auto const arg = Wrapper::make_batch('x', basis);
+
+    for (Wrapper::Index tensor_idx = 0; tensor_idx < Wrapper::tensor_count;
+         ++tensor_idx) {
+        auto const offset =
+            static_cast<std::size_t>(tensor_idx * basis.size());
+        std::fill(op.begin() + offset, op.begin() + offset + basis.size(), Scalar{});
+        op[offset] = one();
+    }
+
+    const auto err = rpp::ops::ft_adj_lmul(
+        strategy,
+        typename Strategy::LaunchConfig{},
+        Wrapper::tensor_batch(actual, basis),
+        rpp::make_tensor_batch(op.data(), basis.size(), Degree{0}, Degree{0}),
+        Wrapper::tensor_batch(arg, basis),
+        basis,
+        Wrapper::tensor_count);
+
+    EXPECT_TRUE(static_cast<bool>(err)) << err.message();
+    Wrapper::apply_direct<rpp::ops::FTAdjLMul<Wrapper::Strategy>>(
+        basis, [&](auto const& op_impl, auto const& ctx, Wrapper::Index tensor_idx) {
+            auto out = Wrapper::tensor_view(expected, basis, tensor_idx);
+            auto operator_arg =
+                Wrapper::tensor_view(op, basis, tensor_idx).truncate(0, 0);
+            auto operand = Wrapper::tensor_view(arg, basis, tensor_idx);
+            op_impl(ctx, out, operator_arg, operand);
         });
 
     EXPECT_EQ(actual, expected);
