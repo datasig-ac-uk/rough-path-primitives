@@ -55,10 +55,12 @@ public:
         return 3 * batch_stride(basis.size());
     }
 
-    template <typename Basis>
+    template <typename BasisLike>
     static void init_scratch_space(Context const& ctx,
-                                   Basis const& basis) noexcept {
+                                   BasisLike const& basis_like) noexcept {
         if constexpr (!std::is_trivially_constructible_v<Accum>) {
+            auto const& basis =
+                basis::get_basis(basis::TensorBasisTag{}, basis_like);
             const auto basis_size = basis.size();
             const auto stride = batch_stride(basis_size);
             auto* data = ctx.template scratch_space<std::byte*>();
@@ -72,10 +74,12 @@ public:
         }
     }
 
-    template <typename Basis>
+    template <typename BasisLike>
     static void destroy_scratch_space(Context const& ctx,
-                                      Basis const& basis) noexcept {
+                                      BasisLike const& basis_like) noexcept {
         if constexpr (!std::is_trivially_destructible_v<Accum>) {
+            auto const& basis =
+                basis::get_basis(basis::TensorBasisTag{}, basis_like);
             const auto basis_size = basis.size();
             const auto stride = batch_stride(basis_size);
             auto* data = ctx.template scratch_space<std::byte*>();

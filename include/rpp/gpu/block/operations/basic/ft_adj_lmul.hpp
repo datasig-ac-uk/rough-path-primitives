@@ -105,7 +105,7 @@ public:
                          op.max_degree());
 
             Accum elt{0};
-            for (Degree op_deg = op_min_deg; op_deg < op_max_deg; ++op_deg) {
+            for (Degree op_deg = op_min_deg; op_deg <= op_max_deg; ++op_deg) {
                 const auto stride =
                     basis.end_of_degree(op_deg) - basis.start_of_degree(op_deg);
                 for (Index op_idx = basis.start_of_degree(op_deg);
