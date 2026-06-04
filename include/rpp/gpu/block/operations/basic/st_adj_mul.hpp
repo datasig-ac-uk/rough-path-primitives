@@ -1,8 +1,6 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_ST_ADJ_MUL_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_ST_ADJ_MUL_HPP
 
-#include <cuda/atomic>
-
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 #include <rpp/views/batch.hpp>
@@ -14,6 +12,13 @@
 #include <rpp/gpu/block/strategy.hpp>
 
 namespace rpp::ops {
+namespace detail {
+template <typename Scalar>
+RPP_DEVICE inline void atomic_add(Scalar* out, Scalar value) noexcept {
+    atomicAdd(out, value);
+}
+} // namespace detail
+
 template <typename Accum_,
           unsigned BlockSize,
           unsigned MaxBlockSize,
@@ -36,8 +41,6 @@ public:
     using SetConstant = VectorSetConstant<Strategy>;
 
     SetConstant set_constant;
-
-    using AtomicRef = cuda::atomic_ref<Accum>;
 
 public:
     static constexpr bool is_implemented = true;
@@ -81,8 +84,9 @@ public:
                 out_idx += basis.start_of_degree(out_deg);
 
                 if (out.has_degree(out_deg) && op.has_degree(op_deg)) {
-                    AtomicRef out_ref{out[out_idx]};
-                    out_ref += static_cast<Scalar>(arg_val * Accum{op[op_idx]});
+                    detail::atomic_add(
+                        &out[out_idx],
+                        static_cast<Scalar>(arg_val * Accum{op[op_idx]}));
                 }
             }
         }
