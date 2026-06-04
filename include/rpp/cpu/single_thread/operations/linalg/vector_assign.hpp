@@ -32,6 +32,9 @@ public:
         auto const& basis = out.basis();
         const auto min_deg = std::max(out.min_degree(), arg.min_degree());
         const auto max_deg = std::min(out.max_degree(), arg.max_degree());
+        if (max_deg < min_deg) {
+            return;
+        }
 
         const auto begin_index = basis.start_of_degree(min_deg);
         const auto end_index = basis.end_of_degree(max_deg);

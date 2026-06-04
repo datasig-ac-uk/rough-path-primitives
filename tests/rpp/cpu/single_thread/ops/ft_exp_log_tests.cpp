@@ -12,9 +12,108 @@
 #include <rpp/cpu/single_thread/operations/linalg/vector_set_constant.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_ft_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
+
+template <typename Config>
+class NumericFreeTensorExpLogTests
+    : public rpp::tests::TypedCpuFreeTensorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedCpuFreeTensorOpTestBase<Config>;
+    using typename Base::Basis;
+    using typename Base::ConstTensorView;
+    using typename Base::Strategy;
+    using typename Base::TensorView;
+    using Base::expect_tensor_near;
+    using Base::make_tensor;
+    using Base::zero_tensor;
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    identity_tensor(Basis const& basis) {
+        auto result = zero_tensor(basis);
+        result[0] = static_cast<typename Base::Scalar>(1);
+        return result;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    make_positive_degree_tensor(unsigned seed, Basis const& basis) {
+        auto result = make_tensor(seed, basis);
+        result[0] = static_cast<typename Base::Scalar>(0);
+        return result;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    apply_exp(Basis const& basis, std::vector<typename Base::Scalar> const& arg) {
+        auto out = zero_tensor(basis);
+        TensorView out_view(out.data(), basis);
+        ConstTensorView arg_view(arg.data(), basis);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::FTExp<Strategy>{}(ctx, out_view, arg_view);
+        return out;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    apply_log(Basis const& basis, std::vector<typename Base::Scalar> const& arg) {
+        auto out = zero_tensor(basis);
+        TensorView out_view(out.data(), basis);
+        ConstTensorView arg_view(arg.data(), basis);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::FTLog<Strategy>{}(ctx, out_view, arg_view);
+        return out;
+    }
+};
+
+TYPED_TEST_SUITE(NumericFreeTensorExpLogTests,
+                 rpp::tests::TypedCpuFreeTensorTestTypes);
+
+TYPED_TEST(NumericFreeTensorExpLogTests, LogExpRoundTripForPositiveDegreeInput) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const x = TestFixture::make_positive_degree_tensor(1, basis);
+    auto const exp_x = TestFixture::apply_exp(basis, x);
+    auto const log_exp_x = TestFixture::apply_log(basis, exp_x);
+
+    TestFixture::expect_tensor_near(log_exp_x, x);
+}
+
+TYPED_TEST(NumericFreeTensorExpLogTests, ExpLogRoundTripForExponentialInput) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const x = TestFixture::make_positive_degree_tensor(2, basis);
+    auto const exp_x = TestFixture::apply_exp(basis, x);
+    auto const log_exp_x = TestFixture::apply_log(basis, exp_x);
+    auto const exp_log_exp_x = TestFixture::apply_exp(basis, log_exp_x);
+
+    TestFixture::expect_tensor_near(exp_log_exp_x, exp_x);
+}
+
+TYPED_TEST(NumericFreeTensorExpLogTests, ExpOfZeroIsIdentity) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const actual = TestFixture::apply_exp(basis, TestFixture::zero_tensor(basis));
+    auto const expected = TestFixture::identity_tensor(basis);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericFreeTensorExpLogTests, LogOfIdentityIsZero) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const actual = TestFixture::apply_log(basis, TestFixture::identity_tensor(basis));
+    auto const expected = TestFixture::zero_tensor(basis);
+    TestFixture::expect_tensor_near(actual, expected);
+}
 
 class FreeTensorExpLogTests : public testing::Test,
                               public rpp::tests::PolynomialTensorHelper {

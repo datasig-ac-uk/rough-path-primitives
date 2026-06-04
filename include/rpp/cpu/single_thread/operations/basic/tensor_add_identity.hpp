@@ -30,7 +30,10 @@ public:
     void operator()(Context const& ctx,
                     Tensor& tensor,
                     Accum scalar = Accum{1}) const noexcept {
-        tensor[0] = Accum{tensor[0]} + scalar;
+        ignore_unused(ctx);
+        if (tensor.has_degree(0)) {
+            tensor[0] = Accum{tensor[0]} + scalar;
+        }
     }
 };
 

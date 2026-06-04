@@ -1,16 +1,136 @@
 #include <vector>
+#include <algorithm>
+#include <cmath>
 
 #include <gtest/gtest.h>
 
 #include <rpp/cpu/single_thread/operations/basic/st_adj_mul.hpp>
+#include <rpp/cpu/single_thread/operations/basic/st_mul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/st_fma.hpp>
 #include <rpp/cpu/single_thread/operations/basic/tensor_pairing.hpp>
 #include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_st_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
+
+template <typename Config>
+class NumericShuffleTensorAdjointMulTests
+    : public rpp::tests::TypedCpuShuffleTensorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedCpuShuffleTensorOpTestBase<Config>;
+    using typename Base::Accum;
+    using typename Base::Basis;
+    using typename Base::ConstTensorView;
+    using typename Base::Degree;
+    using typename Base::Strategy;
+    using typename Base::TensorView;
+    using Base::const_tensor_view;
+    using Base::expect_tensor_near;
+    using Base::full_range;
+    using Base::make_tensor;
+    using Base::make_unit_tensor;
+    using Base::mutable_tensor_view;
+    using Base::zero_tensor;
+
+    static void expect_scalar_near(Accum actual, Accum expected) {
+        auto const actual_d = static_cast<double>(actual);
+        auto const expected_d = static_cast<double>(expected);
+        auto const scale =
+            std::max({1.0, std::abs(actual_d), std::abs(expected_d)});
+        auto const tolerance =
+            rpp::tests::NumericTolerance<typename Base::Scalar, Accum>::value *
+            scale;
+        EXPECT_NEAR(actual_d, expected_d, tolerance);
+    }
+
+    [[nodiscard]] static Accum pairing(Basis const& basis,
+                                       std::vector<typename Base::Scalar> const& lhs,
+                                       std::vector<typename Base::Scalar> const& rhs) {
+        Accum result{0};
+        ConstTensorView lhs_view(lhs.data(), basis);
+        ConstTensorView rhs_view(rhs.data(), basis);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        return result;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    run_shuffle(Basis const& basis,
+                std::vector<typename Base::Scalar> const& lhs,
+                std::vector<typename Base::Scalar> const& rhs) {
+        auto out = zero_tensor(basis);
+        auto out_view = mutable_tensor_view(out, basis, full_range(basis));
+        auto const lhs_view = const_tensor_view(lhs, basis, full_range(basis));
+        auto const rhs_view = const_tensor_view(rhs, basis, full_range(basis));
+
+        auto const ctx = Base::make_context();
+        rpp::ops::STMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view);
+        return out;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    run_adj_mul(Basis const& basis,
+                std::vector<typename Base::Scalar> const& op,
+                std::vector<typename Base::Scalar> const& arg) {
+        auto out = zero_tensor(basis);
+        auto out_view = mutable_tensor_view(out, basis, full_range(basis));
+        auto const op_view = const_tensor_view(op, basis, full_range(basis));
+        auto const arg_view = const_tensor_view(arg, basis, full_range(basis));
+
+        auto const ctx = Base::make_context();
+        rpp::ops::STAdjMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        return out;
+    }
+};
+
+TYPED_TEST_SUITE(NumericShuffleTensorAdjointMulTests,
+                 rpp::tests::TypedCpuFreeTensorTestTypes);
+
+TYPED_TEST(NumericShuffleTensorAdjointMulTests,
+           SatisfiesAdjointPairingCriterion) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const op = TestFixture::make_tensor(1, basis);
+    auto const t = TestFixture::make_tensor(2, basis);
+    auto const arg = TestFixture::make_tensor(3, basis);
+
+    auto const product = TestFixture::run_shuffle(basis, op, t);
+    auto const adjoint = TestFixture::run_adj_mul(basis, op, arg);
+
+    TestFixture::expect_scalar_near(TestFixture::pairing(basis, product, arg),
+                                    TestFixture::pairing(basis, t, adjoint));
+}
+
+TYPED_TEST(NumericShuffleTensorAdjointMulTests,
+           IdentityOperatorReturnsArgumentForTruncatedView) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const op = TestFixture::make_unit_tensor(basis);
+    auto const arg = TestFixture::make_tensor(7, basis);
+    auto actual = TestFixture::zero_tensor(basis);
+
+    typename TestFixture::TensorView out_view(actual.data(), basis);
+    typename TestFixture::ConstTensorView op_view(
+        op.data(),
+        basis,
+        typename TestFixture::Degree{0},
+        typename TestFixture::Degree{0});
+    typename TestFixture::ConstTensorView arg_view(arg.data(), basis);
+
+    auto const ctx = TestFixture::make_context();
+    rpp::ops::STAdjMul<typename TestFixture::Strategy>{}(
+        ctx, out_view, op_view, arg_view);
+
+    TestFixture::expect_tensor_near(actual, arg);
+}
 
 class ShuffleTensorAdjointMulTests : public testing::Test,
                                      public rpp::tests::PolynomialTensorHelper {

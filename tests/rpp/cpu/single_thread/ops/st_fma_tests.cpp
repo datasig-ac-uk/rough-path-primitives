@@ -7,6 +7,7 @@
 #include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_st_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
@@ -177,6 +178,140 @@ TEST_F(ShuffleTensorFmaTests, MatchesZeroExtendedOperandsForTruncatedViews) {
                                 beta);
 
     EXPECT_EQ(out, expected);
+}
+
+template <typename Config>
+class NumericShuffleTensorFmaTests
+    : public rpp::tests::TypedCpuShuffleTensorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedCpuShuffleTensorOpTestBase<Config>;
+    using typename Base::Accum;
+    using typename Base::Basis;
+    using typename Base::ConstTensorView;
+    using typename Base::DegreeRange;
+    using typename Base::Strategy;
+    using typename Base::TensorView;
+    using Base::const_tensor_view;
+    using Base::expect_tensor_near;
+    using Base::full_range;
+    using Base::make_tensor;
+    using Base::mutable_tensor_view;
+    using Base::reference_fma;
+    using Base::reference_mul;
+    using Base::zero_tensor;
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    run_fma(Basis const& basis,
+            std::vector<typename Base::Scalar> const& initial_out,
+            std::vector<typename Base::Scalar> const& a,
+            std::vector<typename Base::Scalar> const& b,
+            std::vector<typename Base::Scalar> const& c,
+            DegreeRange out_range,
+            DegreeRange a_range,
+            DegreeRange b_range,
+            DegreeRange c_range,
+            Accum alpha = Accum{1},
+            Accum beta = Accum{1}) {
+        auto out = initial_out;
+        auto out_view = mutable_tensor_view(out, basis, out_range);
+        auto const a_view = const_tensor_view(a, basis, a_range);
+        auto const b_view = const_tensor_view(b, basis, b_range);
+        auto const c_view = const_tensor_view(c, basis, c_range);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::STFma<Strategy>{}(
+            ctx, out_view, a_view, b_view, c_view, alpha, beta);
+        return out;
+    }
+};
+
+TYPED_TEST_SUITE(NumericShuffleTensorFmaTests,
+                 rpp::tests::TypedCpuFreeTensorTestTypes);
+
+TYPED_TEST(NumericShuffleTensorFmaTests, MatchesReferenceOnFullView) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const alpha = typename TestFixture::Accum{0.75};
+    auto const beta = typename TestFixture::Accum{-1.25};
+
+    auto const initial_out = TestFixture::make_tensor(1, basis);
+    auto const a = TestFixture::make_tensor(2, basis);
+    auto const b = TestFixture::make_tensor(3, basis);
+    auto const c = TestFixture::make_tensor(4, basis);
+
+    auto const actual = TestFixture::run_fma(
+        basis,
+        initial_out,
+        a,
+        b,
+        c,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        alpha,
+        beta);
+    auto const expected = TestFixture::reference_fma(
+        basis,
+        initial_out,
+        a,
+        b,
+        c,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        alpha,
+        beta);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericShuffleTensorFmaTests, MatchesMultiplyThenAddReference) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const alpha = typename TestFixture::Accum{1.25};
+    auto const beta = typename TestFixture::Accum{0.5};
+
+    typename TestFixture::DegreeRange const out_range{1, 3};
+    typename TestFixture::DegreeRange const a_range{1, 3};
+    typename TestFixture::DegreeRange const b_range{0, 2};
+    typename TestFixture::DegreeRange const c_range{2, TestFixture::depth};
+
+    auto const initial_out = TestFixture::zero_tensor(basis);
+    auto const a = TestFixture::make_tensor(5, basis);
+    auto const b = TestFixture::make_tensor(6, basis);
+    auto const c = TestFixture::make_tensor(7, basis);
+
+    auto const actual = TestFixture::run_fma(
+        basis, initial_out, a, b, c, out_range, a_range, b_range, c_range, alpha, beta);
+    auto const expected = TestFixture::reference_fma(
+        basis, initial_out, a, b, c, out_range, a_range, b_range, c_range, alpha, beta);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericShuffleTensorFmaTests,
+           RespectsTruncatedOperandAndOutputViews) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    typename TestFixture::DegreeRange const out_range{1, 3};
+    typename TestFixture::DegreeRange const a_range{1, 3};
+    typename TestFixture::DegreeRange const b_range{1, 2};
+    typename TestFixture::DegreeRange const c_range{1, TestFixture::depth};
+
+    auto const initial_out = TestFixture::make_tensor(8, basis);
+    auto const a = TestFixture::make_tensor(9, basis);
+    auto const b = TestFixture::make_tensor(10, basis);
+    auto const c = TestFixture::make_tensor(11, basis);
+
+    auto const actual = TestFixture::run_fma(
+        basis, initial_out, a, b, c, out_range, a_range, b_range, c_range);
+    auto const expected = TestFixture::reference_fma(
+        basis, initial_out, a, b, c, out_range, a_range, b_range, c_range);
+    TestFixture::expect_tensor_near(actual, expected);
 }
 
 } // namespace

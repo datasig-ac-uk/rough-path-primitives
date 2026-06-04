@@ -41,6 +41,9 @@ public:
             std::max({out.min_degree(), lhs.min_degree(), rhs.min_degree()});
         const auto max_deg =
             std::min({out.max_degree(), lhs.max_degree(), rhs.max_degree()});
+        if (max_deg < min_deg) {
+            return;
+        }
 
         auto const& basis = out.basis();
 

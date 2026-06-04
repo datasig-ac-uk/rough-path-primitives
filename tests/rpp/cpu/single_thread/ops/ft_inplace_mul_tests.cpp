@@ -7,6 +7,7 @@
 #include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_ft_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
@@ -127,6 +128,122 @@ TEST_F(FreeTensorInplaceMulTests, KernelWrapperMatchesDirectOperation) {
         });
 
     EXPECT_EQ(actual, expected);
+}
+
+template <typename Config>
+class NumericFreeTensorInplaceMulTests
+    : public rpp::tests::TypedCpuFreeTensorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedCpuFreeTensorOpTestBase<Config>;
+    using typename Base::Accum;
+    using typename Base::Basis;
+    using typename Base::ConstTensorView;
+    using typename Base::DegreeRange;
+    using typename Base::Strategy;
+    using typename Base::TensorView;
+    using Base::const_tensor_view;
+    using Base::expect_tensor_near;
+    using Base::full_range;
+    using Base::make_tensor;
+    using Base::make_unit_tensor;
+    using Base::mutable_tensor_view;
+    using Base::reference_mul;
+    using Base::zero_tensor;
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    run_inplace_mul(Basis const& basis,
+                    std::vector<typename Base::Scalar> const& initial_lhs,
+                    std::vector<typename Base::Scalar> const& rhs,
+                    DegreeRange lhs_range,
+                    DegreeRange rhs_range,
+                    Accum beta = Accum{1}) {
+        auto lhs = initial_lhs;
+
+        auto lhs_view = mutable_tensor_view(lhs, basis, lhs_range);
+        auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::FTInplaceMul<Strategy>{}(ctx, lhs_view, rhs_view, beta);
+        return lhs;
+    }
+};
+
+TYPED_TEST_SUITE(NumericFreeTensorInplaceMulTests,
+                 rpp::tests::TypedCpuFreeTensorTestTypes);
+
+TYPED_TEST(NumericFreeTensorInplaceMulTests, MatchesOutOfPlaceReferenceOnFullView) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const beta = typename TestFixture::Accum{1.5};
+
+    auto const initial_lhs = TestFixture::make_tensor(1, basis);
+    auto const rhs = TestFixture::make_tensor(2, basis);
+
+    auto const actual = TestFixture::run_inplace_mul(
+        basis,
+        initial_lhs,
+        rhs,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        beta);
+    auto const expected = TestFixture::reference_mul(
+        basis,
+        initial_lhs,
+        initial_lhs,
+        rhs,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        beta);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericFreeTensorInplaceMulTests,
+           MatchesOutOfPlaceReferenceForTruncatedViews) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    typename TestFixture::DegreeRange const lhs_range{1, 3};
+    typename TestFixture::DegreeRange const rhs_range{1, 2};
+
+    auto const initial_lhs = TestFixture::make_tensor(3, basis);
+    auto const rhs = TestFixture::make_tensor(4, basis);
+
+    auto const actual = TestFixture::run_inplace_mul(
+        basis, initial_lhs, rhs, lhs_range, rhs_range);
+    auto const expected = TestFixture::reference_mul(
+        basis, initial_lhs, initial_lhs, rhs, lhs_range, lhs_range, rhs_range);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericFreeTensorInplaceMulTests, RightUnitMatchesOutOfPlaceReference) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const beta = typename TestFixture::Accum{0.75};
+
+    auto const initial_lhs = TestFixture::make_tensor(5, basis);
+    auto const unit = TestFixture::make_unit_tensor(basis);
+
+    auto const actual = TestFixture::run_inplace_mul(
+        basis,
+        initial_lhs,
+        unit,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        beta);
+    auto const expected = TestFixture::reference_mul(
+        basis,
+        initial_lhs,
+        initial_lhs,
+        unit,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        beta);
+    TestFixture::expect_tensor_near(actual, expected);
 }
 
 } // namespace
