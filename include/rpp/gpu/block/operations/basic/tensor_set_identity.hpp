@@ -43,7 +43,7 @@ public:
                                Tensor& tensor,
                                Accum scalar = Accum{1}) const noexcept {
         set_constant(ctx, tensor, Accum{0});
-        if (ctx.thread_rank() == 0) {
+        if (ctx.thread_rank() == 0 && tensor.has_degree(0)) {
             tensor[0] = scalar;
         }
     }
