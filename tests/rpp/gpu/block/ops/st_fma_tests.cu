@@ -1,149 +1,184 @@
 #include <gtest/gtest.h>
 
-#include <rpp/cpu/single_thread/operations/basic/st_fma.hpp>
 #include <rpp/gpu/block/operations/basic/st_fma.hpp>
 
-#include "gpu_block_test_helper.cuh"
+#include "gpu_typed_st_ops_test_helper.cuh"
 
 namespace {
 
-TEST(GpuBlockStFmaTests, MatchesCpuForSingleElementBatches) {
-    using Helper = rpp::tests::GpuBlockTestHelper;
-    RPP_REQUIRE_CUDA_DEVICE();
+template <typename Config>
+class GpuBlockStFmaTypedTests
+    : public rpp::tests::TypedGpuShuffleTensorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedGpuShuffleTensorOpTestBase<Config>;
+    using typename Base::Accum;
+    using typename Base::Basis;
+    using typename Base::Degree;
+    using typename Base::DegreeRange;
+    using typename Base::DeviceVector;
+    using typename Base::GpuStrategy;
+    using typename Base::Helper;
+    using typename Base::HostVector;
+    using Base::expect_tensor_near;
+    using Base::full_range;
+    using Base::make_batch;
+    using Base::reference_fma;
+    using Base::reference_mul;
 
-    for (auto const& config : rpp::tests::gpu_block_test_configs) {
-        auto const basis_data = Helper::BasisData(config.width, config.depth);
-        auto const& basis = basis_data.basis;
-        auto const cpu_strategy = Helper::cpu_strategy();
-        auto const gpu_strategy = Helper::gpu_strategy();
-        auto constexpr alpha = Helper::Scalar{-0.5};
-        auto constexpr beta = Helper::Scalar{0.75};
+    static HostVector run_gpu_fma(Basis const& basis,
+                                  GpuStrategy const& gpu_strategy,
+                                  HostVector const& a,
+                                  HostVector const& b,
+                                  HostVector const& c,
+                                  DegreeRange out_range,
+                                  DegreeRange a_range,
+                                  DegreeRange b_range,
+                                  DegreeRange c_range,
+                                  Accum alpha = Accum{1},
+                                  Accum beta = Accum{1}) {
+        auto actual = Base::make_zero_batch(basis);
 
-        auto expected = Helper::make_zero_batch(basis);
-        auto actual = expected;
-        auto const a = Helper::make_batch(1, basis, Helper::Scalar{0.01});
-        auto const b = Helper::make_batch(2, basis, Helper::Scalar{0.01});
-        auto const c = Helper::make_batch(3, basis, Helper::Scalar{0.01});
-
-        Helper::DeviceVector<Helper::Scalar> device_actual(actual);
-        Helper::DeviceVector<Helper::Scalar> device_a(a);
-        Helper::DeviceVector<Helper::Scalar> device_b(b);
-        Helper::DeviceVector<Helper::Scalar> device_c(c);
-
-        rpp::gpu::DeviceLaunchConfig launch_config;
-        launch_config.stream = nullptr;
-        auto const err =
-            rpp::ops::st_fma(gpu_strategy,
-                             std::move(launch_config),
-                             Helper::device_tensor_batch(device_actual, basis),
-                             Helper::device_tensor_batch(device_a, basis),
-                             Helper::device_tensor_batch(device_b, basis),
-                             Helper::device_tensor_batch(device_c, basis),
-                             basis,
-                             Helper::tensor_count,
-                             alpha,
-                             beta);
-        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
-        RPP_CUDA_ASSERT(cudaDeviceSynchronize());
-
-        auto const cpu_err =  rpp::ops::st_fma(cpu_strategy,
-                                    Helper::CpuStrategy::LaunchConfig{},
-                                    Helper::host_tensor_batch(expected, basis),
-                                    Helper::host_tensor_batch(a, basis),
-                                    Helper::host_tensor_batch(b, basis),
-                                    Helper::host_tensor_batch(c, basis),
-                                    basis,
-                                    Helper::tensor_count,
-                                    alpha,
-                                    beta);
-        ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
-
-        actual = Helper::copy_to_host(device_actual);
-        Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
-    }
-}
-
-TEST(GpuBlockStFmaTests, TruncatedOperandsMatchCpu) {
-    using Helper = rpp::tests::GpuBlockTestHelper;
-    RPP_REQUIRE_CUDA_DEVICE();
-
-    for (auto const& config : rpp::tests::gpu_block_test_configs) {
-        auto const basis_data = Helper::BasisData(config.width, config.depth);
-        auto const& basis = basis_data.basis;
-        auto const cpu_strategy = Helper::cpu_strategy();
-        auto const gpu_strategy = Helper::gpu_strategy();
-        auto constexpr alpha = Helper::Scalar{-0.5};
-        auto constexpr beta = Helper::Scalar{0.75};
-
-        auto expected = Helper::make_zero_batch(basis);
-        auto actual = expected;
-        auto const a = Helper::make_batch(1, basis, Helper::Scalar{0.01});
-        auto const b = Helper::make_batch(2, basis, Helper::Scalar{0.01});
-        auto const c = Helper::make_batch(3, basis, Helper::Scalar{0.01});
-
-        Helper::DeviceVector<Helper::Scalar> device_actual(actual);
-        Helper::DeviceVector<Helper::Scalar> device_a(a);
-        Helper::DeviceVector<Helper::Scalar> device_b(b);
-        Helper::DeviceVector<Helper::Scalar> device_c(c);
+        DeviceVector device_actual(actual);
+        DeviceVector device_a(a);
+        DeviceVector device_b(b);
+        DeviceVector device_c(c);
+        auto a_batch = Helper::device_tensor_batch(device_a, basis);
+        auto b_batch = Helper::device_tensor_batch(device_b, basis);
+        auto c_batch = Helper::device_tensor_batch(device_c, basis);
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
         auto const err = rpp::ops::st_fma(
             gpu_strategy,
             std::move(launch_config),
-            Helper::device_tensor_batch(device_actual, basis),
             rpp::make_tensor_batch(
-                Helper::device_data(device_a),
-                basis.size(),
-                Helper::Degree{1},
-                basis.depth - 1),
+                Helper::device_data(device_actual), basis.size(), out_range.min,
+                out_range.max),
             rpp::make_tensor_batch(
-                Helper::device_data(device_b),
-                basis.size(),
-                Helper::Degree{0},
-                basis.depth - 2),
+                a_batch.data(), a_batch.layout(), a_range.min, a_range.max),
             rpp::make_tensor_batch(
-                Helper::device_data(device_c),
-                basis.size(),
-                Helper::Degree{2},
-                basis.depth),
+                b_batch.data(), b_batch.layout(), b_range.min, b_range.max),
+            rpp::make_tensor_batch(
+                c_batch.data(), c_batch.layout(), c_range.min, c_range.max),
             basis,
             Helper::tensor_count,
             alpha,
             beta);
-        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
-        RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+        if (!static_cast<bool>(err)) {
+            ADD_FAILURE() << err.message();
+            return actual;
+        }
+        auto const sync_err = cudaDeviceSynchronize();
+        if (sync_err != cudaSuccess) {
+            ADD_FAILURE() << "cudaDeviceSynchronize failed: "
+                          << cudaGetErrorString(sync_err);
+            return actual;
+        }
 
-        auto const cpu_err = rpp::ops::st_fma(
-            cpu_strategy,
-            Helper::CpuStrategy::LaunchConfig{},
-            Helper::host_tensor_batch(expected, basis),
-            rpp::make_tensor_batch(
-                Helper::host_data(a),
-                basis.size(),
-                basis,
-                Helper::Degree{1},
-                basis.depth - 1),
-            rpp::make_tensor_batch(
-                Helper::host_data(b),
-                basis.size(),
-                basis,
-                Helper::Degree{0},
-                basis.depth - 2),
-            rpp::make_tensor_batch(
-                Helper::host_data(c),
-                basis.size(),
-                basis,
-                Helper::Degree{2},
-                basis.depth),
-            basis,
-            Helper::tensor_count,
-            alpha,
-            beta);
-        ASSERT_TRUE(static_cast<bool>(cpu_err)) << cpu_err.message();
+        return Helper::copy_to_host(device_actual);
+    }
+};
 
-        actual = Helper::copy_to_host(device_actual);
-        Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
+TYPED_TEST_SUITE(GpuBlockStFmaTypedTests,
+                 rpp::tests::TypedGpuAdjointTestTypes,
+                 rpp::tests::TypedScalarAccumNameGenerator);
+
+TYPED_TEST(GpuBlockStFmaTypedTests, MatchesHostReferenceForSingleElementBatches) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    auto const alpha = typename TestFixture::Accum{-0.5};
+    auto const beta = typename TestFixture::Accum{0.75};
+
+    for (auto const& config : rpp::tests::gpu_block_test_configs) {
+        auto const basis_data = typename TestFixture::Helper::BasisData(
+            config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+
+        auto const a = TestFixture::make_batch(1, basis);
+        auto const b = TestFixture::make_batch(2, basis);
+        auto const c = TestFixture::make_batch(3, basis);
+
+        auto const actual = TestFixture::run_gpu_fma(
+            basis, gpu_strategy, a, b, c, TestFixture::full_range(basis),
+            TestFixture::full_range(basis), TestFixture::full_range(basis),
+            TestFixture::full_range(basis), alpha, beta);
+        auto const expected =
+            TestFixture::reference_fma(basis, a, b, c, alpha, beta);
+        TestFixture::expect_tensor_near(actual, expected);
+    }
+}
+
+TYPED_TEST(GpuBlockStFmaTypedTests, MatchesMulThenAddReference) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    auto const alpha = typename TestFixture::Accum{0.5};
+    auto const beta = typename TestFixture::Accum{-1.25};
+
+    for (auto const& config : rpp::tests::gpu_block_test_configs) {
+        auto const basis_data = typename TestFixture::Helper::BasisData(
+            config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+
+        auto const a = TestFixture::make_batch(4, basis);
+        auto const b = TestFixture::make_batch(6, basis);
+        auto const c = TestFixture::make_batch(8, basis);
+
+        auto const actual = TestFixture::run_gpu_fma(
+            basis, gpu_strategy, a, b, c, TestFixture::full_range(basis),
+            TestFixture::full_range(basis), TestFixture::full_range(basis),
+            TestFixture::full_range(basis), alpha, beta);
+
+        auto expected = TestFixture::reference_mul(basis, b, c, beta);
+        for (std::size_t i = 0; i < expected.size(); ++i) {
+            expected[i] = rpp::tests::cast_scalar<typename TestFixture::Scalar>(
+                typename TestFixture::Accum{expected[i]} +
+                alpha * typename TestFixture::Accum{a[i]});
+        }
+        TestFixture::expect_tensor_near(actual, expected);
+    }
+}
+
+TYPED_TEST(GpuBlockStFmaTypedTests, RespectsTruncatedOperandAndOutputViews) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using Range = typename TestFixture::DegreeRange;
+    auto const alpha = typename TestFixture::Accum{-0.5};
+    auto const beta = typename TestFixture::Accum{0.75};
+
+    for (auto const& config : rpp::tests::gpu_block_test_configs) {
+        auto const basis_data = typename TestFixture::Helper::BasisData(
+            config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+
+        auto const a = TestFixture::make_batch(5, basis);
+        auto const b = TestFixture::make_batch(7, basis);
+        auto const c = TestFixture::make_batch(9, basis);
+        auto const out_range = Range{0, std::min<typename TestFixture::Degree>(
+                                            3, basis.depth)};
+        auto const a_range = Range{1, std::max<typename TestFixture::Degree>(
+                                          typename TestFixture::Degree{1},
+                                          static_cast<typename TestFixture::Degree>(
+                                              basis.depth - 1))};
+        auto const b_range = Range{0, std::max<typename TestFixture::Degree>(
+                                          typename TestFixture::Degree{0},
+                                          static_cast<typename TestFixture::Degree>(
+                                              basis.depth - 2))};
+        auto const c_range = Range{std::min<typename TestFixture::Degree>(
+                                       2, basis.depth),
+                                   basis.depth};
+
+        auto const actual = TestFixture::run_gpu_fma(
+            basis, gpu_strategy, a, b, c, out_range, a_range, b_range, c_range,
+            alpha, beta);
+        auto const expected = TestFixture::reference_fma(
+            basis, a, b, c, out_range, a_range, b_range, c_range, alpha, beta);
+        TestFixture::expect_tensor_near(actual, expected);
     }
 }
 
