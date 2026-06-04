@@ -42,9 +42,10 @@ public:
                                TensorOut& out,
                                TensorArg const& arg) const noexcept {
         auto const& basis = out.basis();
+        using value_type = typename TensorOut::value_type;
 
-        for (auto elt_idx = ctx.thread_rank();
-             elt_idx < static_cast<typename Strategy::Index>(arg.size());
+        for (auto elt_idx = arg.begin_index() + ctx.thread_rank();
+             elt_idx < arg.end_index();
              elt_idx += ctx.num_threads()) {
             const auto degree = basis.degree(elt_idx);
             const auto degree_begin = basis.start_of_degree(degree);
@@ -52,8 +53,9 @@ public:
                 basis.reverse_index(elt_idx - degree_begin, degree);
 
             if constexpr (Policy == TensorAntipodeSigningPolicy::SignByDegree) {
-                out[rev_idx + degree_begin] =
-                    arg[elt_idx] * (degree % 2 == 0 ? 1 : -1);
+                auto const sign = degree % 2 == 0 ? value_type{1}
+                                                  : value_type{-1};
+                out[rev_idx + degree_begin] = arg[elt_idx] * sign;
             }
             else {
                 out[rev_idx + degree_begin] = arg[elt_idx];
