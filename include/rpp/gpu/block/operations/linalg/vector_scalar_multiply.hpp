@@ -23,13 +23,12 @@ class VectorScalarMultiply<
     : public BaseOperation<
           gpu::strategies::
               BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>> {
+public:
     using Strategy = gpu::strategies::
         BlockStrategy<Accum_, BlockSize, MaxBlockSize, Architecture>;
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
-
-public:
     static constexpr bool is_implemented = true;
 
     template <typename Vector>
