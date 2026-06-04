@@ -109,6 +109,12 @@
 #define RPP_IS_IDENTIFIER(token) 1
 #endif
 
+#if defined(__has_include)
+# define RPP_HAS_INCLUDE(tok) __has_include(tok)
+#else
+# define RPP_HAS_INCLUDE(tok) 0
+#endif
+
 #if RPP_HAS_CPP_ATTRIBUTE(nodiscard)
 #define RPP_NODISCARD [[nodiscard]]
 #else
