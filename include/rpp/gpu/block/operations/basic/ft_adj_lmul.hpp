@@ -50,51 +50,69 @@ public:
                                TensorArg const& arg) const noexcept {
         using Scalar = typename TensorOut::value_type;
         auto const& basis = out.basis();
+        const auto low_degree_min =
+            std::max(op.min_degree(), arg.min_degree());
+        const auto low_degree_max =
+            std::min(op.max_degree(), arg.max_degree());
 
-        if (op.min_degree() == 0) {
-            out[0] = static_cast<Scalar>(
-                gpu::block::adjoint_low_degree_reduce<Accum>(
-                    ctx,
-                    op,
-                    arg,
-                    std::max(op.min_degree(), arg.min_degree()),
-                    std::min(op.max_degree(), arg.max_degree()),
-                    basis,
-                    [](Index i) { return i; }));
+        if (out.min_degree() == 0 && low_degree_min <= low_degree_max) {
+            const auto val = gpu::block::adjoint_low_degree_reduce<Accum>(
+                ctx,
+                op,
+                arg,
+                low_degree_min,
+                low_degree_max,
+                basis,
+                [](Index i) { return i; });
+            if (ctx.thread_rank() == 0) {
+                out[0] = static_cast<Scalar>(val);
+            }
         }
 
-        Degree out_deg = std::max(op.min_degree(), Degree{1});
+        Degree out_deg = std::max(out.min_degree(), Degree{1});
         const auto small_size_threshold =
             static_cast<Degree>(ctx.num_threads() / 4);
-        for (; out_deg < op.max_degree() &&
+        for (; out_deg <= out.max_degree() &&
              basis.size_of_degree(out_deg) <= small_size_threshold;
              ++out_deg) {
-            const auto deg_1_op_min_deg = std::max(
-                op.min_degree(), static_cast<Degree>(arg.min_degree() - 1));
-            const auto deg_1_op_max_deg = std::min(
-                op.max_degree(), static_cast<Degree>(arg.max_degree() - 1));
+            const auto op_min_deg =
+                std::max(op.min_degree(),
+                         static_cast<Degree>(arg.min_degree() - out_deg));
+            const auto op_max_deg =
+                std::min(op.max_degree(),
+                         static_cast<Degree>(arg.max_degree() - out_deg));
             const Index splitter = basis.size_of_degree(out_deg);
 
             for (Index suffix = basis.start_of_degree(out_deg);
                  suffix < basis.end_of_degree(out_deg);
                  ++suffix) {
-                const auto val = gpu::block::adjoint_low_degree_reduce<Accum>(
-                    ctx,
-                    op,
-                    arg,
-                    deg_1_op_min_deg,
-                    deg_1_op_max_deg,
-                    basis,
-                    [suffix, splitter](Index i) {
-                        return i * splitter + suffix;
-                    });
-                out[suffix] = static_cast<Scalar>(val);
+                if (op_min_deg > op_max_deg) {
+                    if (ctx.thread_rank() == 0) {
+                        out[suffix] = Scalar{0};
+                    }
+                }
+                else {
+                    const auto val =
+                        gpu::block::adjoint_low_degree_reduce<Accum>(
+                            ctx,
+                            op,
+                            arg,
+                            op_min_deg,
+                            op_max_deg,
+                            basis,
+                            [suffix, splitter](Index i) {
+                                return i * splitter + suffix;
+                            });
+                    if (ctx.thread_rank() == 0) {
+                        out[suffix] = static_cast<Scalar>(val);
+                    }
+                }
             }
         }
 
         for (Index elt_idx = basis.start_of_degree(out_deg) +
                  static_cast<Index>(ctx.thread_rank());
-             elt_idx < out.size();
+             elt_idx < basis.end_of_degree(out.max_degree());
              elt_idx += ctx.num_threads()) {
             const auto elt_degree = basis.degree(elt_idx);
             const auto op_min_deg =
@@ -105,9 +123,8 @@ public:
                          op.max_degree());
 
             Accum elt{0};
-            for (Degree op_deg = op_min_deg; op_deg < op_max_deg; ++op_deg) {
-                const auto stride =
-                    basis.end_of_degree(op_deg) - basis.start_of_degree(op_deg);
+            for (Degree op_deg = op_min_deg; op_deg <= op_max_deg; ++op_deg) {
+                const auto stride = basis.size_of_degree(elt_degree);
                 for (Index op_idx = basis.start_of_degree(op_deg);
                      op_idx < basis.end_of_degree(op_deg);
                      ++op_idx) {

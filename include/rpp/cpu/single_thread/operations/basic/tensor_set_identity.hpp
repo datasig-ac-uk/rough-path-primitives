@@ -30,8 +30,11 @@ public:
     void operator()(Context const& ctx,
                     Tensor& tensor,
                     Accum scalar = Accum{1}) const noexcept {
-        tensor[0] = scalar;
-        std::fill(tensor.begin() + 1, tensor.end(), Accum{0});
+        ignore_unused(ctx);
+        std::fill(tensor.begin(), tensor.end(), Accum{0});
+        if (tensor.has_degree(0)) {
+            tensor[0] = scalar;
+        }
     }
 };
 

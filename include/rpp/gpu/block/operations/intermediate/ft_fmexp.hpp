@@ -57,12 +57,12 @@ public:
                                TensorMultiplier const& multiplier,
                                TensorExponent const& exponent) const noexcept {
         auto const& basis = out.basis();
-        constexpr Accum one{1};
+        const Accum one{1};
         assign(ctx, out, multiplier);
 
         for (Degree d = basis.depth; d > 0; --d) {
             const auto max_degree = basis.depth - d + 1;
-            const Accum divisor = one / d;
+            const Accum divisor = one / static_cast<Accum>(d);
             ctx.sync();
             inplace_fma123(ctx,
                            out,

@@ -55,10 +55,16 @@ public:
          * framework as those operations do.
          */
 
-        const auto arg_max_degree =
-            std::min(arg.max_degree() - op.min_degree(), out.max_degree());
-        auto arg_min_degree =
-            std::max(arg.min_degree() - op.max_degree(), out.min_degree());
+        const auto arg_max_degree = std::min(
+            arg.max_degree(),
+            static_cast<Degree>(out.max_degree() + op.max_degree()));
+        const auto arg_min_degree = std::max(
+            arg.min_degree(),
+            static_cast<Degree>(out.min_degree() + op.min_degree()));
+
+        if (arg_min_degree > arg_max_degree) {
+            return;
+        }
 
         for (Degree arg_degree = arg_max_degree; arg_degree >= arg_min_degree;
              --arg_degree) {

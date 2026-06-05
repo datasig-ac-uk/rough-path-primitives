@@ -38,7 +38,8 @@ public:
                                Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorOut::value_type;
         auto const& basis = out.basis();
-        for (Index elt_idx = ctx.thread_rank(); elt_idx < out.size();
+        for (Index elt_idx = out.begin_index() + ctx.thread_rank();
+             elt_idx < out.end_index();
              elt_idx += ctx.num_threads()) {
             auto acc =
                 gpu::block::st_multiply_loop(ctx, elt_idx, basis, lhs, rhs);

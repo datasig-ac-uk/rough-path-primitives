@@ -7,6 +7,7 @@
 #include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_vector_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
@@ -87,6 +88,102 @@ TEST_F(VectorAssignTests, KernelWrapperMatchesDirectOperation) {
         });
 
     EXPECT_EQ(actual, expected);
+}
+
+template <typename Config>
+class NumericVectorAssignTests
+    : public rpp::tests::TypedCpuVectorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedCpuVectorOpTestBase<Config>;
+    using typename Base::Basis;
+    using typename Base::ConstVectorView;
+    using typename Base::DegreeRange;
+    using typename Base::Strategy;
+    using typename Base::VectorView;
+    using Base::const_vector_view;
+    using Base::expect_tensor_near;
+    using Base::full_range;
+    using Base::make_tensor;
+    using Base::mutable_vector_view;
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    reference_assign(std::vector<typename Base::Scalar> const& out,
+                     std::vector<typename Base::Scalar> const& arg,
+                     Basis const& basis,
+                     DegreeRange out_range,
+                     DegreeRange arg_range) {
+        auto result = out;
+        auto const min_degree = std::max(out_range.min, arg_range.min);
+        auto const max_degree = std::min(out_range.max, arg_range.max);
+        if (max_degree < min_degree) {
+            return result;
+        }
+        for (auto idx = basis.start_of_degree(min_degree);
+             idx < basis.end_of_degree(max_degree);
+             ++idx) {
+            result[static_cast<std::size_t>(idx)] =
+                arg[static_cast<std::size_t>(idx)];
+        }
+        return result;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    run_assign(Basis const& basis,
+               std::vector<typename Base::Scalar> const& out,
+               std::vector<typename Base::Scalar> const& arg,
+               DegreeRange out_range,
+               DegreeRange arg_range) {
+        auto actual = out;
+        auto out_view = mutable_vector_view(actual, basis, out_range);
+        auto const arg_view = const_vector_view(arg, basis, arg_range);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::VectorAssign<Strategy>{}(ctx, out_view, arg_view);
+        return actual;
+    }
+};
+
+TYPED_TEST_SUITE(NumericVectorAssignTests,
+                 rpp::tests::TypedCpuFreeTensorTestTypes);
+
+TYPED_TEST(NumericVectorAssignTests, CopiesSourceOnFullView) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const out = TestFixture::make_tensor(1, basis);
+    auto const arg = TestFixture::make_tensor(2, basis);
+
+    auto const actual = TestFixture::run_assign(
+        basis, out, arg, TestFixture::full_range(basis), TestFixture::full_range(basis));
+    TestFixture::expect_tensor_near(actual, arg);
+}
+
+TYPED_TEST(NumericVectorAssignTests, RespectsTruncatedIntersection) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const out = TestFixture::make_tensor(3, basis);
+    auto const arg = TestFixture::make_tensor(4, basis);
+    typename TestFixture::DegreeRange const out_range{1, 3};
+    typename TestFixture::DegreeRange const arg_range{2, TestFixture::depth};
+
+    auto const actual = TestFixture::run_assign(basis, out, arg, out_range, arg_range);
+    auto const expected =
+        TestFixture::reference_assign(out, arg, basis, out_range, arg_range);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericVectorAssignTests, NoOverlapLeavesOutputUnchanged) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const out = TestFixture::make_tensor(5, basis);
+    auto const arg = TestFixture::make_tensor(6, basis);
+    typename TestFixture::DegreeRange const out_range{0, 0};
+    typename TestFixture::DegreeRange const arg_range{1, TestFixture::depth};
+
+    auto const actual = TestFixture::run_assign(basis, out, arg, out_range, arg_range);
+    TestFixture::expect_tensor_near(actual, out);
 }
 
 } // namespace

@@ -9,6 +9,7 @@ set(RPP_GPU_BLOCK_OP_TEST_SOURCES
         ft_log_tests.cu
         ft_mul_tests.cu
         gpu_block_test_helper.cuh
+        gpu_typed_vector_ops_test_helper.cuh
         sparse_matrix_vector_product_tests.cu
         st_adj_mul_tests.cu
         st_fma_tests.cu
@@ -19,8 +20,10 @@ set(RPP_GPU_BLOCK_OP_TEST_SOURCES
         tensor_pairing_tests.cu
         tensor_reflect_tests.cu
         tensor_set_identity_tests.cu
+        vector_add_tests.cu
         vector_assign_tests.cu
         vector_inplace_add_tests.cu
+        vector_scalar_multiply_tests.cu
         vector_set_constant_tests.cu
 )
 

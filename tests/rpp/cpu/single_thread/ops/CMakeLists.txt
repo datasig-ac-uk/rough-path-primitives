@@ -12,6 +12,7 @@ FetchContent_MakeAvailable(LibalgebraLite)
 rpp_add_test(rpp_cpu_single_thread_algebra_tests
         cpu_kernel_wrapper_test_helper.hpp
         polynomial_tensor_helper.hpp
+        cpu_typed_vector_ops_test_helper.hpp
         ft_adj_lmul_tests.cpp
         ft_adj_rmul_tests.cpp
         ft_exp_log_tests.cpp
@@ -26,10 +27,13 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         st_inplace_fma_tests.cpp
         st_mul_tests.cpp
         tensor_antipode_tests.cpp
+        tensor_pairing_tests.cpp
         tensor_identity_tests.cpp
         tensor_reflect_tests.cpp
         vector_assign_tests.cpp
+        vector_add_tests.cpp
         vector_inplace_add_tests.cpp
+        vector_scalar_multiply_tests.cpp
         vector_set_tests.cpp
 )
 target_link_libraries(rpp_cpu_single_thread_algebra_tests

@@ -48,17 +48,23 @@ public:
                                TensorArg const& arg) const noexcept {
         using Scalar = typename TensorOut::value_type;
         auto const& basis = out.basis();
+        const auto low_degree_min =
+            std::max(op.min_degree(), arg.min_degree());
+        const auto low_degree_max =
+            std::min(op.max_degree(), arg.max_degree());
 
-        if (op.min_degree() == 0) {
-            out[0] = static_cast<Scalar>(
-                gpu::block::adjoint_low_degree_reduce<Accum>(
-                    ctx,
-                    op,
-                    arg,
-                    std::max(op.min_degree(), arg.min_degree()),
-                    std::min(op.max_degree(), arg.max_degree()),
-                    basis,
-                    [](Index i) { return i; }));
+        if (out.min_degree() == 0 && low_degree_min <= low_degree_max) {
+            const auto val = gpu::block::adjoint_low_degree_reduce<Accum>(
+                ctx,
+                op,
+                arg,
+                low_degree_min,
+                low_degree_max,
+                basis,
+                [](Index i) { return i; });
+            if (ctx.thread_rank() == 0) {
+                out[0] = static_cast<Scalar>(val);
+            }
         }
 
         const auto out_deg_min = std::max(Degree{1}, out.min_degree());

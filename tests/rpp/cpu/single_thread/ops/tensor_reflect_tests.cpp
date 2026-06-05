@@ -90,6 +90,36 @@ TEST_F(TensorReflectTests, IsInvolution) {
     EXPECT_EQ(apply_reflect(basis, apply_reflect(basis, arg)), arg);
 }
 
+TEST_F(TensorReflectTests, AppliesOnlyToOverlappingArgumentDegreeRange) {
+    auto const basis_data = BasisData(width, depth);
+    auto const& basis = basis_data.basis;
+
+    auto const arg = make_tensor('a', basis);
+    std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
+    std::vector<Scalar> expected(static_cast<std::size_t>(basis.size()));
+
+    TensorView<Scalar*> out_view(out.data(), basis);
+    TensorView<Scalar const*> arg_view(arg.data(), basis, 2, 3);
+
+    auto const ctx = make_context();
+    rpp::ops::TensorReflect<Strategy>{}(ctx, out_view, arg_view);
+
+    for_each_index(
+        basis, [&expected, &arg, &basis](Degree degree, Index level_index) {
+            if (degree < 2 || degree > 3) {
+                return;
+            }
+            auto const reversed = reverse_index(basis, degree, level_index);
+            auto const source = basis.start_of_degree(degree) + level_index;
+            auto const target = basis.start_of_degree(degree) + reversed;
+
+            expected[static_cast<std::size_t>(target)] =
+                arg[static_cast<std::size_t>(source)];
+        });
+
+    EXPECT_EQ(out, expected);
+}
+
 TEST_F(TensorReflectTests, KernelWrapperMatchesDirectOperation) {
     using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
 

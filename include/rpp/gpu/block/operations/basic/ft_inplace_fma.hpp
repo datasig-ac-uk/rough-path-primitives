@@ -88,8 +88,10 @@ public:
             ctx.sync();
         }
 
-        auto elt_idx = static_cast<Index>(ctx.thread_rank());
-        const auto active = elt_idx < basis.end_of_degree(low_range_degree);
+        auto const low_range_begin = a.begin_index();
+        auto const low_range_end = basis.end_of_degree(low_range_degree);
+        auto elt_idx = static_cast<Index>(low_range_begin + ctx.thread_rank());
+        const auto active = elt_idx < low_range_end;
         Accum acc{0};
         if (active) {
             const auto degree = basis.degree_linear(elt_idx);

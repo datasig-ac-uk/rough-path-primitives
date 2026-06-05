@@ -12,9 +12,102 @@
 #include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_ft_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
+
+template <typename Config>
+class NumericFreeTensorFMExpTests
+    : public rpp::tests::TypedCpuFreeTensorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedCpuFreeTensorOpTestBase<Config>;
+    using typename Base::Basis;
+    using typename Base::ConstTensorView;
+    using typename Base::Strategy;
+    using typename Base::TensorView;
+    using Base::expect_tensor_near;
+    using Base::make_tensor;
+    using Base::make_unit_tensor;
+    using Base::zero_tensor;
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    make_positive_degree_tensor(unsigned seed, Basis const& basis) {
+        auto result = make_tensor(seed, basis);
+        result[0] = static_cast<typename Base::Scalar>(0);
+        return result;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    apply_exp(Basis const& basis, std::vector<typename Base::Scalar> const& arg) {
+        auto out = zero_tensor(basis);
+        TensorView out_view(out.data(), basis);
+        ConstTensorView arg_view(arg.data(), basis);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::FTExp<Strategy>{}(ctx, out_view, arg_view);
+        return out;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    apply_mul(Basis const& basis,
+              std::vector<typename Base::Scalar> const& lhs,
+              std::vector<typename Base::Scalar> const& rhs) {
+        auto out = zero_tensor(basis);
+        TensorView out_view(out.data(), basis);
+        ConstTensorView lhs_view(lhs.data(), basis);
+        ConstTensorView rhs_view(rhs.data(), basis);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::FTMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view);
+        return out;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    apply_fmexp(Basis const& basis,
+                std::vector<typename Base::Scalar> const& multiplier,
+                std::vector<typename Base::Scalar> const& exponent) {
+        auto out = zero_tensor(basis);
+        TensorView out_view(out.data(), basis);
+        ConstTensorView multiplier_view(multiplier.data(), basis);
+        ConstTensorView exponent_view(exponent.data(), basis);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::FTFMExp<Strategy>{}(ctx, out_view, multiplier_view, exponent_view);
+        return out;
+    }
+};
+
+TYPED_TEST_SUITE(NumericFreeTensorFMExpTests,
+                 rpp::tests::TypedCpuFreeTensorTestTypes);
+
+TYPED_TEST(NumericFreeTensorFMExpTests, MultipliesByExponentialOnTheRight) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const x = TestFixture::make_positive_degree_tensor(1, basis);
+    auto const y = TestFixture::make_positive_degree_tensor(2, basis);
+    auto const exp_x = TestFixture::apply_exp(basis, x);
+    auto const exp_y = TestFixture::apply_exp(basis, y);
+
+    auto const actual = TestFixture::apply_fmexp(basis, exp_x, y);
+    auto const expected = TestFixture::apply_mul(basis, exp_x, exp_y);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericFreeTensorFMExpTests, IdentityMultiplierIsExp) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const x = TestFixture::make_positive_degree_tensor(3, basis);
+    auto const identity = TestFixture::make_unit_tensor(basis);
+
+    auto const actual = TestFixture::apply_fmexp(basis, identity, x);
+    auto const expected = TestFixture::apply_exp(basis, x);
+    TestFixture::expect_tensor_near(actual, expected);
+}
 
 class FreeTensorFMExpTests : public testing::Test,
                              public rpp::tests::PolynomialTensorHelper {

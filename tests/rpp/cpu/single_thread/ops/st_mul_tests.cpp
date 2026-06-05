@@ -5,9 +5,11 @@
 #include <gtest/gtest.h>
 
 #include <rpp/cpu/single_thread/operations/basic/st_mul.hpp>
+#include <rpp/cpu/single_thread/operations/basic/tensor_pairing.hpp>
 #include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_st_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
@@ -347,6 +349,208 @@ TEST_F(ShuffleTensorMulTests, KernelWrapperMatchesDirectOperation)
     );
 
     EXPECT_EQ(actual, expected);
+}
+
+template <typename Config>
+class NumericShuffleTensorMulTests
+    : public rpp::tests::TypedCpuShuffleTensorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedCpuShuffleTensorOpTestBase<Config>;
+    using typename Base::Accum;
+    using typename Base::Basis;
+    using typename Base::ConstTensorView;
+    using typename Base::Degree;
+    using typename Base::DegreeRange;
+    using typename Base::Strategy;
+    using typename Base::TensorView;
+    using Base::const_tensor_view;
+    using Base::expect_tensor_near;
+    using Base::full_range;
+    using Base::linear_combo;
+    using Base::make_tensor;
+    using Base::make_unit_tensor;
+    using Base::mutable_tensor_view;
+    using Base::reference_mul;
+    using Base::zero_tensor;
+
+    static void expect_scalar_near(Accum actual, Accum expected) {
+        auto const actual_d = static_cast<double>(actual);
+        auto const expected_d = static_cast<double>(expected);
+        auto const scale =
+            std::max({1.0, std::abs(actual_d), std::abs(expected_d)});
+        auto const tolerance =
+            rpp::tests::NumericTolerance<typename Base::Scalar, Accum>::value *
+            scale;
+        EXPECT_NEAR(actual_d, expected_d, tolerance);
+    }
+
+    static void expect_character_scalar_near(Accum actual, Accum expected) {
+        auto const actual_d = static_cast<double>(actual);
+        auto const expected_d = static_cast<double>(expected);
+        auto const scale =
+            std::max({1.0, std::abs(actual_d), std::abs(expected_d)});
+        auto const tolerance =
+            (std::is_same_v<typename Base::Scalar, double> ? 1e-10 : 1e-5) *
+            scale;
+        EXPECT_NEAR(actual_d, expected_d, tolerance);
+    }
+
+    [[nodiscard]] static Accum pairing(Basis const& basis,
+                                       std::vector<typename Base::Scalar> const& lhs,
+                                       std::vector<typename Base::Scalar> const& rhs) {
+        Accum result{0};
+        ConstTensorView lhs_view(lhs.data(), basis);
+        ConstTensorView rhs_view(rhs.data(), basis);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        return result;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    make_group_like_argument(Basis const& basis, unsigned seed) {
+        auto group_like = zero_tensor(basis);
+        auto const lambda =
+            static_cast<Accum>((static_cast<unsigned>(seed % 3u) + 1u) *
+                               0.03125);
+
+        group_like[0] = static_cast<typename Base::Scalar>(Accum{1});
+        Accum coeff{1};
+        for (Degree degree = 1; degree <= basis.depth; ++degree) {
+            coeff = coeff * lambda / static_cast<Accum>(degree);
+            group_like[static_cast<std::size_t>(basis.start_of_degree(degree))] =
+                static_cast<typename Base::Scalar>(coeff);
+        }
+        return group_like;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    run_mul(Basis const& basis,
+            std::vector<typename Base::Scalar> const& initial_out,
+            std::vector<typename Base::Scalar> const& lhs,
+            std::vector<typename Base::Scalar> const& rhs,
+            DegreeRange out_range,
+            DegreeRange lhs_range,
+            DegreeRange rhs_range,
+            Accum beta = Accum{1}) {
+        auto out = initial_out;
+        auto out_view = mutable_tensor_view(out, basis, out_range);
+        auto const lhs_view = const_tensor_view(lhs, basis, lhs_range);
+        auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::STMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view, beta);
+        return out;
+    }
+};
+
+TYPED_TEST_SUITE(NumericShuffleTensorMulTests,
+                 rpp::tests::TypedCpuFreeTensorTestTypes);
+
+TYPED_TEST(NumericShuffleTensorMulTests, MatchesReferenceOnFullView) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const beta = typename TestFixture::Accum{1.5};
+
+    auto const initial_out = TestFixture::make_tensor(1, basis);
+    auto const lhs = TestFixture::make_tensor(2, basis);
+    auto const rhs = TestFixture::make_tensor(3, basis);
+
+    auto const actual = TestFixture::run_mul(
+        basis,
+        initial_out,
+        lhs,
+        rhs,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        beta);
+    auto const expected = TestFixture::reference_mul(
+        basis,
+        initial_out,
+        lhs,
+        rhs,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        beta);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericShuffleTensorMulTests, UnitIsTwoSidedIdentity) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const unit = TestFixture::make_unit_tensor(basis);
+    auto const arg = TestFixture::make_tensor(4, basis);
+    auto const zero = TestFixture::zero_tensor(basis);
+
+    auto const left = TestFixture::run_mul(
+        basis,
+        zero,
+        unit,
+        arg,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis));
+    auto const right = TestFixture::run_mul(
+        basis,
+        zero,
+        arg,
+        unit,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis));
+    TestFixture::expect_tensor_near(left, arg);
+    TestFixture::expect_tensor_near(right, arg);
+}
+
+TYPED_TEST(NumericShuffleTensorMulTests, RespectsTruncatedOperandAndOutputViews) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    typename TestFixture::DegreeRange const out_range{1, 3};
+    typename TestFixture::DegreeRange const lhs_range{1, TestFixture::depth};
+    typename TestFixture::DegreeRange const rhs_range{0, 2};
+
+    auto const initial_out = TestFixture::make_tensor(5, basis);
+    auto const lhs = TestFixture::make_tensor(6, basis);
+    auto const rhs = TestFixture::make_tensor(7, basis);
+
+    auto const actual = TestFixture::run_mul(
+        basis, initial_out, lhs, rhs, out_range, lhs_range, rhs_range);
+    auto const expected = TestFixture::reference_mul(
+        basis, initial_out, lhs, rhs, out_range, lhs_range, rhs_range);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericShuffleTensorMulTests,
+           PairingTurnsShuffleProductIntoCharacterForGroupLikeArgument) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const s = TestFixture::make_tensor(8, basis);
+    auto const t = TestFixture::make_tensor(9, basis);
+    auto const a = TestFixture::make_group_like_argument(basis, 7);
+    auto const zero = TestFixture::zero_tensor(basis);
+
+    auto const product = TestFixture::run_mul(
+        basis,
+        zero,
+        s,
+        t,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis));
+    auto const lhs = TestFixture::pairing(basis, product, a);
+    auto const rhs =
+        TestFixture::pairing(basis, s, a) * TestFixture::pairing(basis, t, a);
+
+    TestFixture::expect_character_scalar_near(lhs, rhs);
 }
 
 } // namespace

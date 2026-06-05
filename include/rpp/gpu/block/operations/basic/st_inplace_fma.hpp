@@ -40,9 +40,12 @@ public:
                                Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorA::value_type;
         auto const& basis = a.basis();
-        for (Index elt_idx = ctx.thread_rank(); elt_idx < a.size();
+        for (Index elt_idx = a.begin_index() + ctx.thread_rank();
+             elt_idx < a.end_index();
              elt_idx += ctx.num_threads()) {
-            auto acc = gpu::block::st_multiply_loop(ctx, elt_idx, basis, b, c);
+            const auto degree = basis.degree(elt_idx);
+            auto acc = gpu::block::st_multiply_loop_with_degree(
+                ctx, elt_idx, degree, basis, b, c);
             acc *= beta;
             a[elt_idx] = static_cast<Scalar>(alpha * Accum{a[elt_idx]} + acc);
         }

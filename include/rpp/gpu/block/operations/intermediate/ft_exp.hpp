@@ -59,12 +59,12 @@ public:
                                TensorOut& out,
                                TensorArg const& arg) const noexcept {
         auto const& basis = out.basis();
-        constexpr Accum one{1};
+        const Accum one{1};
         set_identity(ctx, out);
 
         for (Degree d = basis.depth; d > 0; --d) {
             const auto max_degree = basis.depth - d + 1;
-            const Accum divisor = one / d;
+            const Accum divisor = one / static_cast<Accum>(d);
             ctx.sync();
             inplace_mul(ctx, out, arg.truncate(1, max_degree), divisor);
             add_identity(ctx, out);

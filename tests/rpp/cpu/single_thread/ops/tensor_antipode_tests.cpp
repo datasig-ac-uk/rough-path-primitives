@@ -2,13 +2,108 @@
 
 #include <gtest/gtest.h>
 
+#include <rpp/cpu/single_thread/operations/basic/ft_mul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/tensor_antipode.hpp>
 #include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_ft_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
+
+template <typename Config>
+class NumericTensorAntipodeTests
+    : public rpp::tests::TypedCpuFreeTensorOpTestBase<Config> {
+protected:
+    using Base = rpp::tests::TypedCpuFreeTensorOpTestBase<Config>;
+    using typename Base::Accum;
+    using typename Base::Basis;
+    using typename Base::ConstTensorView;
+    using typename Base::Degree;
+    using typename Base::Strategy;
+    using typename Base::TensorView;
+    using Base::expect_tensor_near;
+    using Base::full_range;
+    using Base::linear_combo;
+    using Base::make_tensor;
+    using Base::mutable_tensor_view;
+    using Base::reference_mul;
+    using Base::zero_tensor;
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    make_group_like_argument(Basis const& basis, unsigned seed) {
+        auto group_like = zero_tensor(basis);
+        auto const lambda =
+            static_cast<Accum>((static_cast<unsigned>(seed % 3u) + 1u) *
+                               0.03125);
+
+        group_like[0] = static_cast<typename Base::Scalar>(Accum{1});
+        Accum coeff{1};
+        for (Degree degree = 1; degree <= basis.depth; ++degree) {
+            coeff = coeff * lambda / static_cast<Accum>(degree);
+            group_like[static_cast<std::size_t>(basis.start_of_degree(degree))] =
+                static_cast<typename Base::Scalar>(coeff);
+        }
+        return group_like;
+    }
+
+    [[nodiscard]] static std::vector<typename Base::Scalar>
+    run_antipode(Basis const& basis,
+                 std::vector<typename Base::Scalar> const& arg) {
+        auto out = zero_tensor(basis);
+        TensorView out_view(out.data(), basis);
+        ConstTensorView arg_view(arg.data(), basis);
+
+        auto const ctx = Base::make_context();
+        rpp::ops::TensorAntipode<Strategy>{}(ctx, out_view, arg_view);
+        return out;
+    }
+};
+
+TYPED_TEST_SUITE(NumericTensorAntipodeTests,
+                 rpp::tests::TypedCpuFreeTensorTestTypes);
+
+TYPED_TEST(NumericTensorAntipodeTests, IsLinear) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const alpha = typename TestFixture::Accum{0.5};
+    auto const beta = typename TestFixture::Accum{-1.25};
+
+    auto const lhs = TestFixture::make_tensor(1, basis);
+    auto const rhs = TestFixture::make_tensor(2, basis);
+    auto const arg = TestFixture::linear_combo(lhs, alpha, rhs, beta);
+
+    auto const antipode_arg = TestFixture::run_antipode(basis, arg);
+    auto const antipode_lhs = TestFixture::run_antipode(basis, lhs);
+    auto const antipode_rhs = TestFixture::run_antipode(basis, rhs);
+    auto const expected =
+        TestFixture::linear_combo(antipode_lhs, alpha, antipode_rhs, beta);
+
+    TestFixture::expect_tensor_near(antipode_arg, expected);
+}
+
+TYPED_TEST(NumericTensorAntipodeTests, ActsAsInverseOnGroupLikeTensor) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+
+    auto const arg = TestFixture::make_group_like_argument(basis, 7);
+    auto const antipode = TestFixture::run_antipode(basis, arg);
+    auto const zero = TestFixture::zero_tensor(basis);
+    auto const product = TestFixture::reference_mul(
+        basis,
+        zero,
+        antipode,
+        arg,
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis),
+        TestFixture::full_range(basis));
+    auto const expected = TestFixture::make_unit_tensor(basis);
+
+    TestFixture::expect_tensor_near(product, expected);
+}
 
 class TensorAntipodeTests : public testing::Test,
                             public rpp::tests::PolynomialTensorHelper {
@@ -105,6 +200,37 @@ TEST_F(TensorAntipodeTests, IsInvolution) {
     rpp::ops::TensorAntipode<Strategy>{}(ctx, out_view, tmp_const_view);
 
     EXPECT_EQ(out, arg);
+}
+
+TEST_F(TensorAntipodeTests, AppliesOnlyToOverlappingArgumentDegreeRange) {
+    auto const basis_data = BasisData(width, depth);
+    auto const& basis = basis_data.basis;
+
+    auto const arg = make_tensor('a', basis);
+    std::vector<Scalar> out(static_cast<std::size_t>(basis.size()));
+    std::vector<Scalar> expected(static_cast<std::size_t>(basis.size()));
+
+    TensorView<Scalar*> out_view(out.data(), basis);
+    TensorView<Scalar const*> arg_view(arg.data(), basis, 2, 3);
+
+    auto const ctx = make_context();
+    rpp::ops::TensorAntipode<Strategy>{}(ctx, out_view, arg_view);
+
+    for_each_index(
+        basis, [&expected, &arg, &basis](Degree degree, Index level_index) {
+            if (degree < 2 || degree > 3) {
+                return;
+            }
+            auto const reversed = reverse_index(basis, degree, level_index);
+            auto const source = basis.start_of_degree(degree) + level_index;
+            auto const target = basis.start_of_degree(degree) + reversed;
+
+            expected[static_cast<std::size_t>(target)] = degree % 2 == 0
+                ? arg[static_cast<std::size_t>(source)]
+                : -arg[static_cast<std::size_t>(source)];
+        });
+
+    EXPECT_EQ(out, expected);
 }
 
 TEST_F(TensorAntipodeTests, KernelWrapperMatchesDirectOperation) {

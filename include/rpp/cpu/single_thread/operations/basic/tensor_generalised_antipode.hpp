@@ -52,8 +52,10 @@ public:
                 auto const out_index = basis.reverse_index(i, degree);
                 if constexpr (Policy ==
                               TensorAntipodeSigningPolicy::SignByDegree) {
-                    out_view[out_index] =
-                        arg_view[i] * (degree % 2 == 0 ? 1 : -1);
+                    using Value = std::decay_t<decltype(arg_view[i])>;
+                    auto const sign =
+                        degree % 2 == 0 ? Value{1} : Value{-1};
+                    out_view[out_index] = arg_view[i] * sign;
                 }
                 else {
                     out_view[out_index] = arg_view[i];
