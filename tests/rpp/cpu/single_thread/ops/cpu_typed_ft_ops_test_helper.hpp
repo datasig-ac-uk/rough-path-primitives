@@ -138,6 +138,19 @@ protected:
         return DegreeRange{0, basis.depth};
     }
 
+    [[nodiscard]] static DegreeRange overlap_range(DegreeRange lhs,
+                                                   DegreeRange rhs) {
+        return DegreeRange{std::max(lhs.min, rhs.min), std::min(lhs.max, rhs.max)};
+    }
+
+    [[nodiscard]] static bool is_empty(DegreeRange range) noexcept {
+        return range.max < range.min;
+    }
+
+    [[nodiscard]] static Scalar scalar_from_accum(Accum value) {
+        return static_cast<Scalar>(value);
+    }
+
     [[nodiscard]] static std::vector<Scalar>
     linear_combo(std::vector<Scalar> const& lhs,
                  Accum lhs_scale,
@@ -145,8 +158,8 @@ protected:
                  Accum rhs_scale) {
         std::vector<Scalar> result(lhs.size());
         for (std::size_t i = 0; i < lhs.size(); ++i) {
-            result[i] = static_cast<Scalar>(lhs_scale * static_cast<Accum>(lhs[i]) +
-                                            rhs_scale * static_cast<Accum>(rhs[i]));
+            result[i] = scalar_from_accum(lhs_scale * static_cast<Accum>(lhs[i]) +
+                                          rhs_scale * static_cast<Accum>(rhs[i]));
         }
         return result;
     }
@@ -192,7 +205,7 @@ protected:
 
                 expected[static_cast<std::size_t>(basis.start_of_degree(degree) +
                                                   level_index)] =
-                    static_cast<Scalar>(entry);
+                    scalar_from_accum(entry);
             });
 
         return expected;
@@ -246,7 +259,7 @@ protected:
                     }
                 }
 
-                expected[global_index] = static_cast<Scalar>(entry);
+                expected[global_index] = scalar_from_accum(entry);
             });
 
         return expected;

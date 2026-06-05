@@ -88,14 +88,14 @@ protected:
 
                 expected[static_cast<std::size_t>(
                     basis.start_of_degree(degree) + level_index)] =
-                    static_cast<Scalar>(beta * shuffle_product_coefficient(
-                                                   basis,
-                                                   lhs,
-                                                   rhs,
-                                                   degree,
-                                                   level_index,
-                                                   lhs_range,
-                                                   rhs_range));
+                    Base::scalar_from_accum(beta * shuffle_product_coefficient(
+                                                       basis,
+                                                       lhs,
+                                                       rhs,
+                                                       degree,
+                                                       level_index,
+                                                       lhs_range,
+                                                       rhs_range));
             });
 
         return expected;
@@ -135,7 +135,7 @@ protected:
                                     level_index,
                                     b_range,
                                     c_range);
-                expected[global_index] = static_cast<Scalar>(value);
+                expected[global_index] = Base::scalar_from_accum(value);
             });
 
         return expected;

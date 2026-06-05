@@ -12,30 +12,12 @@ protected:
     using typename Base::Accum;
     using typename Base::Basis;
     using typename Base::Degree;
+    using typename Base::DegreeRange;
     using typename Base::HostVector;
     using typename Base::Index;
     using typename Base::Scalar;
-
-    struct DegreeRange {
-        Degree min;
-        Degree max;
-    };
-
-    [[nodiscard]] static constexpr bool contains(DegreeRange range,
-                                                 Degree degree) noexcept {
-        return range.min <= degree && degree <= range.max;
-    }
-
-    [[nodiscard]] static constexpr DegreeRange
-    full_range(Basis const& basis) noexcept {
-        return DegreeRange{Degree{0}, basis.depth};
-    }
-
-    [[nodiscard]] static HostVector make_unit_tensor(Basis const& basis) {
-        auto result = Base::make_zero_batch(basis);
-        result[0] = cast_scalar<Scalar>(1.0f);
-        return result;
-    }
+    using Base::contains;
+    using Base::full_range;
 
     [[nodiscard]] static HostVector reference_mul(Basis const& basis,
                                                   HostVector const& lhs,
@@ -86,7 +68,8 @@ protected:
                         auto const old_val =
                             Accum{result[static_cast<std::size_t>(out_idx)]};
                         result[static_cast<std::size_t>(out_idx)] =
-                            cast_scalar<Scalar>(old_val + beta * lhs_val * rhs_val);
+                            Base::scalar_from_accum(old_val +
+                                                    beta * lhs_val * rhs_val);
                     }
                 }
             }
@@ -135,7 +118,7 @@ protected:
                     acc += alpha * Accum{a[static_cast<std::size_t>(global_idx)]};
                 }
                 result[static_cast<std::size_t>(global_idx)] =
-                    cast_scalar<Scalar>(acc);
+                    Base::scalar_from_accum(acc);
             }
 
             for (Degree b_deg = b_range.min;
@@ -163,8 +146,9 @@ protected:
                             out_begin + out_offset + c_idx);
                         auto const old_val =
                             Accum{result[static_cast<std::size_t>(global_idx)]};
-                        result[static_cast<std::size_t>(global_idx)] = cast_scalar<
-                            Scalar>(old_val + beta * b_val * c_val);
+                        result[static_cast<std::size_t>(global_idx)] =
+                            Base::scalar_from_accum(old_val +
+                                                    beta * b_val * c_val);
                     }
                 }
             }

@@ -12,30 +12,11 @@ protected:
     using typename Base::Accum;
     using typename Base::Basis;
     using typename Base::Degree;
+    using typename Base::DegreeRange;
     using typename Base::HostVector;
     using typename Base::Index;
-    using typename Base::Scalar;
-
-    struct DegreeRange {
-        Degree min;
-        Degree max;
-    };
-
-    [[nodiscard]] static constexpr bool contains(DegreeRange range,
-                                                 Degree degree) noexcept {
-        return range.min <= degree && degree <= range.max;
-    }
-
-    [[nodiscard]] static constexpr DegreeRange
-    full_range(Basis const& basis) noexcept {
-        return DegreeRange{Degree{0}, basis.depth};
-    }
-
-    [[nodiscard]] static HostVector make_unit_tensor(Basis const& basis) {
-        auto result = Base::make_zero_batch(basis);
-        result[0] = cast_scalar<Scalar>(1.0f);
-        return result;
-    }
+    using Base::contains;
+    using Base::full_range;
 
     [[nodiscard]] static Accum shuffle_product_coefficient(
         Basis const& basis,
@@ -94,9 +75,9 @@ protected:
             auto const begin = basis.start_of_degree(degree);
             auto const end = basis.end_of_degree(degree);
             for (Index idx = begin; idx < end; ++idx) {
-                result[static_cast<std::size_t>(idx)] =
-                    cast_scalar<Scalar>(beta * shuffle_product_coefficient(
-                        basis, lhs, rhs, degree, idx, lhs_range, rhs_range));
+                result[static_cast<std::size_t>(idx)] = Base::scalar_from_accum(
+                    beta * shuffle_product_coefficient(
+                               basis, lhs, rhs, degree, idx, lhs_range, rhs_range));
             }
         }
         return result;
@@ -135,8 +116,7 @@ protected:
                 }
                 acc += beta * shuffle_product_coefficient(
                     basis, b, c, degree, idx, b_range, c_range);
-                result[static_cast<std::size_t>(idx)] =
-                    cast_scalar<Scalar>(acc);
+                result[static_cast<std::size_t>(idx)] = Base::scalar_from_accum(acc);
             }
         }
         return result;

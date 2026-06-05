@@ -2,7 +2,6 @@
 #define RPP_TESTS_GPU_BLOCK_OPS_GPU_TYPED_VECTOR_OPS_TEST_HELPER_CUH
 
 #include <algorithm>
-#include <type_traits>
 
 #include "gpu_typed_adjoint_test_helper.cuh"
 
@@ -17,24 +16,14 @@ protected:
     using typename Base::Basis;
     using typename Base::Degree;
     using typename Base::DeviceVector;
+    using typename Base::DegreeRange;
     using typename Base::GpuStrategy;
     using typename Base::Helper;
     using typename Base::HostVector;
-
-    struct DegreeRange {
-        Degree min;
-        Degree max;
-    };
-
-    static typename Base::Scalar scalar_from_accum(Accum value) {
-        if constexpr (std::is_same_v<typename Base::Scalar, __half> ||
-                      std::is_same_v<typename Base::Scalar, __nv_bfloat16>) {
-            return cast_scalar<typename Base::Scalar>(static_cast<float>(value));
-        }
-        else {
-            return static_cast<typename Base::Scalar>(value);
-        }
-    }
+    using Base::full_range;
+    using Base::is_empty;
+    using Base::overlap_range;
+    using Base::scalar_from_accum;
 
     static HostVector linear_combo(HostVector const& lhs,
                                    Accum lhs_scale,
@@ -59,16 +48,6 @@ protected:
         }
         return result;
     }
-
-    static DegreeRange full_range(Basis const& basis) {
-        return DegreeRange{0, basis.depth};
-    }
-
-    static DegreeRange overlap_range(DegreeRange lhs, DegreeRange rhs) {
-        return DegreeRange{std::max(lhs.min, rhs.min), std::min(lhs.max, rhs.max)};
-    }
-
-    static bool is_empty(DegreeRange range) { return range.max < range.min; }
 };
 
 } // namespace rpp::tests

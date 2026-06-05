@@ -133,6 +133,30 @@ protected:
     using GpuStrategy = rpp::gpu::strategies::BlockStrategy<
         Accum, Helper::block_size, 256, typename Helper::GpuArchitecture>;
 
+    struct DegreeRange {
+        Degree min;
+        Degree max;
+    };
+
+    [[nodiscard]] static constexpr bool contains(DegreeRange range,
+                                                 Degree degree) noexcept {
+        return range.min <= degree && degree <= range.max;
+    }
+
+    [[nodiscard]] static constexpr DegreeRange
+    full_range(Basis const& basis) noexcept {
+        return DegreeRange{Degree{0}, basis.depth};
+    }
+
+    [[nodiscard]] static constexpr DegreeRange
+    overlap_range(DegreeRange lhs, DegreeRange rhs) noexcept {
+        return DegreeRange{std::max(lhs.min, rhs.min), std::min(lhs.max, rhs.max)};
+    }
+
+    [[nodiscard]] static constexpr bool is_empty(DegreeRange range) noexcept {
+        return range.max < range.min;
+    }
+
     [[nodiscard]] static HostVector make_batch(unsigned seed, Basis const& basis) {
         HostVector result(
             static_cast<std::size_t>(Helper::tensor_count * basis.size()));
@@ -159,6 +183,20 @@ protected:
         auto result = make_zero_batch(basis);
         result[0] = cast_scalar<Scalar>(1.0f);
         return result;
+    }
+
+    [[nodiscard]] static HostVector make_unit_tensor(Basis const& basis) {
+        return make_identity_operator(basis);
+    }
+
+    [[nodiscard]] static Scalar scalar_from_accum(Accum value) {
+        if constexpr (std::is_same_v<Scalar, __half> ||
+                      std::is_same_v<Scalar, __nv_bfloat16>) {
+            return cast_scalar<Scalar>(static_cast<float>(value));
+        }
+        else {
+            return static_cast<Scalar>(value);
+        }
     }
 
     static void expect_scalar_near(Accum actual, Accum expected) {
