@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.31)
 
 
 project(RoughPathPrimitives
-        VERSION 1.0.0
+        VERSION 1.0.2
         LANGUAGES CXX
 )
 
