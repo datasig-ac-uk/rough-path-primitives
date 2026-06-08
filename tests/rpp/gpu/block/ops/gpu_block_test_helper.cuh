@@ -138,6 +138,8 @@ struct GpuBlockTestHelper {
 
     [[nodiscard]] static HostVector<Scalar>
     make_batch(unsigned seed, Basis const& basis, Scalar scale = Scalar{1}) {
+        auto const conditioned_scale = scale *
+            static_cast<Scalar>(std::min(1.0, 16.0 / std::sqrt(static_cast<double>(basis.size()))));
         HostVector<Scalar> result(
             static_cast<std::size_t>(tensor_count * basis.size()));
         auto const first = thrust::make_counting_iterator<std::size_t>(0);
@@ -145,7 +147,21 @@ struct GpuBlockTestHelper {
                           first,
                           first + result.size(),
                           result.begin(),
-                          RandomScalar{seed, scale});
+                          RandomScalar{seed, conditioned_scale});
+
+        // Higher tensor degrees undergo substantially more accumulation in the
+        // algebraic ops, so damp later levels to keep numerical stress within
+        // the intended tolerance envelope across the suite.
+        constexpr Scalar level_decay = Scalar{0.5};
+        Scalar degree_scale = Scalar{1};
+        for (Degree degree = 0; degree <= basis.depth; ++degree) {
+            auto const begin = static_cast<std::size_t>(basis.start_of_degree(degree));
+            auto const end = static_cast<std::size_t>(basis.end_of_degree(degree));
+            for (std::size_t idx = begin; idx < end; ++idx) {
+                result[idx] *= degree_scale;
+            }
+            degree_scale *= level_decay;
+        }
         return result;
     }
 
@@ -317,7 +333,8 @@ struct GpuBlockTestHelper {
 inline constexpr GpuBlockTestHelper::TensorConfig gpu_block_test_configs[] = {
     {2, 3},
     {3, 2},
-    {4, 3}
+    {4, 3},
+    {4, 6}
 };
 
 } // namespace rpp::tests

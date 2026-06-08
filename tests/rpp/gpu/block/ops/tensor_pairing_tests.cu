@@ -139,7 +139,7 @@ TYPED_TEST(GpuBlockTensorPairingTypedTests, IsSymmetric) {
         auto const rhs_lhs = TestFixture::run_gpu_pairing(
             basis, gpu_strategy, rhs, lhs, full, full);
 
-        TestFixture::expect_scalar_near(lhs_rhs, rhs_lhs);
+        RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(TestFixture, lhs_rhs, rhs_lhs);
     }
 }
 
@@ -170,7 +170,7 @@ TYPED_TEST(GpuBlockTensorPairingTypedTests, IsLinearInEachArgument) {
             basis, gpu_strategy, y, z, full, full);
         auto const expected = alpha * static_cast<typename TestFixture::Accum>(xz) +
                               beta * static_cast<typename TestFixture::Accum>(yz);
-        TestFixture::expect_scalar_near(lhs, expected);
+        RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(TestFixture, lhs, expected);
 
         auto const rhs = TestFixture::run_gpu_pairing(
             basis, gpu_strategy, z, combo, full, full);
@@ -181,7 +181,7 @@ TYPED_TEST(GpuBlockTensorPairingTypedTests, IsLinearInEachArgument) {
         auto const expected_rhs =
             alpha * static_cast<typename TestFixture::Accum>(zx) +
             beta * static_cast<typename TestFixture::Accum>(zy);
-        TestFixture::expect_scalar_near(rhs, expected_rhs);
+        RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(TestFixture, rhs, expected_rhs);
     }
 }
 
@@ -208,7 +208,7 @@ TYPED_TEST(GpuBlockTensorPairingTypedTests, RespectsTruncatedOperandViews) {
             basis, functional, arg, functional_range, arg_range);
         auto const actual = TestFixture::run_gpu_pairing(
             basis, gpu_strategy, functional, arg, functional_range, arg_range);
-        TestFixture::expect_scalar_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(TestFixture, actual, expected);
 
         if (basis.depth >= 1) {
             auto const disjoint_functional =
@@ -222,7 +222,7 @@ TYPED_TEST(GpuBlockTensorPairingTypedTests, RespectsTruncatedOperandViews) {
                 arg,
                 disjoint_functional,
                 disjoint_arg);
-            TestFixture::expect_scalar_near(
+            RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(TestFixture, 
                 zero, typename TestFixture::Accum{0});
         }
     }

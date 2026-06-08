@@ -106,7 +106,7 @@ TYPED_TEST(GpuBlockVectorAssignTypedTests, CopiesArgumentOnFullView) {
             arg,
             TestFixture::full_range(basis),
             TestFixture::full_range(basis));
-        TestFixture::expect_tensor_near(actual, arg);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, arg);
     }
 }
 
@@ -131,7 +131,7 @@ TYPED_TEST(GpuBlockVectorAssignTypedTests, RespectsTruncatedIntersection) {
             basis, gpu_strategy, out, arg, out_range, arg_range);
         auto const expected = TestFixture::reference_assign(
             out, arg, basis, out_range, arg_range);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -154,7 +154,7 @@ TYPED_TEST(GpuBlockVectorAssignTypedTests, NoOverlapLeavesOutputUnchanged) {
 
         auto const actual = TestFixture::run_gpu_assign(
             basis, gpu_strategy, out, arg, out_range, arg_range);
-        TestFixture::expect_tensor_near(actual, out);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, out);
     }
 }
 

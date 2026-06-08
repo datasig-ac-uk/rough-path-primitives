@@ -114,7 +114,7 @@ TYPED_TEST(GpuBlockFtExpTypedTests, LogExpRoundTripForPositiveDegreeInput) {
             basis, gpu_strategy, x, {1, basis.depth});
         auto const log_exp_x = TestFixture::run_gpu_log(basis, gpu_strategy, exp_x);
 
-        TestFixture::expect_tensor_near(log_exp_x, x);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, log_exp_x, x);
     }
 }
 
@@ -132,7 +132,7 @@ TYPED_TEST(GpuBlockFtExpTypedTests, ExpOfZeroIsIdentity) {
             basis, gpu_strategy, TestFixture::make_zero_batch(basis), {0, basis.depth});
         auto const expected = TestFixture::make_unit_tensor(basis);
 
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

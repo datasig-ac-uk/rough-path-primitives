@@ -97,7 +97,7 @@ protected:
             beta);
         auto const expected = expected_out_of_place_reference<FmaType>(
             basis, initial_a, b, c, a_range, b_range, c_range, alpha, beta);
-        expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(GpuBlockFtInplaceFmaTypedTests, actual, expected);
     }
 
     template <rpp::ops::FTInplaceFMAType FmaType>

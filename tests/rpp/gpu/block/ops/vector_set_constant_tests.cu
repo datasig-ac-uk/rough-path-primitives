@@ -80,7 +80,7 @@ TYPED_TEST(GpuBlockVectorSetConstantTypedTests, SetsFullViewToConstant) {
         auto const expected = TestFixture::assign_slice(
             initial, basis, TestFixture::full_range(basis),
             TestFixture::scalar_from_accum(value));
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -105,7 +105,7 @@ TYPED_TEST(GpuBlockVectorSetConstantTypedTests, SetsOnlyActiveSliceForView) {
             TestFixture::run_gpu_set_constant(basis, gpu_strategy, initial, range, value);
         auto const expected = TestFixture::assign_slice(
             initial, basis, range, TestFixture::scalar_from_accum(value));
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -128,7 +128,7 @@ TYPED_TEST(GpuBlockVectorSetConstantTypedTests, SettingZeroZerosActiveSlice) {
         auto const expected = TestFixture::assign_slice(
             initial, basis, range,
             TestFixture::scalar_from_accum(typename TestFixture::Accum{0}));
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

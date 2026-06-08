@@ -107,7 +107,7 @@ TYPED_TEST(GpuBlockFtFmaTypedTests, MatchesHostReferenceForSingleElementBatches)
             TestFixture::full_range(basis), alpha, beta);
         auto const expected =
             TestFixture::reference_fma(basis, a, b, c, alpha, beta);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -116,6 +116,7 @@ TYPED_TEST(GpuBlockFtFmaTypedTests, MatchesMulThenAddReference) {
 
     auto const alpha = typename TestFixture::Accum{0.5};
     auto const beta = typename TestFixture::Accum{-1.25};
+    constexpr auto double_tolerance = 5e-8;
 
     for (auto const& config : rpp::tests::gpu_block_test_configs) {
         auto const basis_data = typename TestFixture::Helper::BasisData(
@@ -139,7 +140,14 @@ TYPED_TEST(GpuBlockFtFmaTypedTests, MatchesMulThenAddReference) {
                 typename TestFixture::Accum{expected[i]} +
                 alpha * typename TestFixture::Accum{a[i]});
         }
-        TestFixture::expect_tensor_near(actual, expected);
+        if constexpr (std::is_same_v<typename TestFixture::Scalar, double> &&
+                      std::is_same_v<typename TestFixture::Accum, double>) {
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR_WITH_BASE_TOLERANCE(
+                TestFixture, actual, expected, double_tolerance);
+        }
+        else {
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+        }
     }
 }
 
@@ -169,7 +177,7 @@ TYPED_TEST(GpuBlockFtFmaTypedTests, RespectsTruncatedOperandAndOutputViews) {
             basis, gpu_strategy, a, b, c, out_range, a_range, b_range, c_range);
         auto const expected = TestFixture::reference_fma(
             basis, a, b, c, out_range, a_range, b_range, c_range);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

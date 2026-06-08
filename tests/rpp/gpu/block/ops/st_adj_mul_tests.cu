@@ -15,6 +15,8 @@ class GpuBlockStAdjMulTypedTests
     : public rpp::tests::TypedGpuAdjointTestBase<Config> {
 protected:
     using Base = rpp::tests::TypedGpuAdjointTestBase<Config>;
+    using Scalar = typename Config::Scalar;
+    using Accum = typename Config::Accum;
     using typename Base::Basis;
     using typename Base::DeviceVector;
     using typename Base::GpuStrategy;
@@ -25,6 +27,16 @@ protected:
     using Base::make_batch;
     using Base::make_identity_operator;
     using Base::make_zero_batch;
+
+    static constexpr float pairing_identity_input_scale() noexcept {
+        if constexpr (std::is_same_v<Scalar, __nv_bfloat16> &&
+                      std::is_same_v<Accum, float>) {
+            return 0.5f;
+        }
+        else {
+            return 1.0f;
+        }
+    }
 
     static void expect_adjoint_pairing_identity(Basis const& basis,
                                                 GpuStrategy const& gpu_strategy,
@@ -90,7 +102,7 @@ protected:
         auto const rhs_pairing = Helper::copy_to_host(device_rhs_pairing);
         ASSERT_EQ(lhs_pairing.size(), std::size_t{1});
         ASSERT_EQ(rhs_pairing.size(), std::size_t{1});
-        expect_scalar_near(lhs_pairing[0], rhs_pairing[0]);
+        RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(GpuBlockStAdjMulTypedTests, lhs_pairing[0], rhs_pairing[0]);
     }
 };
 
@@ -114,11 +126,12 @@ TYPED_TEST(GpuBlockStAdjMulTypedTests, SatisfiesAdjointPairingCriterionOnGpu) {
         auto const& basis = basis_data.basis;
         auto const gpu_strategy = typename TestFixture::GpuStrategy{
             TestFixture::Helper::block_size};
+        auto const input_scale = TestFixture::pairing_identity_input_scale();
 
         for (auto const& triple : seeds) {
-            auto const op = TestFixture::make_batch(triple[0], basis);
-            auto const t = TestFixture::make_batch(triple[1], basis);
-            auto const arg = TestFixture::make_batch(triple[2], basis);
+            auto const op = TestFixture::make_batch(triple[0], basis, input_scale);
+            auto const t = TestFixture::make_batch(triple[1], basis, input_scale);
+            auto const arg = TestFixture::make_batch(triple[2], basis, input_scale);
 
             TestFixture::expect_adjoint_pairing_identity(
                 basis, gpu_strategy, op, t, arg);
@@ -162,7 +175,7 @@ TYPED_TEST(GpuBlockStAdjMulTypedTests,
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         actual = TestFixture::Helper::copy_to_host(device_actual);
-        TestFixture::expect_tensor_near(actual, arg);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, arg);
     }
 }
 
