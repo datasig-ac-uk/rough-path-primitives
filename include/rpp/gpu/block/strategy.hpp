@@ -171,12 +171,14 @@ public:
         }
     }
 
-    template <typename Basis>
-    RPP_DEVICE Degree low_range_degree(Basis const& basis) const noexcept {
-        Degree result = 0;
+    template <typename TensorView>
+    RPP_DEVICE Degree low_range_degree(TensorView const& view) const noexcept {
+        auto const& basis = view.basis();
+        auto result = view.min_degree();
         const auto threads = static_cast<Index>(num_threads());
-        while (result <= basis.depth &&
-               basis.start_of_degree(result) < threads) {
+        while (result < view.max_degree() &&
+               basis.end_of_degree(result + 1) - view.begin_index() <=
+                   threads) {
             ++result;
         }
         return result;

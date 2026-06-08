@@ -39,8 +39,7 @@ public:
                                Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorLhs::value_type;
         auto const& basis = lhs.basis();
-        const auto low_range_degree =
-            std::min(lhs.max_degree(), ctx.low_range_degree(basis));
+        const auto low_range_degree = ctx.low_range_degree(lhs);
 
         for (Degree out_deg = lhs.max_degree(); out_deg > low_range_degree;
              --out_deg) {

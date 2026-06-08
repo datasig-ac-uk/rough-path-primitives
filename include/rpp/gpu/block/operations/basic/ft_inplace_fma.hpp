@@ -43,8 +43,7 @@ public:
                                Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorA::value_type;
         auto const& basis = a.basis();
-        const auto low_range_degree =
-            std::min(a.max_degree(), ctx.low_range_degree(basis));
+        const auto low_range_degree = ctx.low_range_degree(a);
 
         for (Degree out_deg = a.max_degree(); out_deg > low_range_degree;
              --out_deg) {

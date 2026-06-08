@@ -159,4 +159,52 @@ TYPED_TEST(GpuBlockFtInplaceMulTypedTests,
     }
 }
 
+TYPED_TEST(GpuBlockFtInplaceMulTypedTests,
+           MatchesOutOfPlaceReferenceWithSmallBlockSizeOnW4D3) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using SmallBlockStrategy = rpp::gpu::strategies::BlockStrategy<
+        typename TestFixture::Accum,
+        32,
+        256,
+        typename TestFixture::Helper::GpuArchitecture>;
+
+    auto const basis_data = typename TestFixture::Helper::BasisData(4, 3);
+    auto const& basis = basis_data.basis;
+    auto const gpu_strategy = SmallBlockStrategy{32};
+    auto const beta = typename TestFixture::Accum{0.75};
+
+    auto const lhs = TestFixture::make_batch(30, basis);
+    auto const rhs = TestFixture::make_batch(31, basis);
+
+    auto actual = lhs;
+
+    typename TestFixture::DeviceVector device_actual(actual);
+    typename TestFixture::DeviceVector device_rhs(rhs);
+    auto rhs_batch = TestFixture::Helper::device_tensor_batch(device_rhs, basis);
+
+    rpp::gpu::DeviceLaunchConfig launch_config;
+    launch_config.stream = nullptr;
+    auto const err = rpp::ops::ft_inplace_mul(
+        gpu_strategy,
+        std::move(launch_config),
+        rpp::make_tensor_batch(TestFixture::Helper::device_data(device_actual),
+                               basis.size(),
+                               0,
+                               basis.depth),
+        rpp::make_tensor_batch(rhs_batch.data(),
+                               rhs_batch.layout(),
+                               0,
+                               basis.depth),
+        basis,
+        TestFixture::Helper::tensor_count,
+        beta);
+    ASSERT_TRUE(static_cast<bool>(err)) << err.message();
+    RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+
+    actual = TestFixture::Helper::copy_to_host(device_actual);
+    auto const expected = TestFixture::reference_mul(basis, lhs, rhs, beta);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
 } // namespace
