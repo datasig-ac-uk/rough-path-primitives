@@ -317,6 +317,7 @@ struct GpuBlockTestHelper {
 inline constexpr GpuBlockTestHelper::TensorConfig gpu_block_test_configs[] = {
     {2, 3},
     {3, 2},
+    {4, 3}
 };
 
 } // namespace rpp::tests
