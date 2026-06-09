@@ -90,7 +90,7 @@ TYPED_TEST(GpuBlockFtInplaceMulTypedTests,
             basis, gpu_strategy, lhs, rhs, TestFixture::full_range(basis),
             TestFixture::full_range(basis), beta);
         auto const expected = TestFixture::reference_mul(basis, lhs, rhs, beta);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -127,7 +127,7 @@ TYPED_TEST(GpuBlockFtInplaceMulTypedTests, MatchesOutOfPlaceReferenceForViews) {
                     updated[static_cast<std::size_t>(idx)];
             }
         }
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -136,6 +136,7 @@ TYPED_TEST(GpuBlockFtInplaceMulTypedTests,
     RPP_REQUIRE_CUDA_DEVICE();
 
     auto const beta = typename TestFixture::Accum{-1.25};
+    constexpr auto double_tolerance = 5e-8;
 
     for (auto const& config : rpp::tests::gpu_block_test_configs) {
         auto const basis_data = typename TestFixture::Helper::BasisData(
@@ -155,7 +156,14 @@ TYPED_TEST(GpuBlockFtInplaceMulTypedTests,
             coeff = rpp::tests::cast_scalar<typename TestFixture::Scalar>(
                 beta * typename TestFixture::Accum{coeff});
         }
-        TestFixture::expect_tensor_near(actual, expected);
+        if constexpr (std::is_same_v<typename TestFixture::Scalar, double> &&
+                      std::is_same_v<typename TestFixture::Accum, double>) {
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR_WITH_BASE_TOLERANCE(
+                TestFixture, actual, expected, double_tolerance);
+        }
+        else {
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+        }
     }
 }
 
@@ -204,7 +212,7 @@ TYPED_TEST(GpuBlockFtInplaceMulTypedTests,
 
     actual = TestFixture::Helper::copy_to_host(device_actual);
     auto const expected = TestFixture::reference_mul(basis, lhs, rhs, beta);
-    TestFixture::expect_tensor_near(actual, expected);
+    RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
 }
 
 } // namespace

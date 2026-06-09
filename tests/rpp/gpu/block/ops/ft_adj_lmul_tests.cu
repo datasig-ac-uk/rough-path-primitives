@@ -119,7 +119,7 @@ protected:
         auto const rhs_pairing = Helper::copy_to_host(device_rhs_pairing);
         ASSERT_EQ(lhs_pairing.size(), std::size_t{1});
         ASSERT_EQ(rhs_pairing.size(), std::size_t{1});
-        expect_scalar_near(lhs_pairing[0], rhs_pairing[0]);
+        RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(GpuBlockFtAdjLMulTypedTests, lhs_pairing[0], rhs_pairing[0]);
     }
 };
 
@@ -191,7 +191,7 @@ TYPED_TEST(GpuBlockFtAdjLMulTypedTests,
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         actual = TestFixture::Helper::copy_to_host(device_actual);
-        TestFixture::expect_tensor_near(actual, arg);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, arg);
     }
 }
 
@@ -232,7 +232,7 @@ TYPED_TEST(GpuBlockFtAdjLMulTypedTests, LetterOperatorShiftsCoefficientsLeft) {
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
 
         actual = TestFixture::Helper::copy_to_host(device_actual);
-        TestFixture::expect_tensor_near(
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, 
             actual,
             TestFixture::expected_left_shift(basis, arg, letter_index));
     }

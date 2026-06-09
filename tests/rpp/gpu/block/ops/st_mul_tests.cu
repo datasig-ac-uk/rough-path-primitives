@@ -233,7 +233,7 @@ TYPED_TEST(GpuBlockStMulTypedTests, MatchesHostReferenceForSingleElementBatches)
             basis, gpu_strategy, lhs, rhs, TestFixture::full_range(basis),
             TestFixture::full_range(basis), TestFixture::full_range(basis), beta);
         auto const expected = TestFixture::reference_mul(basis, lhs, rhs, beta);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -257,8 +257,8 @@ TYPED_TEST(GpuBlockStMulTypedTests, UnitActsAsTwoSidedIdentity) {
             basis, gpu_strategy, arg, unit, TestFixture::full_range(basis),
             TestFixture::full_range(basis), TestFixture::full_range(basis));
 
-        TestFixture::expect_tensor_near(left_actual, arg);
-        TestFixture::expect_tensor_near(right_actual, arg);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, left_actual, arg);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, right_actual, arg);
     }
 }
 
@@ -286,7 +286,7 @@ TYPED_TEST(GpuBlockStMulTypedTests, RespectsTruncatedOperandAndOutputViews) {
             basis, gpu_strategy, lhs, rhs, out_range, lhs_range, rhs_range);
         auto const expected = TestFixture::reference_mul(
             basis, lhs, rhs, out_range, lhs_range, rhs_range);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

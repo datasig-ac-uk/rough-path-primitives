@@ -94,7 +94,7 @@ TYPED_TEST(GpuBlockVectorScalarMultiplyTypedTests, MatchesReferenceOnFullView) {
             basis, gpu_strategy, vec, TestFixture::full_range(basis), scalar);
         auto const expected = TestFixture::reference_scalar_multiply(
             vec, basis, TestFixture::full_range(basis), scalar);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -116,7 +116,7 @@ TYPED_TEST(GpuBlockVectorScalarMultiplyTypedTests, ZeroScalarZerosActiveSlice) {
             basis, gpu_strategy, vec, range, typename TestFixture::Accum{0});
         auto const expected = TestFixture::reference_scalar_multiply(
             vec, basis, range, typename TestFixture::Accum{0});
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -141,7 +141,7 @@ TYPED_TEST(GpuBlockVectorScalarMultiplyTypedTests, RespectsTruncatedView) {
             basis, gpu_strategy, vec, range, scalar);
         auto const expected = TestFixture::reference_scalar_multiply(
             vec, basis, range, scalar);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

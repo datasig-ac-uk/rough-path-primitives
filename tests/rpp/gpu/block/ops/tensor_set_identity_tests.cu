@@ -110,7 +110,7 @@ TYPED_TEST(GpuBlockTensorSetIdentityTypedTests, SetsUnitTensorOnFullView) {
             basis, gpu_strategy, initial, range, scalar);
         auto const expected = TestFixture::reference_set_identity(
             initial, basis, range, scalar);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -136,7 +136,7 @@ TYPED_TEST(GpuBlockTensorSetIdentityTypedTests,
             basis, gpu_strategy, initial, range, scalar);
         auto const expected = TestFixture::reference_set_identity(
             initial, basis, range, scalar);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -162,7 +162,7 @@ TYPED_TEST(GpuBlockTensorSetIdentityTypedTests,
             basis, gpu_strategy, initial, range, scalar);
         auto const expected = TestFixture::reference_set_identity(
             initial, basis, range, scalar);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

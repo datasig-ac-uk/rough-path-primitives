@@ -161,7 +161,7 @@ TYPED_TEST(GpuBlockFtFmexpTypedTests, IdentityMultiplierIsExp) {
             basis, gpu_strategy, TestFixture::make_unit_tensor(basis), x);
         auto const expected = TestFixture::run_gpu_exp(basis, gpu_strategy, x);
 
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

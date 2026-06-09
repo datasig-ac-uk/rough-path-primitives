@@ -169,7 +169,7 @@ TYPED_TEST(GpuBlockTensorAntipodeTypedTests, IsLinear) {
 
         auto const expected =
             TestFixture::linear_combo(antipode_lhs, alpha, antipode_rhs, beta);
-        TestFixture::expect_tensor_near(antipode_arg, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, antipode_arg, expected);
     }
 }
 
@@ -191,7 +191,7 @@ TYPED_TEST(GpuBlockTensorAntipodeTypedTests,
             TestFixture::run_gpu_mul(basis, gpu_strategy, antipode, arg);
         auto const expected = TestFixture::make_unit_tensor(basis);
 
-        TestFixture::expect_tensor_near(product, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, product, expected);
     }
 }
 

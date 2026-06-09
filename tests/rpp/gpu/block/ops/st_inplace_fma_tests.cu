@@ -123,7 +123,7 @@ TYPED_TEST(GpuBlockStInplaceFmaTypedTests,
             alpha,
             beta);
 
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -164,7 +164,7 @@ TYPED_TEST(GpuBlockStInplaceFmaTypedTests,
             }
         }
 
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -216,7 +216,7 @@ TYPED_TEST(GpuBlockStInplaceFmaTypedTests,
             }
         }
 
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

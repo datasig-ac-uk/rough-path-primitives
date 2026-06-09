@@ -112,7 +112,7 @@ TYPED_TEST(GpuBlockFtLogTypedTests, ExpLogRoundTripForExponentialInput) {
         auto const exp_log_exp_x =
             TestFixture::run_gpu_exp(basis, gpu_strategy, log_exp_x);
 
-        TestFixture::expect_tensor_near(exp_log_exp_x, exp_x);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, exp_log_exp_x, exp_x);
     }
 }
 
@@ -130,7 +130,7 @@ TYPED_TEST(GpuBlockFtLogTypedTests, LogOfIdentityIsZero) {
             TestFixture::run_gpu_log(basis, gpu_strategy, TestFixture::make_unit_tensor(basis));
         auto const expected = TestFixture::make_zero_batch(basis);
 
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 

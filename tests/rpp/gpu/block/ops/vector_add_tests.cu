@@ -144,7 +144,7 @@ TYPED_TEST(GpuBlockVectorAddTypedTests, MatchesReferenceOnFullView) {
             TestFixture::full_range(basis),
             alpha,
             beta);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -176,7 +176,7 @@ TYPED_TEST(GpuBlockVectorAddTypedTests, EqualsLinearCombinationWhenOutputStartsZ
             alpha,
             beta);
         auto const expected = TestFixture::linear_combo(lhs, alpha, rhs, beta);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
@@ -215,7 +215,7 @@ TYPED_TEST(GpuBlockVectorAddTypedTests, RespectsTruncatedIntersection) {
             beta);
         auto const expected = TestFixture::reference_add(
             out, lhs, rhs, basis, out_range, lhs_range, rhs_range, alpha, beta);
-        TestFixture::expect_tensor_near(actual, expected);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
     }
 }
 
