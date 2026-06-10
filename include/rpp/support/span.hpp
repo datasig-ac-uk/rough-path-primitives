@@ -5,18 +5,17 @@
 #include <cstddef>
 #include <iterator>
 #include <limits>
-#include <span>
 #include <type_traits>
-
-#ifdef __cpp_lib_span
-#include <span>
-#endif
 
 #include <rpp/config.h>
 
+#if RPP_CXX_20
+#include <span>
+#endif
+
 namespace rpp {
 
-#ifdef __cpp_lib_span
+#if RPP_CXX_20 && defined(__cpp_lib_span)
 template <typename T, size_t N = std::dynamic_extent>
 using Span = std::span<T, N>;
 using std::dynamic_extent;
