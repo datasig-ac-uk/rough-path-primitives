@@ -11,6 +11,7 @@
 #include <rpp/views/batch.hpp>
 
 #include <rpp/operations/basic/st_fma.hpp>
+#include <rpp/operations/implementation/word_shuffle_product.hpp>
 
 #include <rpp/cpu/single_thread/strategy.hpp>
 namespace rpp::ops {
@@ -27,38 +28,6 @@ class STFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Index = typename Strategy::Index;
     using Letter = typename Strategy::Letter;
     using Bitmask = typename Strategy::Bitmask;
-
-    template <typename Basis, typename TensorB, typename TensorC>
-    static Accum shuffle_product_coefficient(Basis const& basis,
-                                             TensorB const& b,
-                                             TensorC const& c,
-                                             Degree degree,
-                                             Index index) noexcept {
-        std::array<Letter, Strategy::Architecture::max_depth> letters{};
-        basis.unpack_index_to_letters(letters, degree, index);
-
-        Accum acc{0};
-        const auto mask_count = static_cast<Bitmask>(Bitmask{1} << degree);
-        for (Bitmask mask{0}; mask < mask_count; ++mask) {
-            Degree lhs_degree{0};
-            Index lhs_idx{0};
-            Degree rhs_degree{0};
-            Index rhs_idx{0};
-            basis.pack_masked_index(letters,
-                                    degree,
-                                    mask,
-                                    lhs_degree,
-                                    lhs_idx,
-                                    rhs_degree,
-                                    rhs_idx);
-
-            if (b.has_degree(lhs_degree) && c.has_degree(rhs_degree)) {
-                acc += Accum{b.degree_view(lhs_degree)[lhs_idx]} *
-                    Accum{c.degree_view(rhs_degree)[rhs_idx]};
-            }
-        }
-        return acc;
-    }
 
 public:
     static constexpr bool is_implemented = true;
@@ -98,8 +67,9 @@ public:
                 if (a.has_degree(degree)) {
                     value += alpha * Accum{a.degree_view(degree)[i]};
                 }
-                value +=
-                    beta * shuffle_product_coefficient(basis, b, c, degree, i);
+                auto word_product =
+                    common::word_shuffle_product(ctx, i, degree, b, c);
+                value += beta * word_product;
                 out_level[i] = static_cast<Scalar>(value);
             }
         }

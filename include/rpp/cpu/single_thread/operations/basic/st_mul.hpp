@@ -11,8 +11,10 @@
 #include <rpp/views/batch.hpp>
 
 #include <rpp/operations/basic/st_mul.hpp>
+#include <rpp/operations/implementation/word_shuffle_product.hpp>
 
 #include <rpp/cpu/single_thread/strategy.hpp>
+
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
@@ -28,37 +30,6 @@ class STMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Letter = typename Strategy::Letter;
     using Bitmask = typename Strategy::Bitmask;
 
-    template <typename Basis, typename TensorLhs, typename TensorRhs>
-    static Accum shuffle_product_coefficient(Basis const& basis,
-                                             TensorLhs const& lhs,
-                                             TensorRhs const& rhs,
-                                             Degree degree,
-                                             Index index) noexcept {
-        std::array<Letter, Strategy::Architecture::max_depth> letters{};
-        basis.unpack_index_to_letters(letters, degree, index);
-
-        Accum acc{0};
-        const auto mask_count = static_cast<Bitmask>(Bitmask{1} << degree);
-        for (Bitmask mask{0}; mask < mask_count; ++mask) {
-            Degree lhs_degree{0};
-            Index lhs_idx{0};
-            Degree rhs_degree{0};
-            Index rhs_idx{0};
-            basis.pack_masked_index(letters,
-                                    degree,
-                                    mask,
-                                    lhs_degree,
-                                    lhs_idx,
-                                    rhs_degree,
-                                    rhs_idx);
-
-            if (lhs.has_degree(lhs_degree) && rhs.has_degree(rhs_degree)) {
-                acc += Accum{lhs.degree_view(lhs_degree)[lhs_idx]} *
-                    Accum{rhs.degree_view(rhs_degree)[rhs_idx]};
-            }
-        }
-        return acc;
-    }
 
 public:
     static constexpr bool is_implemented = true;
@@ -86,9 +57,10 @@ public:
         for (Degree degree = min_degree; degree <= out.max_degree(); ++degree) {
             auto out_level = out.degree_view(degree);
             for (Index i = 0; i < out_level.size(); ++i) {
-                out_level[i] = static_cast<Scalar>(
-                    beta *
-                    shuffle_product_coefficient(basis, lhs, rhs, degree, i));
+                auto word_product = common::word_shuffle_product(
+                    ctx, i, degree, lhs, rhs
+                    );
+                out_level[i] = static_cast<Scalar>(beta * word_product);
             }
         }
     }
