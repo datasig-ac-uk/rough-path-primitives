@@ -72,7 +72,11 @@ set(RPP_INTERMEDIATE_OPS
 )
 
 
-rpp_make_op_file_list(RPP_OPS PRIMARY ADDITIONAL base_operation.hpp)
+rpp_make_op_file_list(RPP_OPS PRIMARY
+        ADDITIONAL
+        base_operation.hpp
+        implementation/word_shuffle_product.hpp
+)
 rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread
         ADDITIONAL
         operations/basic/detail/ft_multiply.hpp
