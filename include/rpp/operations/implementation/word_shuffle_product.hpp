@@ -13,14 +13,40 @@
 
 namespace rpp::ops::common {
 
+namespace detail {
 
-template <typename Context, typename TensorLhs, typename TensorRhs>
+template <typename Tensor>
+struct DefaultGetter {
+    using Index = typename Tensor::Index;
+    using Degree = typename Tensor::Degree;
+
+    RPP_HOST_DEVICE RPP_FORCEINLINE bool
+    has_degree(Tensor const& instance, Degree degree) const noexcept {
+        ignore_unused(this);
+        return instance.has_degree(degree);
+    }
+
+    RPP_HOST_DEVICE RPP_FORCEINLINE decltype(auto) operator()(
+        Tensor const& instance, Degree degree, Index index) const noexcept {
+        return instance.degree_view(degree)[index];
+    }
+};
+
+} // namespace detail
+
+template <typename Context,
+          typename TensorLhs,
+          typename TensorRhs,
+          typename LhsGetter = detail::DefaultGetter<TensorLhs>,
+          typename RhsGetter = detail::DefaultGetter<TensorRhs>>
 RPP_HOST_DEVICE RPP_FORCEINLINE typename Context::Accum
 word_shuffle_product(Context const& ctx RPP_MAYBE_UNUSED,
                      typename Context::Index elt_rel_index,
                      typename Context::Degree elt_degree,
                      TensorLhs const& lhs,
-                     TensorRhs const& rhs) noexcept {
+                     TensorRhs const& rhs,
+                     LhsGetter&& lhs_getter = LhsGetter{},
+                     RhsGetter&& rhs_getter = RhsGetter{}) noexcept {
     using Strategy = typename Context::Strategy;
     using Index = typename Context::Index;
     using Degree = typename Context::Degree;
@@ -52,9 +78,10 @@ word_shuffle_product(Context const& ctx RPP_MAYBE_UNUSED,
                                 right_deg,
                                 right_idx);
 
-        if (lhs.has_degree(left_deg) && rhs.has_degree(right_deg)) {
-            acc += lhs.degree_view(left_deg)[left_idx] *
-                rhs.degree_view(right_deg)[right_idx];
+        if (lhs_getter.has_degree(lhs, left_deg) &&
+            rhs_getter.has_degree(rhs, right_deg)) {
+            acc += lhs_getter(lhs, left_deg, left_idx) *
+                rhs_getter(rhs, right_deg, right_idx);
         }
     }
 
