@@ -31,7 +31,7 @@ jobs:
           cmake -S . -B build -G Ninja
           -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_INSTALL_PREFIX=/usr
-          -DRPP_ENABLE_CUDA=OFF
+          -DRPP_ENABLE_CUDA=ON
           -DRPP_ENABLE_TESTS=OFF
           -DRPP_ENABLE_BENCHMARKS=OFF
           -DRPP_ADD_STUB_TARGET=OFF
