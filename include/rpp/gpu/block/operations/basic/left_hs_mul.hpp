@@ -44,14 +44,18 @@ public:
               typename TensorIntegrand>
     RPP_DEVICE void operator()(Context const& ctx,
                                TensorOut& out,
-                               TensorIntegrand const& integrand,
                                TensorIntegrator const& integrator,
+                               TensorIntegrand const& integrand,
                                Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorOut::value_type;
         const auto& basis = out.basis();
 
         const auto begin_index = std::max<Index>(1, out.begin_index());
         const auto end_index = out.end_index();
+
+        if (out.min_degree() == 0 && out.max_degree() > 0 && ctx.thread_rank() == 0) {
+            out[0] = Scalar{0};
+        }
 
         for (Index i = begin_index + ctx.thread_rank(); i < end_index;
              i += ctx.num_threads()) {
@@ -60,7 +64,7 @@ public:
             const auto relative_index = i - basis.start_of_degree(degree);
             const auto trailing_size = basis.size_of_degree(trailing_degree);
             const auto prefix_letter = relative_index / trailing_size;
-            const auto trailing_index = i - prefix_letter * trailing_size;
+            const auto trailing_index = relative_index % trailing_size;
 
             auto word_product =
                 common::word_left_half_shuffle_product(ctx,

@@ -28,19 +28,19 @@ public:
     static constexpr bool is_implemented = false;
 
     template <typename TensorOut,
-              typename TensorIntegrand,
-              typename TensorIntegrator>
+              typename TensorIntegrator,
+              typename TensorIntegrand>
     void operator()(Context const& ctx,
                     TensorOut& out,
-                    TensorIntegrand const& integrand,
                     TensorIntegrator const& integrator,
+                    TensorIntegrand const& integrand,
                     Accum beta = Accum{1}) const noexcept {
         static_assert(
             static_assert_fail<Strategy,
                                Context,
                                TensorOut,
-                               TensorIntegrand,
                                TensorIntegrator,
+                               TensorIntegrand,
                                Accum>,
             "rpp::ops::LeftHSMul has no implementation for this Strategy/Mul "
             "type. "
@@ -51,14 +51,14 @@ public:
 
 template <typename Strategy,
           typename BatchOut,
-          typename BatchIntegrand,
           typename BatchIntegrator,
+          typename BatchIntegrand,
           typename Basis>
 auto left_hs_mul(Strategy const& strategy,
                  typename Strategy::LaunchConfig config,
                  BatchOut const& out,
-                 BatchIntegrand const& integrand,
                  BatchIntegrator const& integrator,
+                 BatchIntegrand const& integrand,
                  Basis const& basis,
                  typename Strategy::Index num_batches,
                  typename Strategy::Accum beta = typename Strategy::Accum{
@@ -78,7 +78,7 @@ auto left_hs_mul(Strategy const& strategy,
 
     return strategy.template launch<Op>(
         std::move(config),
-        std::make_tuple(out, integrand, integrator),
+        std::make_tuple(out, integrator, integrand),
         make_basis_pack(basis),
         num_batches,
         beta);

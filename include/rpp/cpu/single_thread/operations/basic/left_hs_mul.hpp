@@ -36,12 +36,12 @@ public:
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut,
-              typename TensorIntegrand,
-              typename TensorIntegrator>
+              typename TensorIntegrator,
+              typename TensorIntegrand>
     void operator()(Context const& ctx,
                     TensorOut& out,
-                    TensorIntegrand const& integrand,
                     TensorIntegrator const& integrator,
+                    TensorIntegrand const& integrand,
                     Accum beta = Accum{1}) const noexcept {
         using Scalar = typename TensorOut::value_type;
 
@@ -51,7 +51,7 @@ public:
         if (out.min_degree() == 0) {
             Accum value{0};
             if (integrator.has_degree(0) && integrand.has_degree(0)) {
-                value = beta * lhs[0] * rhs[0];
+                value = beta * integrator[0] * integrand[0];
             }
             out[0] = static_cast<Scalar>(value);
         }
@@ -62,7 +62,7 @@ public:
         for (Degree degree = min_degree; degree <= out.max_degree(); ++degree) {
             const auto trailing_degree = degree - 1;
             const auto trailing_size = basis.size_of_degree(trailing_degree);
-            auto out_level = out.degree_view(trailing_degree);
+            auto out_level = out.degree_view(degree);
 
             for (Index prefix_letter = 0; prefix_letter < alphabet_size;
                  ++prefix_letter) {
@@ -74,7 +74,8 @@ public:
                                                                trailing_degree,
                                                                integrator,
                                                                integrand);
-                    out_level[i] = static_cast<Scalar>(beta * word_product);
+                    out_level[prefix_letter * trailing_size + i] =
+                        static_cast<Scalar>(beta * word_product);
                 }
             }
         }
