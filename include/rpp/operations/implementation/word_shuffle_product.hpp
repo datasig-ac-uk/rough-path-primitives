@@ -80,8 +80,8 @@ word_shuffle_product(Context const& ctx RPP_MAYBE_UNUSED,
 
         if (lhs_getter.has_degree(lhs, left_deg) &&
             rhs_getter.has_degree(rhs, right_deg)) {
-            acc += lhs_getter(lhs, left_deg, left_idx) *
-                rhs_getter(rhs, right_deg, right_idx);
+            acc += Accum{lhs_getter(lhs, left_deg, left_idx)} *
+                Accum{rhs_getter(rhs, right_deg, right_idx)};
         }
     }
 

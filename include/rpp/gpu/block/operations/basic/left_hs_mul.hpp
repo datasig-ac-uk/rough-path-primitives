@@ -53,7 +53,7 @@ public:
         const auto begin_index = std::max<Index>(1, out.begin_index());
         const auto end_index = out.end_index();
 
-        if (out.min_degree() == 0 && out.max_degree() > 0 && ctx.thread_rank() == 0) {
+        if (out.min_degree() == 0 && ctx.thread_rank() == 0) {
             out[0] = Scalar{0};
         }
 

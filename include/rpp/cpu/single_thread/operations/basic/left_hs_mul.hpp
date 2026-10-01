@@ -49,16 +49,12 @@ public:
 
 
         if (out.min_degree() == 0) {
-            Accum value{0};
-            if (integrator.has_degree(0) && integrand.has_degree(0)) {
-                value = beta * integrator[0] * integrand[0];
-            }
-            out[0] = static_cast<Scalar>(value);
+            out[0] = Scalar{0};
         }
 
 
         const auto min_degree = std::max<Degree>(1, out.min_degree());
-        const auto alphabet_size = static_cast<Index>(basis.width());
+        const auto alphabet_size = static_cast<Index>(basis.width);
         for (Degree degree = min_degree; degree <= out.max_degree(); ++degree) {
             const auto trailing_degree = degree - 1;
             const auto trailing_size = basis.size_of_degree(trailing_degree);
