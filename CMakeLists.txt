@@ -51,6 +51,7 @@ set(RPP_BASIC_OPS
         ft_inplace_fma
         ft_inplace_mul
         ft_mul
+        left_hs_mul
         lie_to_tensor
         st_adj_mul
         st_fma
