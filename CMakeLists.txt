@@ -51,6 +51,7 @@ set(RPP_BASIC_OPS
         ft_inplace_fma
         ft_inplace_mul
         ft_mul
+        left_hs_mul
         lie_to_tensor
         st_adj_mul
         st_fma
@@ -72,7 +73,12 @@ set(RPP_INTERMEDIATE_OPS
 )
 
 
-rpp_make_op_file_list(RPP_OPS PRIMARY ADDITIONAL base_operation.hpp)
+rpp_make_op_file_list(RPP_OPS PRIMARY
+        ADDITIONAL
+        base_operation.hpp
+        implementation/word_shuffle_product.hpp
+        implementation/word_half_shuffle_product.hpp
+)
 rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread
         ADDITIONAL
         operations/basic/detail/ft_multiply.hpp
