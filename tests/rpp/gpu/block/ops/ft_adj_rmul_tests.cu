@@ -126,6 +126,72 @@ TYPED_TEST_SUITE(GpuBlockFtAdjRMulTypedTests,
                  rpp::tests::TypedGpuAdjointTestTypes,
                  rpp::tests::TypedScalarAccumNameGenerator);
 
+TYPED_TEST(GpuBlockFtAdjRMulTypedTests,
+           DisjointInputDegreesClearUnitTermInPrefilledOutput) {
+    RPP_REQUIRE_CUDA_DEVICE();
+    using Scalar = typename TestFixture::Scalar;
+    using Degree = typename TestFixture::Degree;
+
+    for (auto const& config : rpp::tests::gpu_block_test_configs) {
+        auto const basis_data = typename TestFixture::Helper::BasisData(
+            config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+
+        for (Degree op_degree : {Degree{1}, Degree{2}}) {
+            const Degree arg_degree = Degree{3} - op_degree;
+            SCOPED_TRACE(::testing::Message()
+                         << "width=" << config.width
+                         << ", depth=" << config.depth
+                         << ", op_degree=" << op_degree
+                         << ", arg_degree=" << arg_degree);
+
+            typename TestFixture::HostVector actual(
+                TestFixture::Helper::tensor_count * basis.size(),
+                rpp::tests::cast_scalar<Scalar>(7.0f));
+            auto expected = actual;
+            typename TestFixture::HostVector op(
+                actual.size(), rpp::tests::cast_scalar<Scalar>(1.0f));
+            auto arg = op;
+
+            expected[0] = rpp::tests::cast_scalar<Scalar>(0.0f);
+            const auto degree_one_value = rpp::tests::cast_scalar<Scalar>(
+                op_degree == 1 ? static_cast<float>(basis.width) : 0.0f);
+            for (auto i = basis.start_of_degree(1);
+                 i < basis.end_of_degree(1); ++i) {
+                expected[static_cast<std::size_t>(i)] = degree_one_value;
+            }
+
+            typename TestFixture::DeviceVector device_actual(actual);
+            typename TestFixture::DeviceVector device_op(op);
+            typename TestFixture::DeviceVector device_arg(arg);
+
+            rpp::gpu::DeviceLaunchConfig launch_config;
+            launch_config.stream = nullptr;
+            auto const err = rpp::ops::ft_adj_rmul(
+                gpu_strategy,
+                std::move(launch_config),
+                rpp::make_tensor_batch(
+                    TestFixture::Helper::device_data(device_actual),
+                    basis.size(), Degree{0}, Degree{1}),
+                rpp::make_tensor_batch(
+                    TestFixture::Helper::device_data(device_op),
+                    basis.size(), op_degree, op_degree),
+                rpp::make_tensor_batch(
+                    TestFixture::Helper::device_data(device_arg),
+                    basis.size(), arg_degree, arg_degree),
+                basis,
+                TestFixture::Helper::tensor_count);
+            ASSERT_TRUE(static_cast<bool>(err)) << err.message();
+            RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+
+            actual = TestFixture::Helper::copy_to_host(device_actual);
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+        }
+    }
+}
+
 TYPED_TEST(GpuBlockFtAdjRMulTypedTests, SatisfiesAdjointPairingCriterionOnGpu) {
     RPP_REQUIRE_CUDA_DEVICE();
 
