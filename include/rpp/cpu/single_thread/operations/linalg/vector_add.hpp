@@ -35,26 +35,28 @@ public:
                                     VectorRhs const& rhs,
                                     Accum alpha = Accum{1},
                                     Accum beta = Accum{1}) const noexcept {
+        using Scalar = typename VectorOut::Scalar;
         ignore_unused(ctx);
-
-        const auto min_deg =
-            std::max({out.min_degree(), lhs.min_degree(), rhs.min_degree()});
-        const auto max_deg =
-            std::min({out.max_degree(), lhs.max_degree(), rhs.max_degree()});
-        if (max_deg < min_deg) {
-            return;
-        }
 
         auto const& basis = out.basis();
 
-        const auto begin = basis.start_of_degree(min_deg);
-        const auto end = basis.end_of_degree(max_deg);
+        for (auto degree = out.min_degree(); degree <= out.max_degree();
+             ++degree) {
+            const bool has_lhs = lhs.has_degree(degree);
+            const bool has_rhs = rhs.has_degree(degree);
 
-        for (auto i = begin; i < end; ++i) {
-            const Accum left_val{lhs[i]};
-            const Accum right_val{rhs[i]};
-
-            out[i] = alpha * left_val + beta * right_val;
+            for (Index i = basis.start_of_degree(degree);
+                 i < basis.end_of_degree(degree);
+                 ++i) {
+                Accum val{0};
+                if (has_lhs) {
+                    val += alpha * Accum{lhs[i]};
+                }
+                if (has_rhs) {
+                    val += beta * Accum{rhs[i]};
+                }
+                out[i] = static_cast<Scalar>(val);
+            }
         }
     }
 };
