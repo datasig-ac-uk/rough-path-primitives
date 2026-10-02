@@ -35,13 +35,17 @@ TEST_F(VectorAssignTests, CopiesSourceCoefficientwise) {
     EXPECT_EQ(out, arg);
 }
 
-TEST_F(VectorAssignTests, CopiesOnlyOverlappingDegreeRange) {
+TEST_F(VectorAssignTests, CopiesOverlapAndZerosLowerGap) {
     auto const basis_data = BasisData(width, depth);
     auto const& basis = basis_data.basis;
 
     auto out = make_tensor('a', basis);
     auto const arg = make_tensor('b', basis);
     auto expected = out;
+
+    for (Index i = basis.start_of_degree(1); i < basis.end_of_degree(1); ++i) {
+        expected[static_cast<std::size_t>(i)] = Scalar{};
+    }
 
     for (Degree degree = 2; degree <= 3; ++degree) {
         auto const begin = basis.start_of_degree(degree);
@@ -113,16 +117,13 @@ protected:
                      DegreeRange out_range,
                      DegreeRange arg_range) {
         auto result = out;
-        auto const min_degree = std::max(out_range.min, arg_range.min);
-        auto const max_degree = std::min(out_range.max, arg_range.max);
-        if (max_degree < min_degree) {
-            return result;
-        }
-        for (auto idx = basis.start_of_degree(min_degree);
-             idx < basis.end_of_degree(max_degree);
-             ++idx) {
-            result[static_cast<std::size_t>(idx)] =
-                arg[static_cast<std::size_t>(idx)];
+        for (auto degree = out_range.min; degree <= out_range.max; ++degree) {
+            const bool has_arg = arg_range.min <= degree && degree <= arg_range.max;
+            for (auto idx = basis.start_of_degree(degree);
+                 idx < basis.end_of_degree(degree); ++idx) {
+                const auto i = static_cast<std::size_t>(idx);
+                result[i] = has_arg ? arg[i] : typename Base::Scalar{};
+            }
         }
         return result;
     }
@@ -158,7 +159,7 @@ TYPED_TEST(NumericVectorAssignTests, CopiesSourceOnFullView) {
     TestFixture::expect_tensor_near(actual, arg);
 }
 
-TYPED_TEST(NumericVectorAssignTests, RespectsTruncatedIntersection) {
+TYPED_TEST(NumericVectorAssignTests, CopiesOverlapAndZerosLowerGap) {
     auto const basis_data =
         typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
     auto const& basis = basis_data.basis;
@@ -213,17 +214,40 @@ TYPED_TEST(NumericVectorAssignTests,
     TestFixture::expect_tensor_near(actual, expected);
 }
 
-TYPED_TEST(NumericVectorAssignTests, NoOverlapLeavesOutputUnchanged) {
+TYPED_TEST(NumericVectorAssignTests, ZerosBothGapsAroundSingleDegreeArgument) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const out = TestFixture::make_tensor(11, basis);
+    auto const arg = TestFixture::make_tensor(12, basis);
+    typename TestFixture::DegreeRange const out_range{1, 3};
+    typename TestFixture::DegreeRange const arg_range{2, 2};
+
+    auto const actual = TestFixture::run_assign(basis, out, arg, out_range, arg_range);
+    auto const expected =
+        TestFixture::reference_assign(out, arg, basis, out_range, arg_range);
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericVectorAssignTests, NoOverlapClearsOnlyOutputView) {
     auto const basis_data =
         typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
     auto const& basis = basis_data.basis;
     auto const out = TestFixture::make_tensor(5, basis);
     auto const arg = TestFixture::make_tensor(6, basis);
-    typename TestFixture::DegreeRange const out_range{0, 0};
-    typename TestFixture::DegreeRange const arg_range{1, TestFixture::depth};
+    using DegreeRange = typename TestFixture::DegreeRange;
+    for (bool arg_above_output : {false, true}) {
+        SCOPED_TRACE(arg_above_output ? "argument above output" : "argument below output");
+        const DegreeRange out_range = arg_above_output
+            ? DegreeRange{0, 0} : DegreeRange{2, 3};
+        const DegreeRange arg_range = arg_above_output
+            ? DegreeRange{1, TestFixture::depth} : DegreeRange{0, 1};
 
-    auto const actual = TestFixture::run_assign(basis, out, arg, out_range, arg_range);
-    TestFixture::expect_tensor_near(actual, out);
+        auto const actual = TestFixture::run_assign(basis, out, arg, out_range, arg_range);
+        auto const expected =
+            TestFixture::reference_assign(out, arg, basis, out_range, arg_range);
+        TestFixture::expect_tensor_near(actual, expected);
+    }
 }
 
 } // namespace

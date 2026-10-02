@@ -195,4 +195,85 @@ TYPED_TEST(GpuBlockTensorAntipodeTypedTests,
     }
 }
 
+TYPED_TEST(GpuBlockTensorAntipodeTypedTests, ZeroExtendsArgumentAndPreservesOutsideOutputView) {
+    RPP_REQUIRE_CUDA_DEVICE();
+    auto const basis_data = typename TestFixture::Helper::BasisData(3, 4);
+    auto const gpu_strategy =
+        typename TestFixture::GpuStrategy{TestFixture::Helper::block_size};
+    using Scalar = typename TestFixture::Scalar;
+    using Degree = typename TestFixture::Degree;
+    using Index = typename TestFixture::Index;
+    using DegreeRange = typename TestFixture::DegreeRange;
+    auto const& basis = basis_data.basis;
+    typename TestFixture::HostVector arg(
+        basis.size(), rpp::tests::cast_scalar<Scalar>(0.0f));
+    for (std::size_t i = 0; i < arg.size(); ++i) {
+        arg[i] = rpp::tests::cast_scalar<Scalar>(static_cast<float>(i + 1));
+    }
+    typename TestFixture::HostVector initial_out(
+        arg.size(), rpp::tests::cast_scalar<Scalar>(7.0f));
+
+    struct Case {
+        const char* name;
+        DegreeRange out;
+        DegreeRange arg;
+    };
+    const Case cases[] = {
+        {"missing lower and upper degrees", {0, 4}, {2, 3}},
+        {"single-degree overlap in truncated output", {1, 3}, {2, 2}},
+        {"input wider than output", {1, 2}, {0, 4}},
+        {"argument entirely above unit-only output", {0, 0}, {1, 4}},
+        {"argument entirely below output", {2, 3}, {0, 1}},
+        {"unit-only argument", {0, 4}, {0, 0}},
+        {"unit-only input and output", {0, 0}, {0, 0}},
+        {"matching truncated ranges", {1, 3}, {1, 3}},
+    };
+    for (auto const& test_case : cases) {
+        SCOPED_TRACE(test_case.name);
+        auto actual = initial_out;
+        auto expected = initial_out;
+        for (Degree degree = test_case.out.min; degree <= test_case.out.max;
+             ++degree) {
+            const auto begin = basis.start_of_degree(degree);
+            for (Index i = 0; i < basis.size_of_degree(degree); ++i) {
+                const auto target = static_cast<std::size_t>(begin + i);
+                if (degree < test_case.arg.min || degree > test_case.arg.max) {
+                    expected[target] = rpp::tests::cast_scalar<Scalar>(0.0f);
+                    continue;
+                }
+
+                // Reverse the base-width digits independently of reverse_index.
+                Index source_index = i;
+                Index reversed{0};
+                for (Degree letter = 0; letter < degree; ++letter) {
+                    reversed = reversed * basis.width + source_index % basis.width;
+                    source_index /= basis.width;
+                }
+                const auto value = arg[static_cast<std::size_t>(begin + reversed)];
+                expected[target] = degree % 2 == 0 ? value : -value;
+            }
+        }
+
+        typename TestFixture::DeviceVector device_actual(actual);
+        typename TestFixture::DeviceVector device_arg(arg);
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::tensor_antipode(
+            gpu_strategy,
+            launch_config,
+            rpp::make_tensor_batch(
+                TestFixture::Helper::device_data(device_actual),
+                basis.size(), test_case.out.min, test_case.out.max),
+            rpp::make_tensor_batch(
+                TestFixture::Helper::device_data(device_arg),
+                basis.size(), test_case.arg.min, test_case.arg.max),
+            basis,
+            TestFixture::Helper::tensor_count);
+        ASSERT_TRUE(static_cast<bool>(err)) << err.message();
+        RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+        actual = TestFixture::Helper::copy_to_host(device_actual);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+    }
+}
+
 } // namespace
