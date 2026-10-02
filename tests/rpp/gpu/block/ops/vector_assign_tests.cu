@@ -42,6 +42,7 @@ protected:
         return result;
     }
 
+    template <bool UseRawPointers = false>
     static HostVector run_gpu_assign(Basis const& basis,
                                      GpuStrategy const& gpu_strategy,
                                      HostVector const& out,
@@ -53,21 +54,33 @@ protected:
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
-        auto const err = rpp::ops::vector_assign(
-            gpu_strategy,
-            std::move(launch_config),
-            rpp::make_graded_vector_batch(Helper::device_data(device_out),
-                                          basis.size(),
-                                          basis,
-                                          out_range.min,
-                                          out_range.max),
-            rpp::make_graded_vector_batch(Helper::device_data(device_arg),
-                                          basis.size(),
-                                          basis,
-                                          arg_range.min,
-                                          arg_range.max),
-            basis,
-            Helper::tensor_count);
+        auto const launch = [&](auto out_data, auto arg_data) {
+            return rpp::ops::vector_assign(
+                gpu_strategy,
+                launch_config,
+                rpp::make_graded_vector_batch(out_data,
+                                              basis.size(),
+                                              basis,
+                                              out_range.min,
+                                              out_range.max),
+                rpp::make_graded_vector_batch(arg_data,
+                                              basis.size(),
+                                              basis,
+                                              arg_range.min,
+                                              arg_range.max),
+                basis,
+                Helper::tensor_count);
+        };
+        auto const err = [&] {
+            if constexpr (UseRawPointers) {
+                return launch(thrust::raw_pointer_cast(device_out.data()),
+                              thrust::raw_pointer_cast(device_arg.data()));
+            }
+            else {
+                return launch(Helper::device_data(device_out),
+                              Helper::device_data(device_arg));
+            }
+        }();
         if (!static_cast<bool>(err)) {
             ADD_FAILURE() << err.message();
             return out;
@@ -132,6 +145,47 @@ TYPED_TEST(GpuBlockVectorAssignTypedTests, RespectsTruncatedIntersection) {
         auto const expected = TestFixture::reference_assign(
             out, arg, basis, out_range, arg_range);
         RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+    }
+}
+
+TYPED_TEST(GpuBlockVectorAssignTypedTests,
+           ShorterArgumentZerosTailWithoutTouchingOutsideOutputView) {
+    RPP_REQUIRE_CUDA_DEVICE();
+    using Scalar = typename TestFixture::Scalar;
+    using DegreeRange = typename TestFixture::DegreeRange;
+
+    auto const basis_data = typename TestFixture::Helper::BasisData(3, 4);
+    auto const& basis = basis_data.basis;
+    auto const gpu_strategy =
+        typename TestFixture::GpuStrategy{TestFixture::Helper::block_size};
+    typename TestFixture::HostVector out(
+        basis.size(), rpp::tests::cast_scalar<Scalar>(7.0f));
+    auto const arg = TestFixture::make_batch(8, basis);
+
+    // Exercise both a unit-only source and a nonzero copy offset.
+    for (auto const out_range : {DegreeRange{0, 3}, DegreeRange{1, 3}}) {
+        const DegreeRange arg_range = out_range.min == 0
+            ? DegreeRange{0, 0} : DegreeRange{1, 2};
+        auto expected = out;
+        for (auto i = basis.start_of_degree(arg_range.min);
+             i < basis.end_of_degree(arg_range.max); ++i) {
+            expected[static_cast<std::size_t>(i)] = arg[static_cast<std::size_t>(i)];
+        }
+        for (auto i = basis.end_of_degree(arg_range.max);
+             i < basis.end_of_degree(out_range.max); ++i) {
+            expected[static_cast<std::size_t>(i)] =
+                rpp::tests::cast_scalar<Scalar>(0.0f);
+        }
+
+        SCOPED_TRACE(::testing::Message() << "out.min=" << out_range.min);
+        auto const tagged_actual = TestFixture::run_gpu_assign(
+            basis, gpu_strategy, out, arg, out_range, arg_range);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, tagged_actual, expected);
+
+        // Raw pointers exercise the alignment path, which also shifts out_data.
+        auto const raw_actual = TestFixture::template run_gpu_assign<true>(
+            basis, gpu_strategy, out, arg, out_range, arg_range);
+        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, raw_actual, expected);
     }
 }
 

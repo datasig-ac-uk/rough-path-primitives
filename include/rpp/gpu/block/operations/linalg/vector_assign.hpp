@@ -38,12 +38,14 @@ public:
     RPP_DEVICE void operator()(Context const& ctx,
                                VectorOut& out,
                                VectorArg const& arg) const noexcept {
+        using Scalar = typename VectorOut::value_type;
         auto const& basis = out.basis();
+
+        const auto copy_end_degree =
+            std::min(out.max_degree(), arg.max_degree());
         const auto begin =
             basis.start_of_degree(std::max(out.min_degree(), arg.min_degree()));
-        auto size =
-            basis.end_of_degree(std::min(out.max_degree(), arg.max_degree())) -
-            begin;
+        auto size = basis.end_of_degree(copy_end_degree) - begin;
 
         auto arg_data = arg.data() + begin;
         auto out_data = out.data() + begin;
@@ -73,6 +75,13 @@ public:
                  i += ctx.num_threads()) {
                 out_data[i] = arg_data[i];
             }
+        }
+
+        out_data = out.data();
+        for (Index i = basis.end_of_degree(copy_end_degree) + ctx.thread_rank();
+             i < out.end_index();
+             i += ctx.num_threads()) {
+            out_data[i] = Scalar{0};
         }
     }
 };

@@ -60,10 +60,13 @@ namespace rpp::tests {
 struct GpuBlockTestHelper {
     using Scalar = float;
     using GpuArchitecture = gpu::arch::Architecture32;
-    using HostArchitecture = arch::NativeArchitecture;
-    using Degree = typename HostArchitecture::Degree;
-    using Index = typename HostArchitecture::Index;
-    using Basis = basis::TensorBasis<HostArchitecture>;
+    static constexpr unsigned block_size = 128;
+    using GpuStrategy = gpu::strategies::
+        BlockStrategy<Scalar, block_size, 256, GpuArchitecture>;
+    using Architecture = typename GpuStrategy::Architecture;
+    using Degree = typename Architecture::Degree;
+    using Index = typename Architecture::Index;
+    using Basis = basis::TensorBasis<Architecture>;
 
     template <typename T>
     using HostVector = thrust::host_vector<T>;
@@ -71,20 +74,8 @@ struct GpuBlockTestHelper {
     template <typename T>
     using DeviceVector = thrust::device_vector<T>;
 
-    struct CpuArchitecture {
-        using Degree = GpuBlockTestHelper::Degree;
-        using Index = GpuBlockTestHelper::Index;
-        using Letter = std::uint8_t;
-        using Bitmask = std::uint32_t;
-
-        static constexpr unsigned max_depth = 16;
-    };
-
-    static constexpr unsigned block_size = 128;
     using CpuStrategy =
-        cpu::strategies::SingleThreadStrategy<Scalar, CpuArchitecture>;
-    using GpuStrategy = gpu::strategies::
-        BlockStrategy<Scalar, block_size, 256, GpuArchitecture>;
+        cpu::strategies::SingleThreadStrategy<Scalar, Architecture>;
 
     static constexpr Index tensor_count = 1;
 
@@ -250,7 +241,7 @@ struct GpuBlockTestHelper {
     [[nodiscard]] static auto host_tensor_batch(HostVector<T> const& data,
                                                 Basis const& basis) {
         return rpp::make_tensor_batch(
-            host_data(data), basis.size(),  Degree{0}, basis.depth);
+            host_data(data), basis.size(), basis, Degree{0}, basis.depth);
     }
 
     template <typename T>

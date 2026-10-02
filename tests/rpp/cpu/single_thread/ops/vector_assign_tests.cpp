@@ -173,6 +173,46 @@ TYPED_TEST(NumericVectorAssignTests, RespectsTruncatedIntersection) {
     TestFixture::expect_tensor_near(actual, expected);
 }
 
+TYPED_TEST(NumericVectorAssignTests, UnitOnlyArgumentZerosAllHigherDegrees) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const out = TestFixture::make_tensor(7, basis);
+    auto const arg = TestFixture::make_tensor(8, basis);
+    auto expected = TestFixture::zero_tensor(basis);
+    expected[0] = arg[0];
+
+    auto const actual = TestFixture::run_assign(
+        basis, out, arg, TestFixture::full_range(basis),
+        typename TestFixture::DegreeRange{0, 0});
+
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericVectorAssignTests,
+           ShorterArgumentZerosTailOfTruncatedOutputOnly) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const out = TestFixture::make_tensor(9, basis);
+    auto const arg = TestFixture::make_tensor(10, basis);
+    auto expected = out;
+
+    // Copy degrees 1 and 2, clear degree 3, preserve degrees 0 and 4.
+    for (auto i = basis.start_of_degree(1); i < basis.end_of_degree(2); ++i) {
+        expected[static_cast<std::size_t>(i)] = arg[static_cast<std::size_t>(i)];
+    }
+    for (auto i = basis.start_of_degree(3); i < basis.end_of_degree(3); ++i) {
+        expected[static_cast<std::size_t>(i)] = typename TestFixture::Scalar{0};
+    }
+
+    auto const actual = TestFixture::run_assign(
+        basis, out, arg, typename TestFixture::DegreeRange{1, 3},
+        typename TestFixture::DegreeRange{1, 2});
+
+    TestFixture::expect_tensor_near(actual, expected);
+}
+
 TYPED_TEST(NumericVectorAssignTests, NoOverlapLeavesOutputUnchanged) {
     auto const basis_data =
         typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
