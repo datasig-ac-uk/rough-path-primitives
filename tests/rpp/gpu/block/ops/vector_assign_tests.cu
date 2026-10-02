@@ -28,16 +28,14 @@ protected:
                                        typename Base::DegreeRange out_range,
                                        typename Base::DegreeRange arg_range) {
         auto result = out;
-        auto const overlap = overlap_range(out_range, arg_range);
-        if (is_empty(overlap)) {
-            return result;
-        }
-
-        for (auto idx = basis.start_of_degree(overlap.min);
-             idx < basis.end_of_degree(overlap.max);
-             ++idx) {
-            auto const i = static_cast<std::size_t>(idx);
-            result[i] = arg[i];
+        for (auto degree = out_range.min; degree <= out_range.max; ++degree) {
+            const bool has_arg = arg_range.min <= degree && degree <= arg_range.max;
+            for (auto idx = basis.start_of_degree(degree);
+                 idx < basis.end_of_degree(degree); ++idx) {
+                const auto i = static_cast<std::size_t>(idx);
+                result[i] = has_arg ? arg[i]
+                    : rpp::tests::cast_scalar<typename Base::Scalar>(0.0f);
+            }
         }
         return result;
     }
@@ -123,7 +121,7 @@ TYPED_TEST(GpuBlockVectorAssignTypedTests, CopiesArgumentOnFullView) {
     }
 }
 
-TYPED_TEST(GpuBlockVectorAssignTypedTests, RespectsTruncatedIntersection) {
+TYPED_TEST(GpuBlockVectorAssignTypedTests, CopiesOverlapAndZerosLowerGap) {
     RPP_REQUIRE_CUDA_DEVICE();
 
     for (auto const& config : rpp::tests::gpu_block_test_configs) {
@@ -189,7 +187,7 @@ TYPED_TEST(GpuBlockVectorAssignTypedTests,
     }
 }
 
-TYPED_TEST(GpuBlockVectorAssignTypedTests, NoOverlapLeavesOutputUnchanged) {
+TYPED_TEST(GpuBlockVectorAssignTypedTests, NoOverlapClearsOnlyOutputView) {
     RPP_REQUIRE_CUDA_DEVICE();
 
     for (auto const& config : rpp::tests::gpu_block_test_configs) {
@@ -203,13 +201,48 @@ TYPED_TEST(GpuBlockVectorAssignTypedTests, NoOverlapLeavesOutputUnchanged) {
             typename TestFixture::GpuStrategy{TestFixture::Helper::block_size};
         auto const out = TestFixture::make_batch(5, basis);
         auto const arg = TestFixture::make_batch(6, basis);
-        auto const out_range = typename TestFixture::DegreeRange{0, 0};
-        auto const arg_range = typename TestFixture::DegreeRange{1, basis.depth};
+        using DegreeRange = typename TestFixture::DegreeRange;
+        for (bool arg_above_output : {false, true}) {
+            SCOPED_TRACE(arg_above_output ? "argument above output"
+                                         : "argument below output");
+            const DegreeRange out_range = arg_above_output
+                ? DegreeRange{0, 0} : DegreeRange{2, basis.depth};
+            const DegreeRange arg_range = arg_above_output
+                ? DegreeRange{1, basis.depth} : DegreeRange{0, 1};
+            auto const expected = TestFixture::reference_assign(
+                out, arg, basis, out_range, arg_range);
 
-        auto const actual = TestFixture::run_gpu_assign(
-            basis, gpu_strategy, out, arg, out_range, arg_range);
-        RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, out);
+            auto const actual = TestFixture::run_gpu_assign(
+                basis, gpu_strategy, out, arg, out_range, arg_range);
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+            auto const raw_actual = TestFixture::template run_gpu_assign<true>(
+                basis, gpu_strategy, out, arg, out_range, arg_range);
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, raw_actual, expected);
+        }
     }
+}
+
+TYPED_TEST(GpuBlockVectorAssignTypedTests,
+           ZerosBothGapsAroundSingleDegreeArgument) {
+    RPP_REQUIRE_CUDA_DEVICE();
+    using DegreeRange = typename TestFixture::DegreeRange;
+    auto const basis_data = typename TestFixture::Helper::BasisData(3, 4);
+    auto const& basis = basis_data.basis;
+    auto const gpu_strategy =
+        typename TestFixture::GpuStrategy{TestFixture::Helper::block_size};
+    auto const out = TestFixture::make_batch(9, basis);
+    auto const arg = TestFixture::make_batch(10, basis);
+    const DegreeRange out_range{1, 3};
+    const DegreeRange arg_range{2, 2};
+    auto const expected = TestFixture::reference_assign(
+        out, arg, basis, out_range, arg_range);
+
+    auto const actual = TestFixture::run_gpu_assign(
+        basis, gpu_strategy, out, arg, out_range, arg_range);
+    RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+    auto const raw_actual = TestFixture::template run_gpu_assign<true>(
+        basis, gpu_strategy, out, arg, out_range, arg_range);
+    RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, raw_actual, expected);
 }
 
 } // namespace
