@@ -53,15 +53,15 @@ public:
                 basis.reverse_index(elt_idx - degree_begin, degree);
 
             if (arg.has_degree(degree)) {
-            if constexpr (Policy == TensorAntipodeSigningPolicy::SignByDegree) {
-                auto const sign = degree % 2 == 0 ? value_type{1}
-                                                  : value_type{-1};
-                out[rev_idx + degree_begin] = arg[elt_idx] * sign;
-            }
-            else {
-                out[rev_idx + degree_begin] = arg[elt_idx];
-            }
-
+                if constexpr (Policy ==
+                              TensorAntipodeSigningPolicy::SignByDegree) {
+                    auto const sign =
+                        degree % 2 == 0 ? value_type{1} : value_type{-1};
+                    out[rev_idx + degree_begin] = arg[elt_idx] * sign;
+                }
+                else {
+                    out[rev_idx + degree_begin] = arg[elt_idx];
+                }
             }
             else {
                 out[elt_idx] = value_type{0};
