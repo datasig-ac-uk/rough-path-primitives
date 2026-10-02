@@ -34,6 +34,7 @@ public:
         const auto min_deg = std::max(out.min_degree(), arg.min_degree());
         const auto max_deg = std::min(out.max_degree(), arg.max_degree());
         if (max_deg < min_deg) {
+            std::fill(out.begin(), out.end(), Scalar{});
             return;
         }
 
@@ -44,9 +45,11 @@ public:
         auto arg_begin = arg.data() + begin_index;
         auto arg_end = arg.data() + end_index;
 
+        std::fill(out.begin(), out_begin, Scalar{});
+
         auto out_fill_begin = std::copy(arg_begin, arg_end, out_begin);
 
-        std::fill(out_fill_begin, out.end(), Scalar{0});
+        std::fill(out_fill_begin, out.end(), Scalar{});
     }
 };
 
