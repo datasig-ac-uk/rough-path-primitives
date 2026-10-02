@@ -165,7 +165,7 @@ protected:
     apply_adj_mul(Basis const& basis,
                   std::vector<Scalar> const& op,
                   std::vector<Scalar> const& arg) {
-        auto out = zero_tensor(basis);
+        auto out = make_tensor(17, basis);
 
         TensorView out_view(out.data(), basis);
         ConstTensorView op_view(op.data(), basis);
@@ -265,7 +265,7 @@ TYPED_TEST(NumericFreeTensorAdjointLeftMulTests,
 
     auto const op = TestFixture::make_identity_operator(basis);
     auto const arg = TestFixture::make_tensor(7, basis);
-    auto actual = TestFixture::zero_tensor(basis);
+    auto actual = TestFixture::make_tensor(17, basis);
 
     typename TestFixture::TensorView out_view(actual.data(), basis);
     typename TestFixture::ConstTensorView op_view(
@@ -288,7 +288,7 @@ TYPED_TEST(NumericFreeTensorAdjointLeftMulTests,
     constexpr Index letter_index = 1;
     auto const op = TestFixture::make_letter_operator(basis, letter_index);
     auto const arg = TestFixture::make_tensor(11, basis);
-    auto actual = TestFixture::zero_tensor(basis);
+    auto actual = TestFixture::make_tensor(17, basis);
 
     typename TestFixture::TensorView out_view(actual.data(), basis);
     typename TestFixture::ConstTensorView op_view(
@@ -301,6 +301,30 @@ TYPED_TEST(NumericFreeTensorAdjointLeftMulTests,
 
     TestFixture::expect_tensor_near(
         actual, TestFixture::expected_left_shift(basis, arg, letter_index));
+}
+
+TYPED_TEST(NumericFreeTensorAdjointLeftMulTests,
+           NoContributionsClearsOnlyOutputView) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto actual = TestFixture::make_tensor(17, basis);
+    auto expected = actual;
+    auto const op = TestFixture::make_tensor(1, basis);
+    auto const arg = TestFixture::make_tensor(2, basis);
+
+    for (auto i = basis.start_of_degree(1); i < basis.end_of_degree(2); ++i) {
+        expected[static_cast<std::size_t>(i)] = typename TestFixture::Scalar{0};
+    }
+
+    typename TestFixture::TensorView out_view(actual.data(), basis, 1, 2);
+    typename TestFixture::ConstTensorView op_view(op.data(), basis, 3, 3);
+    typename TestFixture::ConstTensorView arg_view(arg.data(), basis, 0, 0);
+
+    rpp::ops::FTAdjLMul<typename TestFixture::Strategy>{}(
+        TestFixture::make_context(), out_view, op_view, arg_view);
+
+    TestFixture::expect_tensor_near(actual, expected);
 }
 
 class FreeTensorAdjointLeftMulTests

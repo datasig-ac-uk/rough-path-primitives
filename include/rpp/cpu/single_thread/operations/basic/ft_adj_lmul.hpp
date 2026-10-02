@@ -9,6 +9,7 @@
 #include <rpp/views/batch.hpp>
 
 #include <rpp/operations/basic/ft_adj_lmul.hpp>
+#include <rpp/cpu/single_thread/operations/linalg/vector_set_constant.hpp>
 
 namespace rpp::ops {
 template <typename Accum_, typename Architecture>
@@ -21,6 +22,9 @@ class FTAdjLMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Index = typename Strategy::Index;
     using Degree = typename Strategy::Degree;
 
+    using SetConstant = VectorSetConstant<Strategy>;
+
+    SetConstant set_constant;
 public:
     static constexpr bool is_implemented = true;
 
@@ -54,6 +58,8 @@ public:
          * future improvement because it requires the same kind of layout
          * framework as those operations do.
          */
+        using Scalar = typename TensorOut::value_type;
+        set_constant(ctx, out, Scalar{0});
 
         const auto arg_max_degree = std::min(
             arg.max_degree(),
@@ -83,7 +89,6 @@ public:
 
                 auto op_frag = op.degree_view(op_degree);
                 auto out_frag = out.degree_view(out_degree);
-
 
                 // ReSharper disable CppDFANullDereference
                 for (Index op_idx = 0; op_idx < op_frag.size(); ++op_idx) {
