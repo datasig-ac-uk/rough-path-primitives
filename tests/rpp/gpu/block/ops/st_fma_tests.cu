@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "../../../ft_degree_range_cases.hpp"
+
 #include <rpp/gpu/block/operations/basic/st_fma.hpp>
 
 #include "gpu_typed_st_ops_test_helper.cuh"
@@ -35,8 +37,9 @@ protected:
                                   DegreeRange b_range,
                                   DegreeRange c_range,
                                   Accum alpha = Accum{1},
-                                  Accum beta = Accum{1}) {
-        auto actual = Base::make_zero_batch(basis);
+                                  Accum beta = Accum{1},
+                                  HostVector const* initial_out = nullptr) {
+        auto actual = initial_out ? *initial_out : Base::make_zero_batch(basis);
 
         DeviceVector device_actual(actual);
         DeviceVector device_a(a);
@@ -187,6 +190,46 @@ TYPED_TEST(GpuBlockStFmaTypedTests, RespectsTruncatedOperandAndOutputViews) {
         auto const expected = TestFixture::reference_fma(
             basis, a, b, c, out_range, a_range, b_range, c_range, alpha, beta);
         RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+    }
+}
+
+TYPED_TEST(GpuBlockStFmaTypedTests, OverwritesEveryOutputDegreeForRestrictedOperands) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using Range = typename TestFixture::DegreeRange;
+    for (auto const width : {2, 4}) {
+        SCOPED_TRACE(width);
+        auto const basis_data = typename TestFixture::Helper::BasisData(width, 4);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        auto const initial_out = TestFixture::make_batch(41, basis);
+        auto const a = TestFixture::make_batch(42, basis);
+        auto const b = TestFixture::make_batch(43, basis);
+        auto const c = TestFixture::make_batch(44, basis);
+        auto const alpha = typename TestFixture::Accum{0.5};
+        auto const beta = typename TestFixture::Accum{-1.25};
+
+        for (auto const& ranges : rpp::tests::ft_fma_degree_range_cases<Range>()) {
+            SCOPED_TRACE(ranges.name);
+            auto const actual = TestFixture::run_gpu_fma(
+                basis, gpu_strategy, a, b, c,
+                ranges.out, ranges.a, ranges.b, ranges.c, alpha, beta, &initial_out);
+            auto expected = TestFixture::reference_fma(
+                basis, a, b, c,
+                ranges.out, ranges.a, ranges.b, ranges.c, alpha, beta);
+            // The reference starts with zeros; restore the untouched backing
+            // coefficients outside the output view to their sentinel values.
+            auto const begin = basis.start_of_degree(ranges.out.min);
+            auto const end = basis.start_of_degree(ranges.out.max) +
+                             basis.size_of_degree(ranges.out.max);
+            for (std::size_t i = 0; i < expected.size(); ++i) {
+                if (i < begin || i >= end) {
+                    expected[i] = initial_out[i];
+                }
+            }
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+        }
     }
 }
 
