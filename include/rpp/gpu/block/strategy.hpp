@@ -174,9 +174,10 @@ public:
     template <typename TensorView>
     RPP_DEVICE Degree low_range_degree(TensorView const& view) const noexcept {
         auto const& basis = view.basis();
-        auto result = view.min_degree();
+        auto result = view.min_degree() - 1;
         const auto threads = static_cast<Index>(num_threads());
         while (result < view.max_degree() &&
+               basis.size_of_degree(result + 1) < threads &&
                basis.end_of_degree(result + 1) - view.begin_index() <=
                    threads) {
             ++result;
