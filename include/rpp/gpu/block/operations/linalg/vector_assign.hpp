@@ -10,6 +10,7 @@
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/linalg/vector_assign.hpp>
 
+#include <rpp/gpu/block/operations/linalg/vector_set_constant.hpp>
 #include <rpp/gpu/block/strategy.hpp>
 
 namespace rpp::ops {
@@ -33,20 +34,39 @@ public:
 
     static constexpr bool is_implemented = true;
 
+private:
+    using SetConstant = VectorSetConstant<Strategy>;
+    SetConstant set_constant;
 
+public:
     template <typename VectorOut, typename VectorArg>
     RPP_DEVICE void operator()(Context const& ctx,
                                VectorOut& out,
                                VectorArg const& arg) const noexcept {
+        using Scalar = typename VectorOut::value_type;
         auto const& basis = out.basis();
-        const auto begin =
-            basis.start_of_degree(std::max(out.min_degree(), arg.min_degree()));
-        auto size =
-            basis.end_of_degree(std::min(out.max_degree(), arg.max_degree())) -
-            begin;
+
+        const auto copy_begin_degree =
+            std::max(out.min_degree(), arg.min_degree());
+        const auto copy_end_degree =
+            std::min(out.max_degree(), arg.max_degree());
+
+        if (copy_begin_degree > copy_end_degree) {
+            set_constant(ctx, out, Scalar{0});
+            return;
+        }
+
+        const auto begin = basis.start_of_degree(copy_begin_degree);
+        auto size = basis.end_of_degree(copy_end_degree) - begin;
 
         auto arg_data = arg.data() + begin;
         auto out_data = out.data() + begin;
+
+        for (Index i = out.begin_index() + ctx.thread_rank(); i < begin;
+             i += ctx.num_threads()) {
+            out[i] = Scalar{0};
+        }
+
         if constexpr (std::is_pointer_v<decltype(arg_data)>) {
             const auto count_to_align = static_cast<Index>(
                 (Architecture_::sector_alignment -
@@ -73,6 +93,12 @@ public:
                  i += ctx.num_threads()) {
                 out_data[i] = arg_data[i];
             }
+        }
+
+        for (Index i = basis.end_of_degree(copy_end_degree) + ctx.thread_rank();
+             i < out.end_index();
+             i += ctx.num_threads()) {
+            out[i] = Scalar{0};
         }
     }
 };

@@ -1,6 +1,9 @@
 #include <algorithm>
+#include <limits>
 
 #include <gtest/gtest.h>
+
+#include "../../../tensor_pairing_test_helper.hpp"
 
 #include <rpp/gpu/block/operations/basic/tensor_pairing.hpp>
 
@@ -78,17 +81,19 @@ protected:
                                  HostVector const& functional,
                                  HostVector const& arg,
                                  DegreeRange functional_range,
-                                 DegreeRange arg_range) {
+                                 DegreeRange arg_range,
+        Accum initial_out = Accum{7}) {
         DeviceVector device_functional(functional);
         DeviceVector device_arg(arg);
-        PairingDeviceVector device_actual(1, Accum{0});
+        PairingDeviceVector device_actual(3, Accum{7});
+        device_actual[1] = initial_out;
 
         rpp::gpu::DeviceLaunchConfig launch_config;
         launch_config.stream = nullptr;
         auto const err = rpp::ops::tensor_pairing(
             gpu_strategy,
             std::move(launch_config),
-            Helper::device_scalar_batch(device_actual),
+            rpp::make_scalar_batch(Helper::device_data(device_actual) + 1),
             rpp::make_tensor_batch(Helper::device_data(device_functional),
                                    basis.size(),
                                    functional_range.min,
@@ -111,8 +116,10 @@ protected:
         }
 
         auto const actual = Helper::copy_to_host(device_actual);
-        EXPECT_EQ(actual.size(), std::size_t{1});
-        return actual[0];
+        EXPECT_EQ(actual.size(), std::size_t{3});
+        EXPECT_EQ(static_cast<double>(actual[0]), 7.0);
+        EXPECT_EQ(static_cast<double>(actual[2]), 7.0);
+        return actual[1];
     }
 };
 
@@ -224,6 +231,55 @@ TYPED_TEST(GpuBlockTensorPairingTypedTests, RespectsTruncatedOperandViews) {
                 disjoint_arg);
             RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(TestFixture, 
                 zero, typename TestFixture::Accum{0});
+        }
+    }
+}
+
+TYPED_TEST(GpuBlockTensorPairingTypedTests, OverwritesPrefilledScalarForEveryDegreeRange) {
+    RPP_REQUIRE_CUDA_DEVICE();
+    using Range = typename TestFixture::DegreeRange;
+    using Degree = typename TestFixture::Degree;
+    using Accum = typename TestFixture::Accum;
+    struct Config { Degree width, depth; };
+    Config const configs[] = {{1, 4}, {4, 4}, {4, 0}};
+    auto const sentinel = static_cast<Accum>(std::numeric_limits<float>::quiet_NaN());
+    for (auto const& config : configs) {
+        SCOPED_TRACE(testing::Message() << "width=" << config.width
+                                       << ", depth=" << config.depth);
+        auto const basis_data = typename TestFixture::Helper::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto const strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        auto const storage = TestFixture::make_batch(91, basis);
+        auto const ranges = rpp::tests::all_tensor_degree_ranges<Range>(basis.depth);
+        for (auto scenario : {rpp::tests::PairingInput::Nonzero,
+                              rpp::tests::PairingInput::ZeroFunctional,
+                              rpp::tests::PairingInput::ZeroArgument,
+                              rpp::tests::PairingInput::Cancelling}) {
+            SCOPED_TRACE(static_cast<int>(scenario));
+            auto const inputs = rpp::tests::pairing_range_inputs(storage, basis, scenario);
+            auto const check = [&](Range functional_range, Range arg_range) {
+                SCOPED_TRACE(testing::Message()
+                             << "functional=[" << functional_range.min << ',' << functional_range.max
+                             << "], arg=[" << arg_range.min << ',' << arg_range.max << ']');
+                auto const expected = TestFixture::reference_pairing(
+                    basis, inputs.first, inputs.second, functional_range, arg_range);
+                auto const actual = TestFixture::run_gpu_pairing(
+                    basis, strategy, inputs.first, inputs.second,
+                    functional_range, arg_range, sentinel);
+                // Exact dyadic sums allow equality and expose untouched NaNs.
+                EXPECT_EQ(static_cast<double>(actual), static_cast<double>(expected));
+            };
+            if (scenario == rpp::tests::PairingInput::Nonzero) {
+                for (auto const functional_range : ranges) {
+                    for (auto const arg_range : ranges) {
+                        check(functional_range, arg_range);
+                    }
+                }
+            }
+            else {
+                check(Range{0, basis.depth}, Range{0, basis.depth});
+            }
         }
     }
 }

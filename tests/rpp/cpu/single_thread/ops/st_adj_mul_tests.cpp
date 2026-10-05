@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../../../shuffle_adjoint_test_helper.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/st_adj_mul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/st_mul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/st_fma.hpp>
@@ -23,6 +25,7 @@ protected:
     using Base = rpp::tests::TypedCpuShuffleTensorOpTestBase<Config>;
     using typename Base::Accum;
     using typename Base::Basis;
+    using typename Base::DegreeRange;
     using typename Base::ConstTensorView;
     using typename Base::Degree;
     using typename Base::Strategy;
@@ -85,6 +88,20 @@ protected:
         rpp::ops::STAdjMul<Strategy>{}(ctx, out_view, op_view, arg_view);
         return out;
     }
+    static auto run_adj_mul_for_views(
+        Basis const& basis,
+        std::vector<typename Base::Scalar> const& initial_out,
+        std::vector<typename Base::Scalar> const& op,
+        std::vector<typename Base::Scalar> const& arg,
+        DegreeRange out_range, DegreeRange op_range, DegreeRange arg_range) {
+        auto out = initial_out;
+        auto out_view = mutable_tensor_view(out, basis, out_range);
+        auto const op_view = const_tensor_view(op, basis, op_range);
+        auto const arg_view = const_tensor_view(arg, basis, arg_range);
+        rpp::ops::STAdjMul<Strategy>{}(Base::make_context(), out_view, op_view, arg_view);
+        return out;
+    }
+
 };
 
 TYPED_TEST_SUITE(NumericShuffleTensorAdjointMulTests,
@@ -305,6 +322,36 @@ TEST_F(ShuffleTensorAdjointMulTests, KernelWrapperMatchesDirectOperation) {
         });
 
     EXPECT_EQ(actual, expected);
+}
+
+TYPED_TEST(NumericShuffleTensorAdjointMulTests, OverwritesEveryOutputDegreeForRestrictedOperands) {
+
+    using Range = typename TestFixture::DegreeRange;
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const initial_out = TestFixture::make_tensor(61, basis);
+    auto const op = rpp::tests::make_sparse_shuffle_adjoint_operand(
+        TestFixture::make_tensor(62, basis), basis);
+    auto const arg = rpp::tests::make_sparse_shuffle_adjoint_operand(
+        TestFixture::make_tensor(63, basis), basis);
+
+    for (auto const& ranges : rpp::tests::shuffle_adjoint_range_cases<Range>()) {
+        SCOPED_TRACE(ranges.name);
+        auto const actual = TestFixture::run_adj_mul_for_views(
+            basis, initial_out, op, arg,
+            ranges.out, ranges.op, ranges.arg);
+        auto const coefficients = rpp::tests::reference_shuffle_adjoint<
+            typename TestFixture::Accum>(
+            basis, op, arg, ranges.out, ranges.op, ranges.arg);
+        auto expected = initial_out;
+        auto const begin = basis.start_of_degree(ranges.out.min);
+        auto const end = basis.end_of_degree(ranges.out.max);
+        for (auto idx = begin; idx < end; ++idx) {
+            expected[idx] = static_cast<typename TestFixture::Scalar>(coefficients[idx]);
+        }
+        TestFixture::expect_tensor_near(actual, expected);
+    }
 }
 
 } // namespace

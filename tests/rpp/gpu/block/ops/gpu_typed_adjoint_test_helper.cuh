@@ -168,6 +168,9 @@ protected:
     using GpuStrategy = rpp::gpu::strategies::BlockStrategy<
         Accum, Helper::block_size, 256, typename Helper::GpuArchitecture>;
 
+    static_assert(std::is_same_v<typename Basis::Architecture,
+                                 typename GpuStrategy::Architecture>);
+
     struct DegreeRange {
         Degree min;
         Degree max;

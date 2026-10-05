@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "../../../shuffle_adjoint_test_helper.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/st_adj_mul.hpp>
 #include <rpp/gpu/block/operations/basic/st_adj_mul.hpp>
 #include <rpp/gpu/block/operations/basic/st_mul.hpp>
@@ -18,6 +20,7 @@ protected:
     using Scalar = typename Config::Scalar;
     using Accum = typename Config::Accum;
     using typename Base::Basis;
+    using typename Base::DegreeRange;
     using typename Base::DeviceVector;
     using typename Base::GpuStrategy;
     using typename Base::Helper;
@@ -104,6 +107,34 @@ protected:
         ASSERT_EQ(rhs_pairing.size(), std::size_t{1});
         RPP_EXPECT_GPU_TYPED_SCALAR_NEAR(GpuBlockStAdjMulTypedTests, lhs_pairing[0], rhs_pairing[0]);
     }
+    static HostVector run_gpu_adj_mul(
+        Basis const& basis, GpuStrategy const& strategy,
+        HostVector const& initial_out, HostVector const& op, HostVector const& arg,
+        DegreeRange out_range, DegreeRange op_range, DegreeRange arg_range) {
+        DeviceVector device_out(initial_out), device_op(op), device_arg(arg);
+        rpp::gpu::DeviceLaunchConfig launch_config;
+        launch_config.stream = nullptr;
+        auto const err = rpp::ops::st_adj_mul(
+            strategy, std::move(launch_config),
+            rpp::make_tensor_batch(Helper::device_data(device_out), basis.size(),
+                                   out_range.min, out_range.max),
+            rpp::make_tensor_batch(Helper::device_data(device_op), basis.size(),
+                                   op_range.min, op_range.max),
+            rpp::make_tensor_batch(Helper::device_data(device_arg), basis.size(),
+                                   arg_range.min, arg_range.max),
+            basis, Helper::tensor_count);
+        if (!static_cast<bool>(err)) {
+            ADD_FAILURE() << err.message();
+            return initial_out;
+        }
+        auto const sync_err = cudaDeviceSynchronize();
+        if (sync_err != cudaSuccess) {
+            ADD_FAILURE() << cudaGetErrorString(sync_err);
+            return initial_out;
+        }
+        return Helper::copy_to_host(device_out);
+    }
+
 };
 
 TYPED_TEST_SUITE(GpuBlockStAdjMulTypedTests,
@@ -280,6 +311,41 @@ TEST(GpuBlockStAdjMulTests, IdentityOperatorMatchesCpuForTruncatedView) {
 
         actual = Helper::copy_to_host(device_actual);
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
+    }
+}
+
+TYPED_TEST(GpuBlockStAdjMulTypedTests, OverwritesEveryOutputDegreeForRestrictedOperands) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using Range = typename TestFixture::DegreeRange;
+    for (auto const width : {2, 4}) {
+        SCOPED_TRACE(width);
+        auto const basis_data = typename TestFixture::Helper::BasisData(width, 4);
+        auto const& basis = basis_data.basis;
+        auto const strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        auto const initial_out = TestFixture::make_batch(61, basis);
+        auto const op = rpp::tests::make_sparse_shuffle_adjoint_operand(
+            TestFixture::make_batch(62, basis), basis);
+        auto const arg = rpp::tests::make_sparse_shuffle_adjoint_operand(
+            TestFixture::make_batch(63, basis), basis);
+
+        for (auto const& ranges : rpp::tests::shuffle_adjoint_range_cases<Range>()) {
+            SCOPED_TRACE(ranges.name);
+            auto const actual = TestFixture::run_gpu_adj_mul(
+                basis, strategy, initial_out, op, arg,
+                ranges.out, ranges.op, ranges.arg);
+            auto const coefficients = rpp::tests::reference_shuffle_adjoint<
+                typename TestFixture::Accum>(
+                basis, op, arg, ranges.out, ranges.op, ranges.arg);
+            auto expected = initial_out;
+            auto const begin = basis.start_of_degree(ranges.out.min);
+            auto const end = basis.end_of_degree(ranges.out.max);
+            for (auto idx = begin; idx < end; ++idx) {
+                expected[idx] = static_cast<typename TestFixture::Scalar>(coefficients[idx]);
+            }
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+        }
     }
 }
 

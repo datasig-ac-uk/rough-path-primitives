@@ -28,6 +28,12 @@ public:
 
     RPP_HOST_DEVICE
     constexpr reference operator[](Index i) const noexcept { return data_[i]; }
+
+    RPP_HOST_DEVICE
+    constexpr It_ begin() const noexcept { return data_; }
+
+    RPP_HOST_DEVICE
+    constexpr It_ end() const noexcept { return data_ + size_; }
 };
 
 } // namespace rpp::detail

@@ -8,6 +8,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../../../ft_adjoint_test_helper.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/ft_adj_lmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_mul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/tensor_pairing.hpp>
@@ -165,7 +167,7 @@ protected:
     apply_adj_mul(Basis const& basis,
                   std::vector<Scalar> const& op,
                   std::vector<Scalar> const& arg) {
-        auto out = zero_tensor(basis);
+        auto out = make_tensor(17, basis);
 
         TensorView out_view(out.data(), basis);
         ConstTensorView op_view(op.data(), basis);
@@ -265,7 +267,7 @@ TYPED_TEST(NumericFreeTensorAdjointLeftMulTests,
 
     auto const op = TestFixture::make_identity_operator(basis);
     auto const arg = TestFixture::make_tensor(7, basis);
-    auto actual = TestFixture::zero_tensor(basis);
+    auto actual = TestFixture::make_tensor(17, basis);
 
     typename TestFixture::TensorView out_view(actual.data(), basis);
     typename TestFixture::ConstTensorView op_view(
@@ -288,7 +290,7 @@ TYPED_TEST(NumericFreeTensorAdjointLeftMulTests,
     constexpr Index letter_index = 1;
     auto const op = TestFixture::make_letter_operator(basis, letter_index);
     auto const arg = TestFixture::make_tensor(11, basis);
-    auto actual = TestFixture::zero_tensor(basis);
+    auto actual = TestFixture::make_tensor(17, basis);
 
     typename TestFixture::TensorView out_view(actual.data(), basis);
     typename TestFixture::ConstTensorView op_view(
@@ -567,4 +569,56 @@ TEST_F(FreeTensorAdjointLeftMulTests,
 
     EXPECT_EQ(actual, expected);
 }
+TYPED_TEST(NumericFreeTensorAdjointLeftMulTests, ZeroExtendsOperandsAndPreservesOutsideOutputView) {
+    struct Range {
+        Degree min;
+        Degree max;
+    };
+    struct Config {
+        Degree width;
+        Degree depth;
+    };
+    Config const configs[] = {{1, 4}, {3, 4}, {4, 4}, {4, 0}};
+    for (auto const& config : configs) {
+        SCOPED_TRACE(testing::Message() << "width=" << config.width
+                                       << ", depth=" << config.depth);
+        auto const basis_data = typename TestFixture::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto initial_out = TestFixture::make_tensor(81, basis);
+        for (auto& value : initial_out) {
+            value = static_cast<typename TestFixture::Scalar>(7.0f);
+        }
+        auto const op = rpp::tests::make_ft_adjoint_range_operator(
+            TestFixture::make_tensor(82, basis), basis);
+        auto const arg = rpp::tests::make_ft_adjoint_range_argument(
+            TestFixture::make_tensor(83, basis));
+        for (auto const& ranges : rpp::tests::ft_adjoint_range_cases<Range>(basis.depth)) {
+            if (ranges.out.max > basis.depth || ranges.op.max > basis.depth ||
+                ranges.arg.max > basis.depth) {
+                continue;
+            }
+            SCOPED_TRACE(ranges.name);
+            auto expected = initial_out;
+            auto const coefficients = rpp::tests::reference_ft_adjoint<
+                typename TestFixture::Accum>(
+                basis, op, arg, ranges.out, ranges.op, ranges.arg,
+                true);
+            for (auto idx = basis.start_of_degree(ranges.out.min);
+                 idx < basis.end_of_degree(ranges.out.max); ++idx) {
+                expected[idx] = static_cast<typename TestFixture::Scalar>(coefficients[idx]);
+            }
+            auto actual = initial_out;
+            typename TestFixture::TensorView out_view(
+                actual.data(), basis, ranges.out.min, ranges.out.max);
+            typename TestFixture::ConstTensorView op_view(
+                op.data(), basis, ranges.op.min, ranges.op.max);
+            typename TestFixture::ConstTensorView arg_view(
+                arg.data(), basis, ranges.arg.min, ranges.arg.max);
+            rpp::ops::FTAdjLMul<typename TestFixture::Strategy>{}(
+                TestFixture::make_context(), out_view, op_view, arg_view);
+            TestFixture::expect_tensor_near(actual, expected);
+        }
+    }
+}
+
 } // namespace

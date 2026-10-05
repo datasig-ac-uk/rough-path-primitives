@@ -3,6 +3,10 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
+
+#include "../../../tensor_identity_test_helper.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/tensor_add_identity.hpp>
 #include <rpp/cpu/single_thread/operations/basic/tensor_set_identity.hpp>
 #include <rpp/views/views.hpp>
@@ -32,9 +36,10 @@ protected:
     run_add_identity(Basis const& basis,
                      std::vector<typename Base::Scalar> const& initial,
                      DegreeRange range,
-                     Accum scalar) {
+                     Accum scalar,
+                     typename Base::Index storage_offset = 0) {
         auto tensor = initial;
-        TensorView tensor_view(tensor.data(), basis, range.min, range.max);
+        TensorView tensor_view(tensor.data() + storage_offset, basis, range.min, range.max);
         auto const ctx = Base::make_context();
         rpp::ops::TensorAddIdentity<Strategy>{}(ctx, tensor_view, scalar);
         return tensor;
@@ -44,9 +49,10 @@ protected:
     run_set_identity(Basis const& basis,
                      std::vector<typename Base::Scalar> const& initial,
                      DegreeRange range,
-                     Accum scalar) {
+                     Accum scalar,
+                     typename Base::Index storage_offset = 0) {
         auto tensor = initial;
-        TensorView tensor_view(tensor.data(), basis, range.min, range.max);
+        TensorView tensor_view(tensor.data() + storage_offset, basis, range.min, range.max);
         auto const ctx = Base::make_context();
         rpp::ops::TensorSetIdentity<Strategy>{}(ctx, tensor_view, scalar);
         return tensor;
@@ -253,6 +259,92 @@ TEST_F(TensorIdentityTests, SetIdentityKernelWrapperMatchesDirectOperation) {
         });
 
     EXPECT_EQ(actual, expected);
+}
+
+TYPED_TEST(NumericTensorIdentityTests, SetIdentityOverwritesEveryActiveCoefficient) {
+    using Range = typename TestFixture::DegreeRange;
+    using Degree = typename TestFixture::Degree;
+    using Index = typename TestFixture::Index;
+    using Scalar = typename TestFixture::Scalar;
+    using Accum = typename TestFixture::Accum;
+    struct Config { Degree width, depth; };
+    Config const configs[] = {{1, 4}, {4, 4}, {4, 0}};
+    for (auto const& config : configs) {
+        SCOPED_TRACE(testing::Message() << "width=" << config.width
+                                       << ", depth=" << config.depth);
+        auto const basis_data = typename TestFixture::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto backing = TestFixture::make_tensor(101, basis);
+        backing.resize(static_cast<std::size_t>(basis.size()) + 2);
+        for (std::size_t i = 0; i < backing.size(); ++i) {
+            backing[i] = static_cast<Scalar>(static_cast<float>((i * 3) % 15 + 1) / 8.0f);
+        }
+        backing.front() = static_cast<Scalar>(7.0f);
+        backing.back() = static_cast<Scalar>(-7.0f);
+        auto const ranges = rpp::tests::all_tensor_degree_ranges<Range>(basis.depth);
+        for (auto const range : ranges) {
+            SCOPED_TRACE(testing::Message() << "range=[" << range.min << ',' << range.max << ']');
+            for (auto const scalar : {Accum{0}, Accum{1}, Accum{-0.5}}) {
+                SCOPED_TRACE(static_cast<double>(scalar));
+                auto initial = backing;
+                for (auto idx = basis.start_of_degree(range.min);
+                     idx < basis.end_of_degree(range.max); ++idx) {
+                    initial[idx + 1] = static_cast<Scalar>(std::numeric_limits<float>::quiet_NaN());
+                }
+                auto const expected = rpp::tests::reference_tensor_identity(
+                    initial, basis, range, scalar, true, Index{1});
+                auto const actual = TestFixture::run_set_identity(
+                    basis, initial, range, scalar, Index{1});
+                ASSERT_EQ(actual.size(), expected.size());
+                for (std::size_t i = 0; i < expected.size(); ++i) {
+                    // Dyadic values permit exact checks, including untouched guards.
+                    EXPECT_EQ(static_cast<double>(actual[i]),
+                              static_cast<double>(expected[i])) << "coefficient " << i;
+                }
+            }
+        }
+    }
+}
+
+TYPED_TEST(NumericTensorIdentityTests, AddIdentityPreservesAllOtherCoefficients) {
+    using Range = typename TestFixture::DegreeRange;
+    using Degree = typename TestFixture::Degree;
+    using Index = typename TestFixture::Index;
+    using Scalar = typename TestFixture::Scalar;
+    using Accum = typename TestFixture::Accum;
+    struct Config { Degree width, depth; };
+    Config const configs[] = {{1, 4}, {4, 4}, {4, 0}};
+    for (auto const& config : configs) {
+        SCOPED_TRACE(testing::Message() << "width=" << config.width
+                                       << ", depth=" << config.depth);
+        auto const basis_data = typename TestFixture::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto backing = TestFixture::make_tensor(101, basis);
+        backing.resize(static_cast<std::size_t>(basis.size()) + 2);
+        for (std::size_t i = 0; i < backing.size(); ++i) {
+            backing[i] = static_cast<Scalar>(static_cast<float>((i * 3) % 15 + 1) / 8.0f);
+        }
+        backing.front() = static_cast<Scalar>(7.0f);
+        backing.back() = static_cast<Scalar>(-7.0f);
+        auto const ranges = rpp::tests::all_tensor_degree_ranges<Range>(basis.depth);
+        for (auto const range : ranges) {
+            SCOPED_TRACE(testing::Message() << "range=[" << range.min << ',' << range.max << ']');
+            for (auto const scalar : {Accum{0}, Accum{1}, Accum{-0.5}}) {
+                SCOPED_TRACE(static_cast<double>(scalar));
+                auto initial = backing;
+                auto const expected = rpp::tests::reference_tensor_identity(
+                    initial, basis, range, scalar, false, Index{1});
+                auto const actual = TestFixture::run_add_identity(
+                    basis, initial, range, scalar, Index{1});
+                ASSERT_EQ(actual.size(), expected.size());
+                for (std::size_t i = 0; i < expected.size(); ++i) {
+                    // Dyadic values permit exact checks, including untouched guards.
+                    EXPECT_EQ(static_cast<double>(actual[i]),
+                              static_cast<double>(expected[i])) << "coefficient " << i;
+                }
+            }
+        }
+    }
 }
 
 } // namespace

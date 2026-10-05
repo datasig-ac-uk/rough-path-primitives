@@ -19,8 +19,10 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         ft_fma_tests.cpp
         ft_fmexp_tests.cpp
         ft_inplace_fma_tests.cpp
+        ft_intermediate_initialization_tests.cpp
         ft_inplace_mul_tests.cpp
         ft_mul_tests.cpp
+        lie_tensor_conversion_tests.cpp
         left_hs_mul_tests.cpp
         sparse_matrix_vector_product_tests.cpp
         st_adj_mul_tests.cpp
@@ -34,6 +36,7 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         vector_assign_tests.cpp
         vector_add_tests.cpp
         vector_inplace_add_tests.cpp
+        vector_bounds_tests.cpp
         vector_scalar_multiply_tests.cpp
         vector_set_tests.cpp
 )

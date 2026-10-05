@@ -98,13 +98,17 @@ public:
                 acc = gpu::block::ft_multiply_loop_with_degree(
                     ctx, a, b, elt_idx, degree, basis);
                 acc *= beta;
-                acc += alpha * Accum{c[elt_idx]};
+                if (c.has_degree(degree)) {
+                    acc += alpha * Accum{c[elt_idx]};
+                }
             }
             else if constexpr (FMAType == FTInplaceFMAType::AEqualsBAPlusC) {
                 acc = gpu::block::ft_multiply_loop_with_degree(
                     ctx, b, a, elt_idx, degree, basis);
                 acc *= beta;
-                acc += alpha * Accum{c[elt_idx]};
+                if (c.has_degree(degree)) {
+                    acc += alpha * Accum{c[elt_idx]};
+                }
             }
             else if constexpr (FMAType == FTInplaceFMAType::AEqualsBCPlusA) {
                 acc = gpu::block::ft_multiply_loop_with_degree(

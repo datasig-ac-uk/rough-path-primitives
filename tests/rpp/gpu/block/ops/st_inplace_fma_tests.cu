@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "../../../ft_degree_range_cases.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/st_inplace_fma.hpp>
 #include <rpp/gpu/block/operations/basic/st_inplace_fma.hpp>
 
@@ -270,6 +272,45 @@ TEST(GpuBlockStInplaceFmaTests, MatchesCpuForSingleElementBatches) {
 
         actual = Helper::copy_to_host(device_actual);
         Helper::expect_near(actual, expected, Helper::Scalar{1.5e-4});
+    }
+}
+
+TYPED_TEST(GpuBlockStInplaceFmaTypedTests, MatchesOriginalValuesForRestrictedViews) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using Range = typename TestFixture::DegreeRange;
+    for (auto const width : {2, 4}) {
+        SCOPED_TRACE(width);
+        auto const basis_data = typename TestFixture::Helper::BasisData(width, 4);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        auto const initial_out = TestFixture::make_batch(41, basis);
+        auto const b = TestFixture::make_batch(43, basis);
+        auto const c = TestFixture::make_batch(44, basis);
+        auto const alpha = typename TestFixture::Accum{0.5};
+        auto const beta = typename TestFixture::Accum{-1.25};
+
+        for (auto const& ranges : rpp::tests::ft_fma_degree_range_cases<Range>()) {
+            SCOPED_TRACE(ranges.name);
+            auto const actual = TestFixture::run_gpu_inplace_fma(
+                basis, gpu_strategy, initial_out, b, c,
+                ranges.out, ranges.b, ranges.c, alpha, beta);
+            auto expected = TestFixture::reference_fma(
+                basis, initial_out, b, c,
+                ranges.out, ranges.out, ranges.b, ranges.c, alpha, beta);
+            // The reference starts with zeros; restore the untouched backing
+            // coefficients outside the output view to their sentinel values.
+            auto const begin = basis.start_of_degree(ranges.out.min);
+            auto const end = basis.start_of_degree(ranges.out.max) +
+                             basis.size_of_degree(ranges.out.max);
+            for (std::size_t i = 0; i < expected.size(); ++i) {
+                if (i < begin || i >= end) {
+                    expected[i] = initial_out[i];
+                }
+            }
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+        }
     }
 }
 

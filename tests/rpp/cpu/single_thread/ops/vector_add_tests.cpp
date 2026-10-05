@@ -36,20 +36,21 @@ protected:
                   Accum alpha,
                   Accum beta) {
         auto result = initial_out;
-        auto const min_degree =
-            std::max({out_range.min, lhs_range.min, rhs_range.min});
-        auto const max_degree =
-            std::min({out_range.max, lhs_range.max, rhs_range.max});
-        if (max_degree < min_degree) {
-            return result;
-        }
-        for (auto idx = basis.start_of_degree(min_degree);
-             idx < basis.end_of_degree(max_degree);
-             ++idx) {
-            auto const i = static_cast<std::size_t>(idx);
-            result[i] = static_cast<typename Base::Scalar>(
-                alpha * static_cast<Accum>(lhs[i]) +
-                beta * static_cast<Accum>(rhs[i]));
+        for (auto degree = out_range.min; degree <= out_range.max; ++degree) {
+            const bool has_lhs = lhs_range.min <= degree && degree <= lhs_range.max;
+            const bool has_rhs = rhs_range.min <= degree && degree <= rhs_range.max;
+            for (auto idx = basis.start_of_degree(degree);
+                 idx < basis.end_of_degree(degree); ++idx) {
+                auto const i = static_cast<std::size_t>(idx);
+                Accum value{0};
+                if (has_lhs) {
+                    value += alpha * static_cast<Accum>(lhs[i]);
+                }
+                if (has_rhs) {
+                    value += beta * static_cast<Accum>(rhs[i]);
+                }
+                result[i] = static_cast<typename Base::Scalar>(value);
+            }
         }
         return result;
     }
@@ -134,7 +135,7 @@ TYPED_TEST(NumericVectorAddTests, EqualsLinearCombinationWhenOutputStartsZero) {
     TestFixture::expect_tensor_near(actual, expected);
 }
 
-TYPED_TEST(NumericVectorAddTests, RespectsTruncatedIntersection) {
+TYPED_TEST(NumericVectorAddTests, IncludesOneSidedDegreesInTruncatedOutput) {
     auto const basis_data =
         typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
     auto const& basis = basis_data.basis;
@@ -152,6 +153,41 @@ TYPED_TEST(NumericVectorAddTests, RespectsTruncatedIntersection) {
     auto const expected = TestFixture::reference_add(
         out, lhs, rhs, basis, out_range, lhs_range, rhs_range, alpha, beta);
     TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericVectorAddTests, ZeroExtendsInputsAndPreservesOutsideOutputView) {
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const out = TestFixture::make_tensor(11, basis);
+    auto const lhs = TestFixture::make_tensor(12, basis);
+    auto const rhs = TestFixture::make_tensor(13, basis);
+    const auto alpha = typename TestFixture::Accum{-0.5};
+    const auto beta = typename TestFixture::Accum{2};
+    using DegreeRange = typename TestFixture::DegreeRange;
+    struct Case {
+        const char* name;
+        DegreeRange out;
+        DegreeRange lhs;
+        DegreeRange rhs;
+    };
+    const Case cases[] = {
+        {"lhs and rhs contribute at opposite ends", {1, 3}, {2, 3}, {1, 2}},
+        {"one-sided ranges reversed", {1, 3}, {1, 2}, {2, 3}},
+        {"both lower and upper gaps", {0, 4}, {2, 2}, {2, 2}},
+        {"disjoint inputs with an internal gap", {1, 3}, {1, 1}, {3, 3}},
+        {"neither input overlaps output", {1, 2}, {0, 0}, {3, 4}},
+    };
+    for (auto const& test_case : cases) {
+        SCOPED_TRACE(test_case.name);
+        auto const actual = TestFixture::run_add(
+            out, lhs, rhs, basis, test_case.out, test_case.lhs, test_case.rhs,
+            alpha, beta);
+        auto const expected = TestFixture::reference_add(
+            out, lhs, rhs, basis, test_case.out, test_case.lhs, test_case.rhs,
+            alpha, beta);
+        TestFixture::expect_tensor_near(actual, expected);
+    }
 }
 
 } // namespace

@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "../../../ft_degree_range_cases.hpp"
+
 #include <rpp/gpu/block/operations/basic/ft_inplace_fma.hpp>
 
 #include "gpu_typed_ft_ops_test_helper.cuh"
@@ -453,6 +455,96 @@ TYPED_TEST(GpuBlockFtInplaceFmaTypedTests,
             c_range,
             alpha,
             beta);
+    }
+}
+
+TYPED_TEST(GpuBlockFtInplaceFmaTypedTests,
+           AEqualsBCPlusAPreservesSourceValuesForRestrictedViews) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using Range = typename TestFixture::DegreeRange;
+    for (auto const width : {2, 4}) {
+        SCOPED_TRACE(width);
+        auto const basis_data = typename TestFixture::Helper::BasisData(width, 4);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        auto const initial_a = TestFixture::make_batch(51, basis);
+        auto const b = TestFixture::make_batch(52, basis);
+        auto const c = TestFixture::make_batch(53, basis);
+        auto const beta = typename TestFixture::Accum{-1.25};
+
+        for (auto const& ranges : rpp::tests::ft_inplace_degree_range_cases<Range>()) {
+            SCOPED_TRACE(ranges.name);
+            for (auto const alpha : {typename TestFixture::Accum{0},
+                                     typename TestFixture::Accum{0.5}}) {
+                SCOPED_TRACE(static_cast<double>(alpha));
+                TestFixture::template expect_matches_out_of_place_reference<
+                    rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>(
+                    basis, gpu_strategy, initial_a, b, c,
+                    ranges.a, ranges.b, ranges.c, alpha, beta);
+            }
+        }
+    }
+}
+
+TYPED_TEST(GpuBlockFtInplaceFmaTypedTests,
+           AEqualsABPlusCPreservesSourceValuesForRestrictedViews) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using Range = typename TestFixture::DegreeRange;
+    for (auto const width : {2, 4}) {
+        SCOPED_TRACE(width);
+        auto const basis_data = typename TestFixture::Helper::BasisData(width, 4);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        auto const initial_a = TestFixture::make_batch(51, basis);
+        auto const b = TestFixture::make_batch(52, basis);
+        auto const c = TestFixture::make_batch(53, basis);
+        auto const beta = typename TestFixture::Accum{-1.25};
+
+        for (auto const& ranges : rpp::tests::ft_inplace_degree_range_cases<Range>()) {
+            SCOPED_TRACE(ranges.name);
+            for (auto const alpha : {typename TestFixture::Accum{0},
+                                     typename TestFixture::Accum{0.5}}) {
+                SCOPED_TRACE(static_cast<double>(alpha));
+                TestFixture::template expect_matches_out_of_place_reference<
+                    rpp::ops::FTInplaceFMAType::AEqualsABPlusC>(
+                    basis, gpu_strategy, initial_a, b, c,
+                    ranges.a, ranges.b, ranges.c, alpha, beta);
+            }
+        }
+    }
+}
+
+TYPED_TEST(GpuBlockFtInplaceFmaTypedTests,
+           AEqualsBAPlusCPreservesSourceValuesForRestrictedViews) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using Range = typename TestFixture::DegreeRange;
+    for (auto const width : {2, 4}) {
+        SCOPED_TRACE(width);
+        auto const basis_data = typename TestFixture::Helper::BasisData(width, 4);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        auto const initial_a = TestFixture::make_batch(51, basis);
+        auto const b = TestFixture::make_batch(52, basis);
+        auto const c = TestFixture::make_batch(53, basis);
+        auto const beta = typename TestFixture::Accum{-1.25};
+
+        for (auto const& ranges : rpp::tests::ft_inplace_degree_range_cases<Range>()) {
+            SCOPED_TRACE(ranges.name);
+            for (auto const alpha : {typename TestFixture::Accum{0},
+                                     typename TestFixture::Accum{0.5}}) {
+                SCOPED_TRACE(static_cast<double>(alpha));
+                TestFixture::template expect_matches_out_of_place_reference<
+                    rpp::ops::FTInplaceFMAType::AEqualsBAPlusC>(
+                    basis, gpu_strategy, initial_a, b, c,
+                    ranges.a, ranges.b, ranges.c, alpha, beta);
+            }
+        }
     }
 }
 

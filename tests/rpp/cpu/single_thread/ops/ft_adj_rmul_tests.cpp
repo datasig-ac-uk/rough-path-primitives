@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../../../ft_adjoint_test_helper.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/ft_adj_rmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_mul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/tensor_pairing.hpp>
@@ -564,5 +566,63 @@ TEST_F(FreeTensorAdjointRightMulTests,
     EXPECT_EQ(actual, expected);
 }
 
+
+TYPED_TEST(NumericFreeTensorAdjointRightMulTests, ZeroExtendsOperandsAndPreservesOutsideOutputView) {
+    struct Range {
+        Degree min;
+        Degree max;
+    };
+    struct Config {
+        Degree width;
+        Degree depth;
+    };
+    Config const configs[] = {{1, 4}, {3, 4}, {4, 4}, {4, 0}};
+    for (auto const& config : configs) {
+        SCOPED_TRACE(testing::Message() << "width=" << config.width
+                                       << ", depth=" << config.depth);
+        auto const basis_data = typename TestFixture::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto initial_out = TestFixture::make_tensor(81, basis);
+        for (auto& value : initial_out) {
+            value = static_cast<typename TestFixture::Scalar>(7.0f);
+        }
+        auto const op = rpp::tests::make_ft_adjoint_range_operator(
+            TestFixture::make_tensor(82, basis), basis);
+        auto const arg = rpp::tests::make_ft_adjoint_range_argument(
+            TestFixture::make_tensor(83, basis));
+        for (auto const& ranges : rpp::tests::ft_adjoint_range_cases<Range>(basis.depth)) {
+            if (ranges.out.max > basis.depth || ranges.op.max > basis.depth ||
+                ranges.arg.max > basis.depth) {
+                continue;
+            }
+            SCOPED_TRACE(ranges.name);
+            auto expected = initial_out;
+            auto const coefficients = rpp::tests::reference_ft_adjoint<
+                typename TestFixture::Accum>(
+                basis, op, arg, ranges.out, ranges.op, ranges.arg,
+                false);
+            for (auto idx = basis.start_of_degree(ranges.out.min);
+                 idx < basis.end_of_degree(ranges.out.max); ++idx) {
+                expected[idx] = static_cast<typename TestFixture::Scalar>(coefficients[idx]);
+            }
+            auto actual = initial_out;
+            typename TestFixture::TensorView out_view(
+                actual.data(), basis, ranges.out.min, ranges.out.max);
+            typename TestFixture::ConstTensorView op_view(
+                op.data(), basis, ranges.op.min, ranges.op.max);
+            typename TestFixture::ConstTensorView arg_view(
+                arg.data(), basis, ranges.arg.min, ranges.arg.max);
+            using AdjMul = rpp::ops::FTAdjRMul<typename TestFixture::Strategy>;
+            auto const scratch_bytes = AdjMul::scratch_space_size(
+                typename TestFixture::Strategy{}, basis);
+            std::vector<std::byte> scratch(scratch_bytes);
+            auto const ctx = TestFixture::Strategy::make_context(scratch.data());
+            AdjMul::init_scratch_space(ctx, basis);
+            AdjMul{}(ctx, out_view, op_view, arg_view);
+            AdjMul::destroy_scratch_space(ctx, basis);
+            TestFixture::expect_tensor_near(actual, expected);
+        }
+    }
+}
 
 } // namespace

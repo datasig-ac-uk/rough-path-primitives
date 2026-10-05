@@ -29,23 +29,27 @@ public:
     void operator()(Context const& ctx,
                     VectorOut& out,
                     VectorArg const& arg) const noexcept {
+        using Scalar = typename VectorArg::value_type;
         auto const& basis = out.basis();
         const auto min_deg = std::max(out.min_degree(), arg.min_degree());
         const auto max_deg = std::min(out.max_degree(), arg.max_degree());
         if (max_deg < min_deg) {
+            std::fill(out.begin(), out.end(), Scalar{});
             return;
         }
 
         const auto begin_index = basis.start_of_degree(min_deg);
         const auto end_index = basis.end_of_degree(max_deg);
 
-
         auto out_begin = out.data() + begin_index;
         auto arg_begin = arg.data() + begin_index;
         auto arg_end = arg.data() + end_index;
 
+        std::fill(out.begin(), out_begin, Scalar{});
 
-        std::copy(arg_begin, arg_end, out_begin);
+        auto out_fill_begin = std::copy(arg_begin, arg_end, out_begin);
+
+        std::fill(out_fill_begin, out.end(), Scalar{});
     }
 };
 

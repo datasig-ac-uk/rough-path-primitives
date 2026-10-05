@@ -1,6 +1,7 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_TENSOR_GENERALISED_ANTIPODE_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_TENSOR_GENERALISED_ANTIPODE_HPP
 
+#include <algorithm>
 #include <cstddef>
 
 #include <rpp/config.h>
@@ -33,32 +34,34 @@ public:
     void operator()(Context const& ctx,
                     TensorOut& out,
                     TensorArg const& arg) const noexcept {
+        using Scalar = typename TensorOut::value_type;
 
         using Index = typename Context::Strategy::Index;
-        const auto min_degree = std::max(out.min_degree(), arg.min_degree());
-        const auto max_degree = std::min(out.max_degree(), arg.max_degree());
         auto const& basis = out.basis();
 
-        if (min_degree == 0) {
-            out[0] = arg[0];
-        }
 
-        for (auto degree = std::max(1, min_degree); degree <= max_degree;
+        for (auto degree = out.min_degree(); degree <= out.max_degree();
              ++degree) {
             auto out_view = out.degree_view(degree);
-            auto const arg_view = arg.degree_view(degree);
+            const bool has_deg = arg.has_degree(degree);
 
-            for (Index i = 0; i < arg_view.size(); ++i) {
-                auto const out_index = basis.reverse_index(i, degree);
-                if constexpr (Policy ==
-                              TensorAntipodeSigningPolicy::SignByDegree) {
-                    using Value = std::decay_t<decltype(arg_view[i])>;
-                    auto const sign =
-                        degree % 2 == 0 ? Value{1} : Value{-1};
-                    out_view[out_index] = arg_view[i] * sign;
-                }
-                else {
-                    out_view[out_index] = arg_view[i];
+            if (!has_deg) {
+                std::fill(out_view.begin(), out_view.end(), Scalar{});
+            }
+            else {
+                auto const arg_view = arg.degree_view(degree);
+                for (Index i = 0; i < arg_view.size(); ++i) {
+                    auto const out_index = basis.reverse_index(i, degree);
+                    if constexpr (Policy ==
+                                  TensorAntipodeSigningPolicy::SignByDegree) {
+                        using Value = std::decay_t<decltype(arg_view[i])>;
+                        auto const sign =
+                            degree % 2 == 0 ? Value{1} : Value{-1};
+                        out_view[out_index] = arg_view[i] * sign;
+                    }
+                    else {
+                        out_view[out_index] = arg_view[i];
+                    }
                 }
             }
         }

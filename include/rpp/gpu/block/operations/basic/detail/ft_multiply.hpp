@@ -22,19 +22,14 @@ ft_multiply_loop_with_degree(const Context& ctx,
     using Accum = typename Context::Accum;
     ignore_unused(ctx);
 
-    const auto degree_minus_b_max = degree >= b.max_degree()
-        ? static_cast<Degree>(degree - b.max_degree())
-        : Degree{0};
-    const auto degree_minus_b_min = degree >= b.min_degree()
-        ? static_cast<Degree>(degree - b.min_degree())
-        : static_cast<Degree>(degree + 1);
-
     const auto rhs_min_deg = std::max(
-        degree_minus_b_max, c.min_degree());
+        std::max(Degree{0}, c.min_degree()),
+        static_cast<Degree>(degree - b.max_degree()));
     const auto rhs_max_deg = std::min(
-        degree_minus_b_min, c.max_degree());
+        std::min(degree, c.max_degree()),
+        static_cast<Degree>(degree - b.min_degree()));
 
-    if (rhs_min_deg > rhs_max_deg || rhs_min_deg > degree) {
+    if (rhs_min_deg > rhs_max_deg) {
         return Accum{0};
     }
 

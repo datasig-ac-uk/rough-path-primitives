@@ -5,9 +5,11 @@ set(RPP_GPU_BLOCK_OP_TEST_SOURCES
         ft_fma_tests.cu
         ft_fmexp_tests.cu
         ft_inplace_fma_tests.cu
+        ft_intermediate_initialization_tests.cu
         ft_inplace_mul_tests.cu
         ft_log_tests.cu
         ft_mul_tests.cu
+        lie_tensor_conversion_tests.cu
         left_hs_mul_tests.cu
         gpu_block_test_helper.cuh
         gpu_typed_vector_ops_test_helper.cuh
@@ -24,6 +26,7 @@ set(RPP_GPU_BLOCK_OP_TEST_SOURCES
         vector_add_tests.cu
         vector_assign_tests.cu
         vector_inplace_add_tests.cu
+        vector_bounds_tests.cu
         vector_scalar_multiply_tests.cu
         vector_set_constant_tests.cu
 )

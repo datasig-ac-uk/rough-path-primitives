@@ -44,21 +44,27 @@ public:
         auto const& basis = out.basis();
         using value_type = typename TensorOut::value_type;
 
-        for (auto elt_idx = arg.begin_index() + ctx.thread_rank();
-             elt_idx < arg.end_index();
+        for (auto elt_idx = out.begin_index() + ctx.thread_rank();
+             elt_idx < out.end_index();
              elt_idx += ctx.num_threads()) {
             const auto degree = basis.degree(elt_idx);
             const auto degree_begin = basis.start_of_degree(degree);
             const auto rev_idx =
                 basis.reverse_index(elt_idx - degree_begin, degree);
 
-            if constexpr (Policy == TensorAntipodeSigningPolicy::SignByDegree) {
-                auto const sign = degree % 2 == 0 ? value_type{1}
-                                                  : value_type{-1};
-                out[rev_idx + degree_begin] = arg[elt_idx] * sign;
+            if (arg.has_degree(degree)) {
+                if constexpr (Policy ==
+                              TensorAntipodeSigningPolicy::SignByDegree) {
+                    auto const sign =
+                        degree % 2 == 0 ? value_type{1} : value_type{-1};
+                    out[rev_idx + degree_begin] = arg[elt_idx] * sign;
+                }
+                else {
+                    out[rev_idx + degree_begin] = arg[elt_idx];
+                }
             }
             else {
-                out[rev_idx + degree_begin] = arg[elt_idx];
+                out[elt_idx] = value_type{0};
             }
         }
     }

@@ -34,8 +34,8 @@ class LieToTensor : public BaseOperation<Strategy> {
         ? sparse::MatrixFormat::CSR
         : sparse::MatrixFormat::CSC;
 
-    template <typename... Args>
-    using Matrix = sparse::GradedMatrixView<matrix_format, Args...>;
+    template <typename Data, typename Indices, typename Offsets>
+    using Matrix = sparse::GradedMatrixView<matrix_format, Data, Indices, Offsets>;
 
     using Impl = SparseMatrixVectorProduct<Strategy, matrix_format>;
 
@@ -51,12 +51,13 @@ public:
         return Impl::scratch_space_size(strategy, pack);
     }
 
-    template <typename TensorOut, typename LieIn, typename... MatrixArgs>
+    template <typename TensorOut, typename LieIn,
+              typename Data, typename Indices, typename Offsets>
     RPP_HOST_DEVICE void
     operator()(Context const& ctx,
                TensorOut& out,
                LieIn const& arg,
-               Matrix<MatrixArgs...> const& matrix) const noexcept {
+               Matrix<Data, Indices, Offsets> const& matrix) const noexcept {
         impl(ctx, out, arg, matrix);
     }
 };
