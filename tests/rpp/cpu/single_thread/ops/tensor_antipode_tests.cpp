@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../../../tensor_antipode_test_helper.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/ft_mul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/tensor_antipode.hpp>
 #include <rpp/views/views.hpp>
@@ -324,6 +326,50 @@ TYPED_TEST(NumericTensorAntipodeTests, ZeroExtendsArgumentAndPreservesOutsideOut
         rpp::ops::TensorAntipode<typename TestFixture::Strategy>{}(
             TestFixture::make_context(), out_view, arg_view);
         TestFixture::expect_tensor_near(actual, expected);
+    }
+}
+
+TYPED_TEST(NumericTensorAntipodeTests, HandlesEveryInputAndOutputDegreeRange) {
+    using Range = typename TestFixture::DegreeRange;
+    using Scalar = typename TestFixture::Scalar;
+    using Degree = typename TestFixture::Degree;
+    struct Config {
+        Degree width;
+        Degree depth;
+    };
+    Config const configs[] = {{1, 4}, {4, 4}, {4, 0}};
+    for (auto const& config : configs) {
+        SCOPED_TRACE(testing::Message() << "width=" << config.width
+                                       << ", depth=" << config.depth);
+        auto const basis_data = typename TestFixture::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto initial_out = TestFixture::make_tensor(71, basis);
+        for (auto& value : initial_out) {
+            value = static_cast<Scalar>(-7.0f);
+        }
+        auto const arg = rpp::tests::make_antipode_range_argument(
+            TestFixture::make_tensor(72, basis));
+        auto const ranges = rpp::tests::all_tensor_degree_ranges<Range>(basis.depth);
+        for (auto const out_range : ranges) {
+            for (auto const arg_range : ranges) {
+                SCOPED_TRACE(testing::Message()
+                             << "out=[" << out_range.min << ',' << out_range.max
+                             << "], arg=[" << arg_range.min << ',' << arg_range.max << ']');
+                auto const expected = rpp::tests::reference_tensor_antipode<
+                    typename TestFixture::Accum>(
+                    initial_out, arg, basis, out_range, arg_range,
+                    true);
+                auto actual = initial_out;
+                typename TestFixture::TensorView out_view(
+                    actual.data(), basis, out_range.min, out_range.max);
+                typename TestFixture::ConstTensorView arg_view(
+                    arg.data(), basis, arg_range.min, arg_range.max);
+                rpp::ops::TensorGeneralisedAntipode<typename TestFixture::Strategy,
+                    rpp::ops::TensorAntipodeSigningPolicy::SignByDegree>{}(
+                    TestFixture::make_context(), out_view, arg_view);
+                EXPECT_EQ(actual, expected);
+            }
+        }
     }
 }
 

@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "../../../tensor_antipode_test_helper.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/tensor_reflect.hpp>
 #include <rpp/gpu/block/operations/basic/tensor_reflect.hpp>
 
@@ -137,6 +139,62 @@ TYPED_TEST(GpuBlockTensorReflectTypedTests, ZeroExtendsArgumentAndPreservesOutsi
         RPP_CUDA_ASSERT(cudaDeviceSynchronize());
         actual = TestFixture::Helper::copy_to_host(device_actual);
         RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+    }
+}
+
+TYPED_TEST(GpuBlockTensorReflectTypedTests, HandlesEveryInputAndOutputDegreeRange) {
+    RPP_REQUIRE_CUDA_DEVICE();
+    using Range = typename TestFixture::DegreeRange;
+    using Scalar = typename TestFixture::Scalar;
+    using Degree = typename TestFixture::Degree;
+    struct Config {
+        Degree width;
+        Degree depth;
+    };
+    Config const configs[] = {{1, 4}, {4, 4}, {4, 0}};
+    for (auto const& config : configs) {
+        SCOPED_TRACE(testing::Message() << "width=" << config.width
+                                       << ", depth=" << config.depth);
+        auto const basis_data = typename TestFixture::Helper::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto initial_out = TestFixture::make_batch(71, basis);
+        for (auto& value : initial_out) {
+            value = static_cast<Scalar>(-7.0f);
+        }
+        auto const arg = rpp::tests::make_antipode_range_argument(
+            TestFixture::make_batch(72, basis));
+        auto const ranges = rpp::tests::all_tensor_degree_ranges<Range>(basis.depth);
+        auto const strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        typename TestFixture::DeviceVector device_arg(arg);
+        for (auto const out_range : ranges) {
+            for (auto const arg_range : ranges) {
+                SCOPED_TRACE(testing::Message()
+                             << "out=[" << out_range.min << ',' << out_range.max
+                             << "], arg=[" << arg_range.min << ',' << arg_range.max << ']');
+                auto const expected = rpp::tests::reference_tensor_antipode<
+                    typename TestFixture::Accum>(
+                    initial_out, arg, basis, out_range, arg_range,
+                    false);
+                typename TestFixture::DeviceVector device_actual(initial_out);
+                rpp::gpu::DeviceLaunchConfig launch_config;
+                launch_config.stream = nullptr;
+                auto const err = rpp::ops::tensor_generalised_antipode<
+                    rpp::ops::TensorAntipodeSigningPolicy::NoSigning>(
+                    strategy, launch_config,
+                    rpp::make_tensor_batch(
+                        TestFixture::Helper::device_data(device_actual), basis.size(),
+                        out_range.min, out_range.max),
+                    rpp::make_tensor_batch(
+                        TestFixture::Helper::device_data(device_arg), basis.size(),
+                        arg_range.min, arg_range.max),
+                    basis, TestFixture::Helper::tensor_count);
+                ASSERT_TRUE(static_cast<bool>(err)) << err.message();
+                RPP_CUDA_ASSERT(cudaDeviceSynchronize());
+                auto const actual = TestFixture::Helper::copy_to_host(device_actual);
+                RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+            }
+        }
     }
 }
 
