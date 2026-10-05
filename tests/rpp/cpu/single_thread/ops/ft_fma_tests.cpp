@@ -3,6 +3,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../../../ft_degree_range_cases.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/ft_fma.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_mul.hpp>
 #include <rpp/cpu/single_thread/operations/linalg/vector_inplace_add.hpp>
@@ -463,6 +465,31 @@ TYPED_TEST(NumericFreeTensorFmaTests, RespectsTruncatedOperandAndOutputViews) {
     auto const expected = TestFixture::reference_fma(
         basis, initial_out, a, b, c, out_range, a_range, b_range, c_range);
     TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericFreeTensorFmaTests, OverwritesEveryOutputDegreeForRestrictedOperands) {
+
+    using Range = typename TestFixture::DegreeRange;
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const initial_out = TestFixture::make_tensor(41, basis);
+    auto const a = TestFixture::make_tensor(42, basis);
+    auto const b = TestFixture::make_tensor(43, basis);
+    auto const c = TestFixture::make_tensor(44, basis);
+    auto const alpha = typename TestFixture::Accum{0.5};
+    auto const beta = typename TestFixture::Accum{-1.25};
+
+    for (auto const& ranges : rpp::tests::ft_fma_degree_range_cases<Range>()) {
+        SCOPED_TRACE(ranges.name);
+        auto const actual = TestFixture::run_fma(
+            basis, initial_out, a, b, c,
+            ranges.out, ranges.a, ranges.b, ranges.c, alpha, beta);
+        auto const expected = TestFixture::reference_fma(
+            basis, initial_out, a, b, c,
+            ranges.out, ranges.a, ranges.b, ranges.c, alpha, beta);
+        TestFixture::expect_tensor_near(actual, expected);
+    }
 }
 
 } // namespace

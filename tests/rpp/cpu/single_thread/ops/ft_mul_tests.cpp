@@ -4,6 +4,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../../../ft_degree_range_cases.hpp"
+
 #include <rpp/cpu/single_thread/operations/basic/ft_mul.hpp>
 #include <rpp/views/views.hpp>
 
@@ -387,6 +389,29 @@ TYPED_TEST(NumericFreeTensorMulTests, RespectsTruncatedOperandAndOutputViews) {
     auto const expected = TestFixture::reference_mul(
         basis, initial_out, lhs, rhs, out_range, lhs_range, rhs_range);
     TestFixture::expect_tensor_near(actual, expected);
+}
+
+TYPED_TEST(NumericFreeTensorMulTests, OverwritesEveryOutputDegreeForRestrictedOperands) {
+
+    using Range = typename TestFixture::DegreeRange;
+    auto const basis_data =
+        typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
+    auto const& basis = basis_data.basis;
+    auto const initial_out = TestFixture::make_tensor(41, basis);
+    auto const lhs = TestFixture::make_tensor(42, basis);
+    auto const rhs = TestFixture::make_tensor(43, basis);
+    auto const beta = typename TestFixture::Accum{-1.25};
+
+    for (auto const& ranges : rpp::tests::ft_mul_degree_range_cases<Range>()) {
+        SCOPED_TRACE(ranges.name);
+        auto const actual = TestFixture::run_mul(
+            basis, initial_out, lhs, rhs,
+            ranges.out, ranges.lhs, ranges.rhs, beta);
+        auto const expected = TestFixture::reference_mul(
+            basis, initial_out, lhs, rhs,
+            ranges.out, ranges.lhs, ranges.rhs, beta);
+        TestFixture::expect_tensor_near(actual, expected);
+    }
 }
 
 } // namespace
