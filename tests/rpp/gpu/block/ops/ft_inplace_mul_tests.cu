@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "../../../ft_degree_range_cases.hpp"
+
 #include <rpp/gpu/block/operations/basic/ft_inplace_mul.hpp>
 
 #include "gpu_typed_ft_ops_test_helper.cuh"
@@ -213,6 +215,39 @@ TYPED_TEST(GpuBlockFtInplaceMulTypedTests,
     actual = TestFixture::Helper::copy_to_host(device_actual);
     auto const expected = TestFixture::reference_mul(basis, lhs, rhs, beta);
     RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+}
+
+TYPED_TEST(GpuBlockFtInplaceMulTypedTests,
+           PreservesSourceValuesForRestrictedViews) {
+    RPP_REQUIRE_CUDA_DEVICE();
+
+    using Range = typename TestFixture::DegreeRange;
+    for (auto const width : {2, 4}) {
+        SCOPED_TRACE(width);
+        auto const basis_data = typename TestFixture::Helper::BasisData(width, 4);
+        auto const& basis = basis_data.basis;
+        auto const gpu_strategy = typename TestFixture::GpuStrategy{
+            TestFixture::Helper::block_size};
+        auto const initial_a = TestFixture::make_batch(51, basis);
+        auto const b = TestFixture::make_batch(52, basis);
+        auto const beta = typename TestFixture::Accum{-1.25};
+
+        for (auto const& ranges : rpp::tests::ft_inplace_degree_range_cases<Range>()) {
+            SCOPED_TRACE(ranges.name);
+            auto const actual = TestFixture::run_gpu_inplace_mul(
+                basis, gpu_strategy, initial_a, b, ranges.a, ranges.b, beta);
+            auto expected = TestFixture::reference_mul(
+                basis, initial_a, b, ranges.a, ranges.a, ranges.b, beta);
+            auto const begin = basis.start_of_degree(ranges.a.min);
+            auto const end = basis.end_of_degree(ranges.a.max);
+            for (std::size_t i = 0; i < expected.size(); ++i) {
+                if (i < begin || i >= end) {
+                    expected[i] = initial_a[i];
+                }
+            }
+            RPP_EXPECT_GPU_TYPED_TENSOR_NEAR(TestFixture, actual, expected);
+        }
+    }
 }
 
 } // namespace
