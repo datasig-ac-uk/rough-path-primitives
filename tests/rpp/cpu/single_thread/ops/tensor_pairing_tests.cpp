@@ -1,8 +1,11 @@
 #include <algorithm>
+#include <limits>
 #include <cmath>
 #include <vector>
 
 #include <gtest/gtest.h>
+
+#include "../../../tensor_pairing_test_helper.hpp"
 
 #include <rpp/cpu/single_thread/operations/basic/tensor_pairing.hpp>
 #include <rpp/views/scalar_view.hpp>
@@ -68,8 +71,9 @@ protected:
         std::vector<typename Base::Scalar> const& functional,
         std::vector<typename Base::Scalar> const& arg,
         DegreeRange functional_range,
-        DegreeRange arg_range) {
-        Accum out{0};
+        DegreeRange arg_range,
+        Accum initial_out = Accum{7}) {
+        Accum out = initial_out;
         ConstTensorView functional_view(
             functional.data(), basis, functional_range.min, functional_range.max);
         ConstTensorView arg_view(arg.data(), basis, arg_range.min, arg_range.max);
@@ -204,6 +208,52 @@ TYPED_TEST(NumericTensorPairingTests, KernelWrapperMatchesDirectOperation) {
         ctx, expected[0], functional_view, arg_view);
 
     TestFixture::expect_scalar_near(actual[0], expected[0]);
+}
+
+TYPED_TEST(NumericTensorPairingTests, OverwritesPrefilledScalarForEveryDegreeRange) {
+    using Range = typename TestFixture::DegreeRange;
+    using Degree = typename TestFixture::Degree;
+    using Accum = typename TestFixture::Accum;
+    struct Config { Degree width, depth; };
+    Config const configs[] = {{1, 4}, {4, 4}, {4, 0}};
+    auto const sentinel = static_cast<Accum>(std::numeric_limits<float>::quiet_NaN());
+    for (auto const& config : configs) {
+        SCOPED_TRACE(testing::Message() << "width=" << config.width
+                                       << ", depth=" << config.depth);
+        auto const basis_data = typename TestFixture::BasisData(config.width, config.depth);
+        auto const& basis = basis_data.basis;
+        auto const storage = TestFixture::make_tensor(91, basis);
+        auto const ranges = rpp::tests::all_tensor_degree_ranges<Range>(basis.depth);
+        for (auto scenario : {rpp::tests::PairingInput::Nonzero,
+                              rpp::tests::PairingInput::ZeroFunctional,
+                              rpp::tests::PairingInput::ZeroArgument,
+                              rpp::tests::PairingInput::Cancelling}) {
+            SCOPED_TRACE(static_cast<int>(scenario));
+            auto const inputs = rpp::tests::pairing_range_inputs(storage, basis, scenario);
+            auto const check = [&](Range functional_range, Range arg_range) {
+                SCOPED_TRACE(testing::Message()
+                             << "functional=[" << functional_range.min << ',' << functional_range.max
+                             << "], arg=[" << arg_range.min << ',' << arg_range.max << ']');
+                auto const expected = TestFixture::reference_pairing(
+                    basis, inputs.first, inputs.second, functional_range, arg_range);
+                auto const actual = TestFixture::run_pairing(
+                    basis, inputs.first, inputs.second,
+                    functional_range, arg_range, sentinel);
+                // Exact dyadic sums allow equality and expose untouched NaNs.
+                EXPECT_EQ(static_cast<double>(actual), static_cast<double>(expected));
+            };
+            if (scenario == rpp::tests::PairingInput::Nonzero) {
+                for (auto const functional_range : ranges) {
+                    for (auto const arg_range : ranges) {
+                        check(functional_range, arg_range);
+                    }
+                }
+            }
+            else {
+                check(Range{0, basis.depth}, Range{0, basis.depth});
+            }
+        }
+    }
 }
 
 } // namespace
