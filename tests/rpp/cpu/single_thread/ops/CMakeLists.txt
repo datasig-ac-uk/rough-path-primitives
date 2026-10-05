@@ -36,6 +36,7 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         vector_assign_tests.cpp
         vector_add_tests.cpp
         vector_inplace_add_tests.cpp
+        vector_bounds_tests.cpp
         vector_scalar_multiply_tests.cpp
         vector_set_tests.cpp
 )

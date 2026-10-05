@@ -26,6 +26,7 @@ set(RPP_GPU_BLOCK_OP_TEST_SOURCES
         vector_add_tests.cu
         vector_assign_tests.cu
         vector_inplace_add_tests.cu
+        vector_bounds_tests.cu
         vector_scalar_multiply_tests.cu
         vector_set_constant_tests.cu
 )
