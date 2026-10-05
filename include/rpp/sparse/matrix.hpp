@@ -78,6 +78,10 @@ struct MatrixFormatImpl<CompressedMatrix<D, I, O, F>> {
         (F == CompressedFormat::CSC) ? MatrixFormat::CSC : MatrixFormat::CSR;
 };
 
+template <CompressedFormat F, typename D, typename I, typename O>
+struct MatrixFormatImpl<GradedCompressedMatrix<D, I, O, F>>
+    : MatrixFormatImpl<CompressedMatrix<D, I, O, F>> {};
+
 } // namespace detail
 
 
