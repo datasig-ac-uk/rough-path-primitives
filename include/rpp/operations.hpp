@@ -32,6 +32,9 @@
 #include <rpp/operations/basic/ft_inplace_mul.hpp>
 #include <rpp/operations/basic/ft_mul.hpp>
 #include <rpp/operations/basic/lie_to_tensor.hpp>
+#include <rpp/operations/basic/left_hs_adj_lmul.hpp>
+#include <rpp/operations/basic/left_hs_adj_rmul.hpp>
+#include <rpp/operations/basic/left_hs_mul.hpp>
 #include <rpp/operations/basic/st_adj_mul.hpp>
 #include <rpp/operations/basic/st_fma.hpp>
 #include <rpp/operations/basic/st_inplace_fma.hpp>
