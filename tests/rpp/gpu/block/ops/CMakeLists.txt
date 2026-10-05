@@ -5,6 +5,7 @@ set(RPP_GPU_BLOCK_OP_TEST_SOURCES
         ft_fma_tests.cu
         ft_fmexp_tests.cu
         ft_inplace_fma_tests.cu
+        ft_intermediate_initialization_tests.cu
         ft_inplace_mul_tests.cu
         ft_log_tests.cu
         ft_mul_tests.cu

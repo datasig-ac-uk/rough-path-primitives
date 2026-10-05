@@ -19,6 +19,7 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         ft_fma_tests.cpp
         ft_fmexp_tests.cpp
         ft_inplace_fma_tests.cpp
+        ft_intermediate_initialization_tests.cpp
         ft_inplace_mul_tests.cpp
         ft_mul_tests.cpp
         lie_tensor_conversion_tests.cpp
