@@ -57,6 +57,12 @@ struct LieBasis : GradedBasis<Architecture_, LieBasisTag>, Ordering {
                                 Index const* data_) noexcept
         : Base{width, depth, degree_begin}, data{data_} {}
 
+    explicit constexpr LieBasis(
+        Degree width, Degree depth,
+        typename Base::DBPtr degree_begin,
+        typename Architecture::template Ptr<Index const> data_) noexcept
+        : Base{width, depth, degree_begin}, data{raw_pointer_cast(data_)} {}
+
     RPP_HOST_DEVICE RPP_NODISCARD constexpr LieBasis
     truncate(Degree new_depth) const noexcept {
         return LieBasis{this->width,
