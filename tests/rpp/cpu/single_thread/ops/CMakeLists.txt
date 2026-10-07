@@ -23,6 +23,7 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         ft_inplace_mul_tests.cpp
         ft_mul_tests.cpp
         lie_tensor_conversion_tests.cpp
+        left_hs_adjoint_tests.cpp
         left_hs_mul_tests.cpp
         sparse_matrix_vector_product_tests.cpp
         st_adj_mul_tests.cpp
