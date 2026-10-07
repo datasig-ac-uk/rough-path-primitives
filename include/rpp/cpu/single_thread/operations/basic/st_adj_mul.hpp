@@ -13,7 +13,7 @@
 
 #include <rpp/operations/basic/st_adj_mul.hpp>
 
-#include <rpp/cpu/single_thread/operations/basic/detail/shuffle_adjoint_op_loop.hpp>
+#include <rpp/operations/implementation/shuffle_adjoint_op_loop.hpp>
 #include <rpp/cpu/single_thread/strategy.hpp>
 
 namespace rpp::ops {

@@ -9,7 +9,7 @@
 #include <rpp/operations/basic/left_hs_adj_lmul.hpp>
 #include <rpp/operations/implementation/word_half_shuffle_product.hpp>
 
-#include <rpp/cpu/single_thread/operations/basic/detail/shuffle_adjoint_op_loop.hpp>
+#include <rpp/operations/implementation/shuffle_adjoint_op_loop.hpp>
 
 namespace rpp::ops {
 

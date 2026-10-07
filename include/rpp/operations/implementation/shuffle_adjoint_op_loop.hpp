@@ -1,5 +1,5 @@
-#ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_DETAIL_SHUFFLE_ADJOINT_OP_LOOP_HPP
-#define RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_DETAIL_SHUFFLE_ADJOINT_OP_LOOP_HPP
+#ifndef RPP_OPERATIONS_IMPLEMENTATION_SHUFFLE_ADJOINT_OP_LOOP_HPP
+#define RPP_OPERATIONS_IMPLEMENTATION_SHUFFLE_ADJOINT_OP_LOOP_HPP
 
 #include <cstddef>
 #include <functional>
@@ -18,7 +18,7 @@ template <typename Context,
           typename ArgGetter = detail::DefaultGetter<TensorArg>,
           typename OpGetter = detail::DefaultGetter<TensorOp>,
           typename Multiply = std::multiplies<typename Context::Accum>>
-typename Context::Accum
+RPP_HOST_DEVICE RPP_FORCEINLINE typename Context::Accum
 shuffle_adjoint_op_loop(Context const& ctx,
                         typename Context::Index out_index,
                         typename Context::Degree out_degree,
@@ -60,4 +60,4 @@ shuffle_adjoint_op_loop(Context const& ctx,
 
 } // namespace rpp::ops::common
 
-#endif // RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_DETAIL_SHUFFLE_ADJOINT_OP_LOOP_HPP
+#endif // RPP_OPERATIONS_IMPLEMENTATION_SHUFFLE_ADJOINT_OP_LOOP_HPP
