@@ -33,8 +33,6 @@ class STAdjMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using LetterSpan = Span<Letter>;
 
 
-
-
 public:
     static constexpr bool is_implemented = true;
 
@@ -47,13 +45,18 @@ public:
 
         auto const& basis = out.basis();
         std::array<Letter, Strategy::Architecture::max_depth> letters{};
-        LetterSpan letter_span{letters.data(), Strategy::Architecture::max_depth};
+        LetterSpan letter_span{letters.data(),
+                               Strategy::Architecture::max_depth};
 
 
         for (Degree out_degree = out.min_degree();
              out_degree <= out.max_degree();
              ++out_degree) {
             auto out_level = out.degree_view(out_degree);
+            const auto op_min_deg =
+                std::max(op.min_degree(), arg.min_degree() - out_degree);
+            const auto op_max_deg =
+                std::min(op.max_degree(), arg.max_degree() - out_degree);
 
             for (Index out_index = 0; out_index < out_level.size();
                  ++out_index) {
@@ -62,24 +65,19 @@ public:
                 basis.unpack_index_to_letters(
                     out_letters, out_degree, out_index);
 
-                const auto op_min_deg =
-                    std::max(op.min_degree(), arg.min_degree() - out_degree);
-                const auto op_max_deg =
-                    std::min(op.max_degree(), arg.max_degree() - out_degree);
                 auto acc = common::shuffle_adjoint_op_loop(ctx,
-                                                          out_index,
-                                                          out_degree,
-                                                          letter_span,
-                                                          op,
-                                                          arg,
-                                                          op_min_deg,
-                                                          op_max_deg);
+                                                           out_index,
+                                                           out_degree,
+                                                           letter_span,
+                                                           op,
+                                                           arg,
+                                                           op_min_deg,
+                                                           op_max_deg);
 
 
                 out_level[out_index] = static_cast<Scalar>(acc);
             }
         }
-
     }
 };
 
