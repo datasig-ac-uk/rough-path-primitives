@@ -77,6 +77,30 @@ private:
     }
 
 
+    template <typename Basis,
+              typename TensorIntegrator,
+              typename TensorIntegrand>
+    RPP_DEVICE static Accum evaluate(Context const& ctx,
+                                     Degree out_degree,
+                                     Index out_index,
+                                     LetterSpan letters,
+                                     Basis const& basis,
+                                     TensorIntegrator const& integrator,
+                                     TensorIntegrand const& integrand,
+                                     Degree op_min_deg,
+                                     Degree op_max_deg) noexcept {
+        basis.unpack_index_to_letters(letters, out_degree, out_index);
+        return letter_loop(ctx,
+                           out_index,
+                           out_degree,
+                           letters,
+                           integrator,
+                           integrand,
+                           op_min_deg,
+                           op_max_deg);
+    }
+
+
 public:
     template <typename TensorOut,
               typename TensorIntegrator,
@@ -91,11 +115,13 @@ public:
         Letter letter_data[Strategy::Architecture::max_depth];
         LetterSpan letters{letter_data, Strategy::Architecture::max_depth};
 
-        for (Index i = out.begin_index() + ctx.thread_rank();
-             i < out.end_index();
-             i += ctx.num_threads()) {
-            const auto out_degree = basis.degree(i);
-            const auto out_index = i - basis.start_of_degree(out_degree);
+        const auto low_range_degree =
+            std::max<Degree>(0, ctx.low_range_degree(out));
+
+
+        for (Degree out_degree = out.max_degree();
+             out_degree > low_range_degree;
+             --out_degree) {
             const auto op_min_deg =
                 std::max({Degree{0},
                           integrator.min_degree() - 1,
@@ -103,15 +129,45 @@ public:
             const auto op_max_deg =
                 std::min(integrator.max_degree() - 1,
                          integrand.max_degree() - 1 - out_degree);
-            basis.unpack_index_to_letters(letters, out_degree, out_index);
-            auto const acc = letter_loop(ctx,
-                                         out_index,
-                                         out_degree,
-                                         letters,
-                                         integrator,
-                                         integrand,
-                                         op_min_deg,
-                                         op_max_deg);
+            const auto begin = basis.start_of_degree(out_degree);
+            const auto end = basis.end_of_degree(out_degree);
+            for (Index i = begin + ctx.thread_rank(); i < end;
+                 i += ctx.num_threads()) {
+                auto acc = evaluate(ctx,
+                                    out_degree,
+                                    i - begin,
+                                    letters,
+                                    basis,
+                                    integrator,
+                                    integrand,
+                                    op_min_deg,
+                                    op_max_deg);
+                out[i] = static_cast<Scalar>(beta * acc);
+            }
+        }
+
+        const auto end = basis.end_of_degree(low_range_degree);
+        const Index i = out.begin_index() + ctx.thread_rank();
+        if (i < end) {
+            const auto degree = basis.degree(i);
+            const auto index = i - basis.start_of_degree(degree);
+            const auto op_min_deg =
+                std::max({Degree{0},
+                          integrator.min_degree() - 1,
+                          integrand.min_degree() - 1 - degree});
+            const auto op_max_deg =
+                std::min(integrator.max_degree() - 1,
+                         integrand.max_degree() - 1 - degree);
+
+            auto acc = evaluate(ctx,
+                                degree,
+                                index,
+                                letters,
+                                basis,
+                                integrator,
+                                integrand,
+                                op_min_deg,
+                                op_max_deg);
             out[i] = static_cast<Scalar>(beta * acc);
         }
     }

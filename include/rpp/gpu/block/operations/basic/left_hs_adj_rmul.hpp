@@ -30,6 +30,41 @@ public:
 
     static constexpr bool is_implemented = true;
 
+private:
+    template <typename Basis,
+              typename TensorIntegrator,
+              typename TensorIntegrand>
+    RPP_DEVICE static Accum evaluate(Context const& ctx,
+                                     Degree out_degree,
+                                     Index relative_index,
+                                     LetterSpan letters,
+                                     Basis const& basis,
+                                     TensorIntegrator const& integrator,
+                                     TensorIntegrand const& integrand,
+                                     Degree op_min_degree,
+                                     Degree op_max_degree) noexcept {
+        const auto trailing_degree = out_degree - 1;
+        const auto trailing_size = basis.size_of_degree(trailing_degree);
+        const auto prefix = relative_index / trailing_size;
+        const auto trailing_index = relative_index % trailing_size;
+
+
+        common::detail::PrefixLetterGetter<TensorIntegrator> arg_getter{prefix};
+        common::detail::DefaultGetter<TensorIntegrand> op_getter{};
+        basis.unpack_index_to_letters(letters, trailing_degree, trailing_index);
+        return common::shuffle_adjoint_op_loop(ctx,
+                                               trailing_index,
+                                               trailing_degree,
+                                               letters,
+                                               integrand,
+                                               integrator,
+                                               op_min_degree,
+                                               op_max_degree,
+                                               arg_getter,
+                                               op_getter);
+    }
+
+public:
     template <typename TensorOut,
               typename TensorIntegrator,
               typename TensorIntegrand>
@@ -43,40 +78,60 @@ public:
         Letter letter_data[Strategy::Architecture::max_depth];
         LetterSpan letters{letter_data, Strategy::Architecture::max_depth};
 
-        if (out.min_degree() == 0 && ctx.thread_rank() == 0) {
-            out[0] = Scalar{0};
-        }
+        const auto low_range_degree =
+            std::max<Degree>(0, ctx.low_range_degree(out));
 
-        const auto begin_index = std::max<Index>(1, out.begin_index());
-        for (Index i = begin_index + ctx.thread_rank(); i < out.end_index();
-             i += ctx.num_threads()) {
-            const auto out_degree = basis.degree(i);
-            const auto trailing_degree = out_degree - 1;
-            const auto relative_index = i - basis.start_of_degree(out_degree);
-            const auto trailing_size = basis.size_of_degree(trailing_degree);
-            const auto prefix = relative_index / trailing_size;
-            const auto trailing_index = relative_index % trailing_size;
 
+        for (Degree out_degree = out.max_degree();
+             out_degree > low_range_degree;
+             --out_degree) {
             const auto op_min_degree = std::max(
                 integrand.min_degree(), integrator.min_degree() - out_degree);
             const auto op_max_degree = std::min(
                 integrand.max_degree(), integrator.max_degree() - out_degree);
+            const auto begin = basis.start_of_degree(out_degree);
+            const auto end = basis.end_of_degree(out_degree);
+            for (Index i = begin + ctx.thread_rank(); i < end;
+                 i += ctx.num_threads()) {
 
-            common::detail::PrefixLetterGetter<TensorIntegrator> arg_getter{
-                prefix};
-            common::detail::DefaultGetter<TensorIntegrand> op_getter{};
-            basis.unpack_index_to_letters(
-                letters, trailing_degree, trailing_index);
-            auto const acc = common::shuffle_adjoint_op_loop(ctx,
-                                                             trailing_index,
-                                                             trailing_degree,
-                                                             letters,
-                                                             integrand,
-                                                             integrator,
-                                                             op_min_degree,
-                                                             op_max_degree,
-                                                             arg_getter,
-                                                             op_getter);
+                auto acc = evaluate(ctx,
+                                    out_degree,
+                                    i - begin,
+                                    letters,
+                                    basis,
+                                    integrator,
+                                    integrand,
+                                    op_min_degree,
+                                    op_max_degree);
+
+                out[i] = static_cast<Scalar>(beta * acc);
+            }
+        }
+
+        const auto end = basis.end_of_degree(low_range_degree);
+        const Index i = out.begin_index() + ctx.thread_rank();
+        if (i < end) {
+            Accum acc{0};
+
+            if (i > 0) {
+                const auto degree = basis.degree(i);
+                const auto index = i - basis.start_of_degree(degree);
+                const auto op_min_degree = std::max(
+                    integrand.min_degree(), integrator.min_degree() - degree);
+                const auto op_max_degree = std::min(
+                    integrand.max_degree(), integrator.max_degree() - degree);
+
+                acc = evaluate(ctx,
+                               degree,
+                               index,
+                               letters,
+                               basis,
+                               integrator,
+                               integrand,
+                               op_min_degree,
+                               op_max_degree);
+            }
+
             out[i] = static_cast<Scalar>(beta * acc);
         }
     }
