@@ -3,6 +3,9 @@
 
 #include <rpp/cpu/single_thread/operations/basic/ft_adj_lmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_adj_rmul.hpp>
+#include <rpp/cpu/single_thread/operations/basic/left_hs_adj_lmul.hpp>
+#include <rpp/cpu/single_thread/operations/basic/left_hs_adj_rmul.hpp>
+#include <rpp/cpu/single_thread/operations/basic/left_hs_mul.hpp>
 
 #include <rpp/cpu/single_thread/operations/basic/ft_fma.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_inplace_fma.hpp>

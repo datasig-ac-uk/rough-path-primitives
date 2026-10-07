@@ -6,13 +6,16 @@
 #include <cstddef>
 
 #include <rpp/config.h>
+#include <rpp/support/span.hpp>
 #include <rpp/utility.hpp>
 
 #include <rpp/views/batch.hpp>
 
 #include <rpp/operations/basic/st_adj_mul.hpp>
 
+#include <rpp/operations/implementation/shuffle_adjoint_op_loop.hpp>
 #include <rpp/cpu/single_thread/strategy.hpp>
+
 namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
@@ -27,65 +30,52 @@ class STAdjMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Index = typename Strategy::Index;
     using Letter = typename Strategy::Letter;
     using Bitmask = typename Strategy::Bitmask;
+    using LetterSpan = Span<Letter>;
+
 
 public:
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>
-    void operator()(Context const& ctx,
+    void operator()(Context const& ctx RPP_MAYBE_UNUSED,
                     TensorOut& out,
                     TensorOp const& op,
                     TensorArg const& arg) const noexcept {
         using Scalar = typename TensorOut::value_type;
-        ignore_unused(ctx);
-
-        std::fill(out.begin(), out.end(), Scalar{0});
 
         auto const& basis = out.basis();
         std::array<Letter, Strategy::Architecture::max_depth> letters{};
+        LetterSpan letter_span{letters.data(),
+                               Strategy::Architecture::max_depth};
 
-        for (Degree arg_degree = arg.min_degree();
-             arg_degree <= arg.max_degree();
-             ++arg_degree) {
-            auto arg_level = arg.degree_view(arg_degree);
 
-            for (Index i = 0; i < arg_level.size(); ++i) {
-                const Accum arg_value{arg_level[i]};
+        for (Degree out_degree = out.min_degree();
+             out_degree <= out.max_degree();
+             ++out_degree) {
+            auto out_level = out.degree_view(out_degree);
+            const auto op_min_deg =
+                std::max(op.min_degree(), arg.min_degree() - out_degree);
+            const auto op_max_deg =
+                std::min(op.max_degree(), arg.max_degree() - out_degree);
 
-                if (arg_degree == 0) {
-                    if (op.has_degree(Degree{0}) && out.has_degree(Degree{0})) {
-                        out[0] = static_cast<Scalar>(Accum{out[0]} +
-                                                     arg_value * Accum{op[0]});
-                    }
-                    continue;
-                }
+            for (Index out_index = 0; out_index < out_level.size();
+                 ++out_index) {
+                LetterSpan out_letters{letters.data(),
+                                       static_cast<size_t>(out_degree)};
+                basis.unpack_index_to_letters(
+                    out_letters, out_degree, out_index);
 
-                basis.unpack_index_to_letters(letters, arg_degree, i);
-                const auto mask_count =
-                    static_cast<Bitmask>(Bitmask{1} << arg_degree);
-                for (Bitmask mask{0}; mask < mask_count; ++mask) {
-                    Degree op_degree{0};
-                    Index op_idx{0};
-                    Degree out_degree{0};
-                    Index out_idx{0};
+                auto acc = common::shuffle_adjoint_op_loop(ctx,
+                                                           out_index,
+                                                           out_degree,
+                                                           letter_span,
+                                                           op,
+                                                           arg,
+                                                           op_min_deg,
+                                                           op_max_deg);
 
-                    basis.pack_masked_index(letters,
-                                            arg_degree,
-                                            mask,
-                                            op_degree,
-                                            op_idx,
-                                            out_degree,
-                                            out_idx);
 
-                    if (op.has_degree(op_degree) &&
-                        out.has_degree(out_degree)) {
-                        auto out_level = out.degree_view(out_degree);
-                        auto op_level = op.degree_view(op_degree);
-                        const Accum value = Accum{out_level[out_idx]} +
-                            arg_value * Accum{op_level[op_idx]};
-                        out_level[out_idx] = static_cast<Scalar>(value);
-                    }
-                }
+                out_level[out_index] = static_cast<Scalar>(acc);
             }
         }
     }
