@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <rpp/cpu/single_thread/operations/basic/left_hs_adj_lmul.hpp>
+#include <rpp/cpu/single_thread/operations/basic/left_hs_adj_rmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/left_hs_mul.hpp>
 
 #include "../../../half_shuffle_adjoint_test_helper.hpp"
@@ -26,6 +27,7 @@ protected:
     using typename Base::Strategy;
     using typename Base::TensorView;
 
+    template <bool FixedLeft>
     static std::vector<Scalar> run_adjoint(Basis const& basis,
                                            std::vector<Scalar> const& initial,
                                            std::vector<Scalar> const& op,
@@ -35,12 +37,19 @@ protected:
                                            DegreeRange arg_range) {
         auto actual = initial;
         TensorView out(actual.data() + 1, basis, out_range.min, out_range.max);
-        ConstTensorView integrator(
+        ConstTensorView fixed_operand(
             op.data(), basis, op_range.min, op_range.max);
         ConstTensorView cotangent(
             arg.data(), basis, arg_range.min, arg_range.max);
-        rpp::ops::LeftHSAdjLMul<Strategy>{}(
-            Base::make_context(), out, integrator, cotangent);
+        if constexpr (FixedLeft) {
+            rpp::ops::LeftHSAdjLMul<Strategy>{}(
+                Base::make_context(), out, fixed_operand, cotangent);
+        }
+        else {
+            // The right-adjoint interface takes cotangent, fixed integrand.
+            rpp::ops::LeftHSAdjRMul<Strategy>{}(
+                Base::make_context(), out, cotangent, fixed_operand);
+        }
         return actual;
     }
 
@@ -62,6 +71,7 @@ protected:
         return actual;
     }
 
+    template <bool FixedLeft>
     static void check_ranges() {
         struct BasisConfig {
             Degree width, depth;
@@ -97,7 +107,7 @@ protected:
                                                                    ranges.out,
                                                                    ranges.op,
                                                                    ranges.arg,
-                                                                   true,
+                                                                   FixedLeft,
                                                                    beta);
                     // Populate inactive input storage with NaNs to catch
                     // forbidden reads.
@@ -130,13 +140,13 @@ protected:
                         expected[idx + 1] =
                             static_cast<Scalar>(coefficients[idx]);
                     }
-                    auto const actual = run_adjoint(basis,
-                                                    initial,
-                                                    op,
-                                                    arg,
-                                                    ranges.out,
-                                                    ranges.op,
-                                                    ranges.arg);
+                    auto const actual = run_adjoint<FixedLeft>(basis,
+                                                               initial,
+                                                               op,
+                                                               arg,
+                                                               ranges.out,
+                                                               ranges.op,
+                                                               ranges.arg);
                     Base::expect_tensor_near(actual, expected);
                     for (std::size_t i = 0; i < actual.size(); ++i) {
                         if (i <= static_cast<std::size_t>(begin) ||
@@ -160,6 +170,7 @@ protected:
         }
     }
 
+    template <bool FixedLeft>
     static void check_pairing() {
         auto const basis_data = typename Base::BasisData(3, 3);
         auto const& basis = basis_data.basis;
@@ -185,13 +196,19 @@ protected:
         std::vector<Scalar> initial(static_cast<std::size_t>(basis.size()) + 2,
                                     std::numeric_limits<Scalar>::quiet_NaN());
         for (auto const& ranges : cases) {
-            auto const adjoint = run_adjoint(basis,
-                                             initial,
-                                             integrator,
-                                             cotangent,
-                                             ranges.integrand,
-                                             ranges.integrator,
-                                             ranges.cotangent);
+            auto const out_range =
+                FixedLeft ? ranges.integrand : ranges.integrator;
+            auto const op_range =
+                FixedLeft ? ranges.integrator : ranges.integrand;
+            auto const& fixed_operand = FixedLeft ? integrator : integrand;
+            auto const& varying_operand = FixedLeft ? integrand : integrator;
+            auto const adjoint = run_adjoint<FixedLeft>(basis,
+                                                        initial,
+                                                        fixed_operand,
+                                                        cotangent,
+                                                        out_range,
+                                                        op_range,
+                                                        ranges.cotangent);
             auto const product = run_forward(basis,
                                              initial,
                                              integrator,
@@ -206,15 +223,16 @@ protected:
                  ++i) {
                 lhs += double(cotangent[i]) * double(product[i + 1]);
             }
-            for (auto i = basis.start_of_degree(ranges.integrand.min);
-                 i < basis.end_of_degree(ranges.integrand.max);
+            for (auto i = basis.start_of_degree(out_range.min);
+                 i < basis.end_of_degree(out_range.max);
                  ++i) {
-                rhs += double(integrand[i]) * double(adjoint[i + 1]);
+                rhs += double(varying_operand[i]) * double(adjoint[i + 1]);
             }
             EXPECT_NEAR(lhs, rhs, 1e-10);
         }
     }
 
+    template <bool FixedLeft>
     static void check_zero_inputs() {
         auto const basis_data = typename Base::BasisData(Degree{4}, Degree{4});
         auto const& basis = basis_data.basis;
@@ -232,8 +250,8 @@ protected:
                 static_cast<Scalar>(std::numeric_limits<float>::quiet_NaN()));
             initial.front() = static_cast<Scalar>(7.0f);
             initial.back() = static_cast<Scalar>(-7.0f);
-            auto const actual =
-                run_adjoint(basis, initial, op, arg, range, range, range);
+            auto const actual = run_adjoint<FixedLeft>(
+                basis, initial, op, arg, range, range, range);
             EXPECT_EQ(static_cast<double>(actual.front()), 7.0);
             EXPECT_EQ(static_cast<double>(actual.back()), -7.0);
             for (std::size_t i = 1; i + 1 < actual.size(); ++i) {
@@ -248,16 +266,30 @@ TYPED_TEST_SUITE(CpuHalfShuffleAdjointTests,
 
 TYPED_TEST(CpuHalfShuffleAdjointTests,
            FixedLeftAdjointMatchesTransposeAndRespectsBounds) {
-    TestFixture::check_ranges();
+    TestFixture::template check_ranges<true>();
 }
 
 TYPED_TEST(CpuHalfShuffleAdjointTests,
            ZeroInputsOverwriteEveryOutputCoefficient) {
-    TestFixture::check_zero_inputs();
+    TestFixture::template check_zero_inputs<true>();
 }
 
 TYPED_TEST(CpuHalfShuffleAdjointTests, SatisfiesFixedLeftAdjointPairing) {
-    TestFixture::check_pairing();
+    TestFixture::template check_pairing<true>();
+}
+
+TYPED_TEST(CpuHalfShuffleAdjointTests,
+           FixedRightAdjointMatchesTransposeAndRespectsBounds) {
+    TestFixture::template check_ranges<false>();
+}
+
+TYPED_TEST(CpuHalfShuffleAdjointTests,
+           FixedRightZeroInputsOverwriteEveryOutputCoefficient) {
+    TestFixture::template check_zero_inputs<false>();
+}
+
+TYPED_TEST(CpuHalfShuffleAdjointTests, SatisfiesFixedRightAdjointPairing) {
+    TestFixture::template check_pairing<false>();
 }
 
 } // namespace
