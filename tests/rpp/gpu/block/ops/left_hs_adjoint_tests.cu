@@ -132,7 +132,10 @@ protected:
         struct BasisConfig {
             Degree width, depth;
         };
-        BasisConfig const configs[] = {{1, 4}, {2, 2}, {4, 4}, {4, 0}};
+        // At 128 threads, degree-one widths 127/128/129 exercise the
+        // cutoff on either side, including a level requiring multiple passes.
+        BasisConfig const configs[] = {
+            {1, 4}, {2, 2}, {4, 4}, {4, 0}, {127, 1}, {128, 1}, {129, 1}};
         for (auto const& config : configs) {
             SCOPED_TRACE(testing::Message() << "width=" << config.width
                                             << ", depth=" << config.depth);
