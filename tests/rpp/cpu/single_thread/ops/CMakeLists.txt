@@ -39,6 +39,7 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         vector_bounds_tests.cpp
         vector_scalar_multiply_tests.cpp
         vector_set_tests.cpp
+        word_shuffle_adjoint_multiply_tests.cpp
 )
 target_link_libraries(rpp_cpu_single_thread_algebra_tests
         PRIVATE
