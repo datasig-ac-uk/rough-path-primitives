@@ -1,6 +1,8 @@
 #ifndef RPP_OPERATIONS_IMPLEMENTATION_WORD_SHUFFLE_PRODUCT_HPP
 #define RPP_OPERATIONS_IMPLEMENTATION_WORD_SHUFFLE_PRODUCT_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
 #include <cstddef>
 

@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_LINALG_VECTOR_ASSIGN_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_LINALG_VECTOR_ASSIGN_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
 
 #include <rpp/config.h>

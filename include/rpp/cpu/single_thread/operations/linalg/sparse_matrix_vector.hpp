@@ -1,6 +1,8 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_LINALG_SPARSE_MATRIX_VECTOR_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_LINALG_SPARSE_MATRIX_VECTOR_HPP
 
+// IWYU pragma: always_keep
+
 #include <cstddef>
 
 #include <rpp/config.h>

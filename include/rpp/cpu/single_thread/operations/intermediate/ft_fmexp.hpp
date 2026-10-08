@@ -1,6 +1,8 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_INTERMEDIATE_FT_FMEXP_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_INTERMEDIATE_FT_FMEXP_HPP
 
+// IWYU pragma: always_keep
+
 #include <cstddef>
 
 #include <rpp/utility.hpp>

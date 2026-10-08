@@ -1,6 +1,8 @@
 #ifndef RPP_OPERATIONS_IMPLEMENTATION_SHUFFLE_ADJOINT_OP_LOOP_HPP
 #define RPP_OPERATIONS_IMPLEMENTATION_SHUFFLE_ADJOINT_OP_LOOP_HPP
 
+// IWYU pragma: always_keep
+
 #include <cstddef>
 #include <functional>
 

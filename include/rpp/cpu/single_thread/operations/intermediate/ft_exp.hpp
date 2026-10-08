@@ -1,6 +1,8 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_INTERMEDIATE_FT_EXP_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_INTERMEDIATE_FT_EXP_HPP
 
+// IWYU pragma: always_keep
+
 #include <cstddef>
 
 #include <rpp/cpu/single_thread/strategy.hpp>

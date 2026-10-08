@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_FT_ADJ_LMUL_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_FT_ADJ_LMUL_HPP
 
+// IWYU pragma: always_keep
+
 
 #include <algorithm>
 #include <cstdint>

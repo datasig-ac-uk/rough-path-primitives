@@ -1,6 +1,8 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_TENSOR_ADD_IDENTITY_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_TENSOR_ADD_IDENTITY_HPP
 
+// IWYU pragma: always_keep
+
 #include <cstddef>
 
 #include <rpp/operations.hpp>

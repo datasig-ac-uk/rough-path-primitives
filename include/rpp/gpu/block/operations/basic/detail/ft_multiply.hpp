@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_DETAIL_FT_MULTIPLY_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_DETAIL_FT_MULTIPLY_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
 #include <functional>
 

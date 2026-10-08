@@ -1,6 +1,8 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_LEFT_HS_ADJ_RMUL_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_LEFT_HS_ADJ_RMUL_HPP
 
+// IWYU pragma: always_keep
+
 #include <rpp/config.h>
 
 #include <rpp/support/span.hpp>

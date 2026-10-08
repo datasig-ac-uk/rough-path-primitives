@@ -3,6 +3,8 @@
 #ifndef RPP_OPERATIONS_IMPLEMENTATION_WORD_HALF_SHUFFLE_PRODUCT_HPP
 #define RPP_OPERATIONS_IMPLEMENTATION_WORD_HALF_SHUFFLE_PRODUCT_HPP
 
+// IWYU pragma: always_keep
+
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>

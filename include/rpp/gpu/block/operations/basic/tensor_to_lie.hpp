@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_TENSOR_TO_LIE_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_TENSOR_TO_LIE_HPP
 
+// IWYU pragma: always_keep
+
 #include <cstddef>
 
 #include <rpp/config.h>

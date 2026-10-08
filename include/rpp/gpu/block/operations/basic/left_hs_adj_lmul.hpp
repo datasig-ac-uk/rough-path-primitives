@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_LEFT_HS_ADJ_LMUL_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_LEFT_HS_ADJ_LMUL_HPP
 
+// IWYU pragma: always_keep
+
 #include <rpp/gpu/block/strategy.hpp>
 #include <rpp/operations/basic/left_hs_adj_lmul.hpp>
 

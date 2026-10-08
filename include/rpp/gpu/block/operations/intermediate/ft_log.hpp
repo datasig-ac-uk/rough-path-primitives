@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_INTERMEDIATE_FT_LOG_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_INTERMEDIATE_FT_LOG_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
 
 #include <rpp/config.h>

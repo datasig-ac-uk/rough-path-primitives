@@ -5,6 +5,8 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_LEFT_HS_MUL_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_LEFT_HS_MUL_HPP
 
+// IWYU pragma: always_keep
+
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 
