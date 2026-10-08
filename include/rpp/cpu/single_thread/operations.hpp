@@ -1,6 +1,7 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_HPP
 
+// IWYU pragma: begin_exports
 #include <rpp/cpu/single_thread/operations/basic/ft_adj_lmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_adj_rmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/left_hs_adj_lmul.hpp>
@@ -37,5 +38,7 @@
 #include <rpp/cpu/single_thread/operations/intermediate/ft_exp.hpp>
 #include <rpp/cpu/single_thread/operations/intermediate/ft_fmexp.hpp>
 #include <rpp/cpu/single_thread/operations/intermediate/ft_log.hpp>
+
+// IWYU pragma: end_exports
 
 #endif // RPP_CPU_SINGLE_THREAD_OPERATIONS_HPP
