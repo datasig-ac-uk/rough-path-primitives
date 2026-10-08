@@ -16,9 +16,9 @@ enum class MemoryLocation {
     SharedMemory,
 };
 
-template <MemoryLocation = MemoryLocation::GlobalMemory>
+template <MemoryLocation Loc = MemoryLocation::GlobalMemory>
 struct GPUMemoryLocation {
-    static constexpr auto memory_location = MemoryLocation::GlobalMemory;
+    static constexpr auto memory_location = Loc;
 };
 } // namespace gpu
 
@@ -46,14 +46,10 @@ inline constexpr size_t kBitmaskArraySize =
 } // namespace detail
 
 template <typename Size_, typename Letter_ = uint8_t, unsigned MaxDepth = 30>
-struct GPUArchitecture : public ::rpp::arch::Architecture<Size_> {
+struct GPUArchitecture
+    : public ::rpp::arch::Architecture<Size_, Letter_, MaxDepth> {
     static constexpr unsigned warp_size = 32;
 
-    using Letter = Letter_;
-    using Bitmask = unsigned;
-
-    static constexpr unsigned max_width = std::numeric_limits<Letter>::max();
-    static constexpr unsigned max_depth = MaxDepth;
     static constexpr unsigned sector_alignment = 128;
 
 

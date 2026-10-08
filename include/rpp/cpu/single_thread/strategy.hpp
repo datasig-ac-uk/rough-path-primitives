@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <rpp/config.h>
+#include <rpp/architecture.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/support/data_mapping.hpp>
@@ -24,6 +25,7 @@ public:
     using Strategy = Strategy_;
     using Architecture = typename Strategy::Architecture;
 
+    using Size = typename Strategy::Size;
     using Degree = typename Strategy::Degree;
     using Index = typename Strategy::Index;
     using Letter = typename Strategy::Letter;
@@ -59,10 +61,12 @@ public:
 struct LaunchConfig {};
 } // namespace detail
 
-template <typename Accum_, typename Architecture_>
+template <typename Accum_,
+          typename Architecture_ = arch::DefaultArchitecture>
 struct SingleThreadStrategy {
     using Accum = Accum_;
     using Architecture = Architecture_;
+    using Size = typename Architecture::Size;
     using Degree = typename Architecture::Degree;
     using Index = typename Architecture::Index;
     using Letter = typename Architecture::Letter;
