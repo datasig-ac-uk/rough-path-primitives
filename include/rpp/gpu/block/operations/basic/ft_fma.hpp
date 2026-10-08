@@ -1,6 +1,8 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_FT_FMA_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_FT_FMA_HPP
 
+// IWYU pragma: always_keep
+
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 #include <rpp/views/batch.hpp>

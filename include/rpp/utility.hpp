@@ -2,9 +2,11 @@
 #define RPP_UTILITY_HPP
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 #include <rpp/config.h>
 

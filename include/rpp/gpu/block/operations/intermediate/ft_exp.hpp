@@ -1,7 +1,10 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_INTERMEDIATE_FT_EXP_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_INTERMEDIATE_FT_EXP_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
+#include <cstddef>
 
 #include <rpp/config.h>
 #include <rpp/views/batch.hpp>

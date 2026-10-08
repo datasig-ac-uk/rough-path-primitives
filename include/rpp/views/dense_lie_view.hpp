@@ -2,6 +2,9 @@
 #define RPP_VIEWS_DENSE_LIE_VIEW_HPP
 
 #include <algorithm>
+#include <tuple>
+#include <type_traits>
+#include <utility>
 
 #include <rpp/basis/lie_basis.hpp>
 #include <rpp/config.h>

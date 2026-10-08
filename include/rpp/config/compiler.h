@@ -1,6 +1,8 @@
 #ifndef RPP_CONFIG_COMPILER_H
 #define RPP_CONFIG_COMPILER_H
 
+// IWYU pragma: private, include <rpp/config.h>
+
 #define RPP_VERSION_ENCODE(major, minor, patch)                                \
     (((major) * 1000000) + ((minor) * 1000) + (patch))
 

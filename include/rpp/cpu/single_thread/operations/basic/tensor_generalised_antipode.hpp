@@ -1,8 +1,11 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_TENSOR_GENERALISED_ANTIPODE_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_TENSOR_GENERALISED_ANTIPODE_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
 #include <cstddef>
+#include <type_traits>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>

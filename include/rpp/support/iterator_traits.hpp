@@ -2,6 +2,7 @@
 #define RPP_SUPPORT_ITERATOR_TRAITS_HPP
 
 #include <iterator>
+#include <type_traits>
 
 #include <rpp/config.h>
 

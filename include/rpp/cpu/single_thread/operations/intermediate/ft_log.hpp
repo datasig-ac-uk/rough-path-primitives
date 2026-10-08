@@ -1,6 +1,8 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_INTERMEDIATE_FT_LOG_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_INTERMEDIATE_FT_LOG_HPP
 
+// IWYU pragma: always_keep
+
 #include <cstddef>
 
 #include <rpp/config.h>

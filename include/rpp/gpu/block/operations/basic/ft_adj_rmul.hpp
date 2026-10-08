@@ -1,7 +1,10 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_FT_ADJ_RMUL_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_FT_ADJ_RMUL_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
+#include <cstddef>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>

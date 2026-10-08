@@ -1,7 +1,9 @@
 #ifndef RPP_SPARSE_T2L_MATRIX_HPP
 #define RPP_SPARSE_T2L_MATRIX_HPP
 
+#include <cstddef>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <rpp/sparse/matrix.hpp>

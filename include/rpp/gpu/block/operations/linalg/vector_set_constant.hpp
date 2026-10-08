@@ -1,7 +1,11 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_LINALG_VECTOR_SET_CONSTANT_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_LINALG_VECTOR_SET_CONSTANT_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
+#include <cstdint>
+#include <type_traits>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>

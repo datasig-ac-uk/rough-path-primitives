@@ -5,6 +5,8 @@
 #ifndef RPP_OPERATIONS_IMPLEMENTATION_WORD_SHUFFLE_ADJOINT_MULTIPLY_HPP
 #define RPP_OPERATIONS_IMPLEMENTATION_WORD_SHUFFLE_ADJOINT_MULTIPLY_HPP
 
+// IWYU pragma: always_keep
+
 #include <cstddef>
 #include <functional>
 #include <limits>

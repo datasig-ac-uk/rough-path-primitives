@@ -1,6 +1,10 @@
 #ifndef RPP_GPU_BLOCK_OPERATIONS_BASIC_LEFT_HS_ADJ_RMUL_HPP
 #define RPP_GPU_BLOCK_OPERATIONS_BASIC_LEFT_HS_ADJ_RMUL_HPP
 
+// IWYU pragma: always_keep
+
+#include <algorithm>
+
 #include <rpp/gpu/block/strategy.hpp>
 #include <rpp/operations/basic/left_hs_adj_rmul.hpp>
 #include <rpp/operations/implementation/shuffle_adjoint_op_loop.hpp>

@@ -1,11 +1,14 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_HPP
 
+// IWYU pragma: begin_exports
 #include <rpp/cpu/single_thread/operations/basic/ft_adj_lmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_adj_rmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/left_hs_adj_lmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/left_hs_adj_rmul.hpp>
 #include <rpp/cpu/single_thread/operations/basic/left_hs_mul.hpp>
+#include <rpp/cpu/single_thread/operations/basic/lie_to_tensor.hpp>
+#include <rpp/cpu/single_thread/operations/basic/tensor_to_lie.hpp>
 
 #include <rpp/cpu/single_thread/operations/basic/ft_fma.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_inplace_fma.hpp>
@@ -26,12 +29,16 @@
 #include <rpp/cpu/single_thread/operations/basic/tensor_reflect.hpp>
 #include <rpp/cpu/single_thread/operations/basic/tensor_set_identity.hpp>
 
+#include <rpp/cpu/single_thread/operations/linalg/vector_add.hpp>
 #include <rpp/cpu/single_thread/operations/linalg/vector_assign.hpp>
 #include <rpp/cpu/single_thread/operations/linalg/vector_inplace_add.hpp>
+#include <rpp/cpu/single_thread/operations/linalg/vector_scalar_multiply.hpp>
 #include <rpp/cpu/single_thread/operations/linalg/vector_set_constant.hpp>
 
 #include <rpp/cpu/single_thread/operations/intermediate/ft_exp.hpp>
 #include <rpp/cpu/single_thread/operations/intermediate/ft_fmexp.hpp>
 #include <rpp/cpu/single_thread/operations/intermediate/ft_log.hpp>
+
+// IWYU pragma: end_exports
 
 #endif // RPP_CPU_SINGLE_THREAD_OPERATIONS_HPP

@@ -2,8 +2,12 @@
 #define RPP_SPARSE_COMPRESSED_MATRIX_HPP
 
 #include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <memory>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <rpp/architecture.hpp>

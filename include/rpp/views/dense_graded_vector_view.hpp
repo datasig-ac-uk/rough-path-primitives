@@ -2,6 +2,8 @@
 #define RPP_VIEWS_DENSE_GRADED_VECTOR_VIEW_HPP
 
 #include <tuple>
+#include <type_traits>
+#include <utility>
 
 #include <rpp/architecture.hpp>
 #include <rpp/config.h>

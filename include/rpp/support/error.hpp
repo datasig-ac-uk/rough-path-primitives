@@ -2,9 +2,11 @@
 #define INCLUDE_RPP_SUPPORT_ERROR_HPP
 
 #include <cstddef>
+#include <exception>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <variant>

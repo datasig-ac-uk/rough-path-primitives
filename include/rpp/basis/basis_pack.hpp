@@ -1,7 +1,9 @@
 #ifndef RPP_BASIS_BASIS_PACK_HPP
 #define RPP_BASIS_BASIS_PACK_HPP
 
+#include <cstddef>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include <rpp/basis/basis_tags.hpp>

@@ -1,6 +1,7 @@
 #ifndef RPP_SUPPORT_TAGGED_POINTER_HPP
 #define RPP_SUPPORT_TAGGED_POINTER_HPP
 
+#include <iterator>
 #include <type_traits>
 #include <utility>
 

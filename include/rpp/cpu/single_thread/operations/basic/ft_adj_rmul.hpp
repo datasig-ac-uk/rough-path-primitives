@@ -1,8 +1,12 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_FT_ADJ_RMUL_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_FT_ADJ_RMUL_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
 #include <cstddef>
+#include <memory>
+#include <type_traits>
 
 #include <rpp/utility.hpp>
 

@@ -5,6 +5,7 @@
  *                           Vector Operations                               *
  *****************************************************************************/
 
+// IWYU pragma: begin_exports
 #include <rpp/operations/linalg/sparse_matrix_vector.hpp>
 #include <rpp/operations/linalg/vector_add.hpp>
 #include <rpp/operations/linalg/vector_assign.hpp>
@@ -53,6 +54,8 @@
 #include <rpp/operations/intermediate/ft_exp.hpp>
 #include <rpp/operations/intermediate/ft_fmexp.hpp>
 #include <rpp/operations/intermediate/ft_log.hpp>
+
+// IWYU pragma: end_exports
 
 
 #endif // RPP_OPERATIONS_HPP

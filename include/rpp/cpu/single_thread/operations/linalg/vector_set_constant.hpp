@@ -1,6 +1,8 @@
 #ifndef RPP_CPU_SINGLE_THREAD_OPERATIONS_LINALG_VECTOR_SET_CONSTANT_HPP
 #define RPP_CPU_SINGLE_THREAD_OPERATIONS_LINALG_VECTOR_SET_CONSTANT_HPP
 
+// IWYU pragma: always_keep
+
 #include <algorithm>
 #include <cstddef>
 
