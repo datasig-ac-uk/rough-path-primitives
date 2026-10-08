@@ -23,14 +23,7 @@ using TensorBasis = rpp::basis::StandardTensorBasis;
 using Degree = typename TensorBasis::Degree;
 using Index = typename TensorBasis::Index;
 
-struct NumericTestArchitecture {
-    using Degree = ::Degree;
-    using Index = ::Index;
-    using Letter = std::uint8_t;
-    using Bitmask = std::uint32_t;
-
-    static constexpr unsigned max_depth = 16;
-};
+using NumericTestArchitecture = rpp::arch::Architecture<std::size_t, std::uint8_t, 16>;
 
 template <typename Scalar_, typename Accum_>
 struct NumericAdjointRightMulConfig {

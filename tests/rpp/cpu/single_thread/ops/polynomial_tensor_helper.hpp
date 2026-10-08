@@ -27,14 +27,7 @@ struct PolynomialTensorHelper {
     using Degree = typename Basis::Degree;
     using Index = typename Basis::Index;
 
-    struct TestArchitecture {
-        using Degree = PolynomialTensorHelper::Degree;
-        using Index = PolynomialTensorHelper::Index;
-        using Letter = std::uint8_t;
-        using Bitmask = std::uint32_t;
-
-        static constexpr unsigned max_depth = 16;
-    };
+    using TestArchitecture = rpp::arch::Architecture<std::size_t, std::uint8_t, 16>;
 
     using Strategy =
         cpu::strategies::SingleThreadStrategy<Scalar, TestArchitecture>;
