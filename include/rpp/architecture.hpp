@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <limits>
 #include <type_traits>
 
 #include <rpp/support/tagged_pointer.hpp>
@@ -25,7 +26,6 @@ struct ArchTag {
 
 
 namespace arch {
-template <typename Size_>
 template <typename Size_, typename Letter_ = uint8_t, unsigned MaxDepth = 30>
 struct Architecture {
     using Size = std::make_unsigned_t<Size_>;
@@ -34,6 +34,7 @@ struct Architecture {
     using Degree = int32_t;
     using Letter = Letter_;
     using Bitmask = unsigned;
+
     static constexpr unsigned max_width = std::numeric_limits<Letter>::max();
     static constexpr unsigned max_depth = MaxDepth;
 
