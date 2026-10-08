@@ -4,6 +4,8 @@
 // IWYU pragma: always_keep
 
 #include <algorithm>
+#include <cstdint>
+#include <type_traits>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>

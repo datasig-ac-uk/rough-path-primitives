@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>

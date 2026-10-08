@@ -5,6 +5,8 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <memory>
+#include <type_traits>
 
 #include <rpp/utility.hpp>
 

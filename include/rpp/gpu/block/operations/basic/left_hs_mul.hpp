@@ -7,6 +7,8 @@
 
 // IWYU pragma: always_keep
 
+#include <algorithm>
+
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
 

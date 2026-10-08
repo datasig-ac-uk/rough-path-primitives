@@ -1,7 +1,9 @@
 #ifndef RPP_GPU_DEVICE_HPP
 #define RPP_GPU_DEVICE_HPP
 
+#include <cstddef>
 #include <iterator>
+#include <type_traits>
 #include <utility>
 #include <vector>
 

@@ -1,6 +1,7 @@
 #ifndef RPP_SUPPORT_SPAN_HPP
 #define RPP_SUPPORT_SPAN_HPP
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <iterator>

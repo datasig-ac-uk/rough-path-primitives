@@ -3,7 +3,9 @@
 
 #include <cstddef>
 #include <limits>
+#include <tuple>
 #include <type_traits>
+#include <utility>
 
 #include <cuda_runtime.h>
 

@@ -4,6 +4,7 @@
 // IWYU pragma: always_keep
 
 #include <algorithm>
+#include <cstddef>
 #include <functional>
 
 #include <rpp/config.h>

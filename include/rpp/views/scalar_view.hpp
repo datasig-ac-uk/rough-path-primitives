@@ -1,6 +1,10 @@
 #ifndef RPP_VIEWS_SCALAR_VIEW_HPP
 #define RPP_VIEWS_SCALAR_VIEW_HPP
 
+#include <tuple>
+#include <type_traits>
+#include <utility>
+
 #include <rpp/config.h>
 
 #include <rpp/architecture.hpp>

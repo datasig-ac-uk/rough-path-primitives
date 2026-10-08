@@ -1,6 +1,8 @@
 #ifndef RPP_BASIS_GRADED_BASIS_HPP
 #define RPP_BASIS_GRADED_BASIS_HPP
 
+#include <utility>
+
 #include <rpp/architecture.hpp>
 #include <rpp/config.h>
 #include <rpp/support/tagged_pointer.hpp>

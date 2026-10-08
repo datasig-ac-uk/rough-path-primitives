@@ -1,6 +1,7 @@
 #ifndef RPP_SUPPORT_DATA_MAPPING_HPP
 #define RPP_SUPPORT_DATA_MAPPING_HPP
 
+#include <iterator>
 #include <tuple>
 #include <type_traits>
 #include <utility>

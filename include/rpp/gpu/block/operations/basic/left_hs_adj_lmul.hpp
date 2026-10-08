@@ -3,6 +3,8 @@
 
 // IWYU pragma: always_keep
 
+#include <algorithm>
+
 #include <rpp/gpu/block/strategy.hpp>
 #include <rpp/operations/basic/left_hs_adj_lmul.hpp>
 

@@ -3,6 +3,7 @@
 
 // IWYU pragma: always_keep
 
+#include <algorithm>
 #include <cstddef>
 
 #include <rpp/cpu/single_thread/strategy.hpp>

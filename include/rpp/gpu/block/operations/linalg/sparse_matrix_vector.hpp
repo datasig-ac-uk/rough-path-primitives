@@ -4,6 +4,7 @@
 // IWYU pragma: always_keep
 
 #include <cstddef>
+#include <functional>
 
 
 #include <cuda/atomic>

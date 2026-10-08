@@ -2,6 +2,8 @@
 #define RPP_VIEWS_BATCH_HPP
 
 
+#include <cstddef>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
