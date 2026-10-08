@@ -6,6 +6,7 @@
 #include <rpp/views/dense_lie_view.hpp>
 #include <rpp/views/dense_tensor_view.hpp>
 #include <rpp/views/detail/view_fragment.hpp>
+#include <rpp/views/scalar_view.hpp>
 
 // IWYU pragma: end_exports
 
