@@ -44,14 +44,19 @@ constexpr auto make_lie_batch(Data&& data,
                               BasisOrTag&& basis_or_tag,
                               MinDegree min_degree,
                               MaxDegree max_degree) noexcept {
-    using RealLayout = std::conditional_t<std::is_integral_v<Layout>,
-                                          layouts::StrideLayout<Layout>,
-                                          Layout>;
-    using MetaData = std::tuple<BasisOrTag, MinDegree, MaxDegree>;
-    using Basis = std::conditional_t<basis::is_basis_tag_v<BasisOrTag>,
-                                     basis::LieBasis<traits::arch_of_t<Data>>,
-                                     BasisOrTag>;
-    using BatchType = Batch<DenseLieView<Data, Basis>, RealLayout, MetaData>;
+    using StoredData = std::decay_t<Data>;
+    using StoredLayout = std::decay_t<Layout>;
+    using RealLayout = std::conditional_t<std::is_integral_v<StoredLayout>,
+                                          layouts::StrideLayout<StoredLayout>,
+                                          StoredLayout>;
+    using StoredBasisOrTag = std::decay_t<BasisOrTag>;
+    using MetaData = std::tuple<StoredBasisOrTag, MinDegree, MaxDegree>;
+    using Basis =
+        std::conditional_t<basis::is_basis_tag_v<StoredBasisOrTag>,
+                           basis::LieBasis<traits::arch_of_t<StoredData>>,
+                           StoredBasisOrTag>;
+    using BatchType =
+        Batch<DenseLieView<StoredData, Basis>, RealLayout, MetaData>;
 
     return BatchType{std::forward<Data>(data),
                      RealLayout{std::forward<Layout>(layout)},
@@ -68,12 +73,15 @@ constexpr auto make_lie_batch(Data&& data,
                               Layout&& layout,
                               MinDegree min_degree,
                               MaxDegree max_degree) noexcept {
-    using RealLayout = std::conditional_t<std::is_integral_v<Layout>,
-                                          layouts::StrideLayout<Layout>,
-                                          Layout>;
+    using StoredData = std::decay_t<Data>;
+    using StoredLayout = std::decay_t<Layout>;
+    using RealLayout = std::conditional_t<std::is_integral_v<StoredLayout>,
+                                          layouts::StrideLayout<StoredLayout>,
+                                          StoredLayout>;
     using MetaData = std::tuple<basis::LieBasisTag, MinDegree, MaxDegree>;
-    using Basis = basis::LieBasis<traits::arch_of_t<Data>>;
-    using BatchType = Batch<DenseLieView<Data, Basis>, RealLayout, MetaData>;
+    using Basis = basis::LieBasis<traits::arch_of_t<StoredData>>;
+    using BatchType =
+        Batch<DenseLieView<StoredData, Basis>, RealLayout, MetaData>;
 
     return BatchType{
         std::forward<Data>(data),
