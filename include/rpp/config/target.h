@@ -1,6 +1,8 @@
 #ifndef RPP_CONFIG_TARGET_H
 #define RPP_CONFIG_TARGET_H
 
+// IWYU pragma: private, include <rpp/config.h>
+
 #include <rpp/config/compiler.h>
 
 #if defined(__CUDACC__)
