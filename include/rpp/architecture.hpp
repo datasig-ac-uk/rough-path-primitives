@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
+#include <limits>
 #include <type_traits>
 
 #include <rpp/support/tagged_pointer.hpp>
@@ -25,12 +26,17 @@ struct ArchTag {
 
 
 namespace arch {
-template <typename Size_>
+template <typename Size_, typename Letter_ = uint8_t, unsigned MaxDepth = 30>
 struct Architecture {
     using Size = std::make_unsigned_t<Size_>;
     using Index = std::make_signed_t<Size>;
 
     using Degree = int32_t;
+    using Letter = Letter_;
+    using Bitmask = unsigned;
+
+    static constexpr unsigned max_width = std::numeric_limits<Letter>::max();
+    static constexpr unsigned max_depth = MaxDepth;
 
     template <typename T>
     using Ptr = TaggedPtr<T,
@@ -42,6 +48,7 @@ struct Architecture {
 using NativeArchitecture = Architecture<std::size_t>;
 using Architecture32 = Architecture<std::uint32_t>;
 using Architecture64 = Architecture<std::uint64_t>;
+using DefaultArchitecture = NativeArchitecture;
 } // namespace arch
 
 

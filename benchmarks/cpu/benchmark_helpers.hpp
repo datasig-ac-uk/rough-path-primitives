@@ -21,14 +21,7 @@ using Basis = basis::StandardTensorBasis;
 using Degree = Basis::Degree;
 using Index = Basis::Index;
 
-struct BenchmarkArchitecture {
-    using Degree = Basis::Degree;
-    using Index = Basis::Index;
-    using Letter = std::uint8_t;
-    using Bitmask = std::uint32_t;
-
-    static constexpr unsigned max_depth = 16;
-};
+using BenchmarkArchitecture = rpp::arch::Architecture<std::size_t, std::uint8_t, 16>;
 
 using Strategy =
     rpp::cpu::strategies::SingleThreadStrategy<Scalar, BenchmarkArchitecture>;

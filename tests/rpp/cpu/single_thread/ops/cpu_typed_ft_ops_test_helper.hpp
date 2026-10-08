@@ -22,14 +22,7 @@ using CpuTypedTensorBasis = rpp::basis::StandardTensorBasis;
 using CpuTypedDegree = typename CpuTypedTensorBasis::Degree;
 using CpuTypedIndex = typename CpuTypedTensorBasis::Index;
 
-struct CpuTypedNumericTestArchitecture {
-    using Degree = CpuTypedDegree;
-    using Index = CpuTypedIndex;
-    using Letter = std::uint8_t;
-    using Bitmask = std::uint32_t;
-
-    static constexpr unsigned max_depth = 16;
-};
+using CpuTypedNumericTestArchitecture = rpp::arch::Architecture<std::size_t, std::uint8_t, 16>;
 
 template <typename Scalar_, typename Accum_>
 struct TypedScalarAccumConfig {

@@ -28,7 +28,9 @@ template <typename Strategy_>
 class BlockContext {
 public:
     using Strategy = Strategy_;
+    using Architecture = typename Strategy::Architecture;
 
+    using Size = typename Strategy::Size;
     using BlockReduceArray = typename Strategy::BlockReduceArray;
     using Degree = typename Strategy::Degree;
     using Index = typename Strategy::Index;
