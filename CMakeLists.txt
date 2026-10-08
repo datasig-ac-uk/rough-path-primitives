@@ -81,6 +81,8 @@ rpp_make_op_file_list(RPP_OPS PRIMARY
         base_operation.hpp
         implementation/word_shuffle_product.hpp
         implementation/word_half_shuffle_product.hpp
+        implementation/word_shuffle_adjoint_multiply.hpp
+        implementation/shuffle_adjoint_op_loop.hpp
 )
 rpp_make_op_file_list(RPP_CPU_ST_OPS PLATFORM cpu STRATEGY single_thread
         ADDITIONAL
@@ -122,6 +124,7 @@ target_sources(RPP INTERFACE FILE_SET HEADERS BASE_DIRS include FILES
         include/rpp/operations.hpp
         include/rpp/utility.hpp
         include/rpp/cpu/strategies.hpp
+        include/rpp/cpu/single_thread/operations.hpp
         include/rpp/cpu/device.hpp
         ${RPP_OPS}
         ${RPP_CPU_ST_OPS}
