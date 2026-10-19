@@ -251,3 +251,47 @@ TYPED_TEST(NumericVectorAssignTests, NoOverlapClearsOnlyOutputView) {
 }
 
 } // namespace
+
+TEST(ExplicitScalarConversions, AssignsBetweenScalarAndAccumulatorViews) {
+    using Scalar = rpp::tests::ExplicitScalar;
+    using Basis = rpp::tests::CpuTypedTensorBasis;
+    using Index = Basis::Index;
+    using Strategy = rpp::cpu::strategies::SingleThreadStrategy<double>;
+    Index degree_begin[] = {0, 1, 3};
+    Basis basis(2, 1, degree_begin);
+    double input[] = {1, 2, 3};
+    Scalar storage[] = {Scalar{9}, Scalar{9}, Scalar{9}};
+    double output[] = {9, 9, 9};
+    rpp::DenseTensorView<double*, Basis> input_view(input, basis, 1, 1);
+    rpp::DenseTensorView<Scalar*, Basis> storage_view(storage, basis);
+    rpp::DenseTensorView<double*, Basis> output_view(output, basis);
+    auto ctx = Strategy::make_context(nullptr);
+
+    rpp::ops::VectorAssign<Strategy>{}(ctx, storage_view, input_view);
+    rpp::ops::VectorAssign<Strategy>{}(ctx, output_view, storage_view);
+    EXPECT_DOUBLE_EQ(output[0], 0);
+    EXPECT_DOUBLE_EQ(output[1], 2);
+    EXPECT_DOUBLE_EQ(output[2], 3);
+}
+
+TEST(ExplicitScalarConversions, AssignsBetweenScalarAndAccumulatorViews) {
+    using Scalar = rpp::tests::ExplicitScalar;
+    using Basis = rpp::tests::CpuTypedTensorBasis;
+    using Index = Basis::Index;
+    using Strategy = rpp::cpu::strategies::SingleThreadStrategy<double>;
+    Index degree_begin[] = {0, 1, 3};
+    Basis basis(2, 1, degree_begin);
+    double input[] = {1, 2, 3};
+    Scalar storage[] = {Scalar{9}, Scalar{9}, Scalar{9}};
+    double output[] = {9, 9, 9};
+    rpp::DenseTensorView<double*, Basis> input_view(input, basis, 1, 1);
+    rpp::DenseTensorView<Scalar*, Basis> storage_view(storage, basis);
+    rpp::DenseTensorView<double*, Basis> output_view(output, basis);
+    auto ctx = Strategy::make_context(nullptr);
+
+    rpp::ops::VectorAssign<Strategy>{}(ctx, storage_view, input_view);
+    rpp::ops::VectorAssign<Strategy>{}(ctx, output_view, storage_view);
+    EXPECT_DOUBLE_EQ(output[0], 0);
+    EXPECT_DOUBLE_EQ(output[1], 2);
+    EXPECT_DOUBLE_EQ(output[2], 3);
+}
