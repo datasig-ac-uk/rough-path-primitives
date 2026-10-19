@@ -70,6 +70,8 @@ public:
         }
 
         if (auto err = catch_exceptions([&] {
+                // std::copy_n assigns directly; transform allows explicit
+                // conversion from the input value type to T.
                 std::transform(
                     data.begin(),
                     data.end(),
@@ -90,6 +92,8 @@ public:
         }
 
         if (auto err = catch_exceptions([&] {
+                // std::copy assigns directly; transform allows explicit
+                // conversion from the input value type to T.
                 std::transform(
                     begin, end, allocation.value(), [](const auto& value) {
                         return static_cast<T>(value);
@@ -109,6 +113,8 @@ public:
         }
 
         if (auto err = catch_exceptions([&] {
+                // std::copy_n assigns directly; this loop explicitly converts
+                // to T while supporting iterators without random access.
                 auto out = allocation.value();
                 for (size_t i = 0; i < size; ++i, ++ptr, ++out) {
                     *out = static_cast<T>(*ptr);
