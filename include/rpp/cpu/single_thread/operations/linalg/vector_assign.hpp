@@ -49,6 +49,8 @@ public:
 
         std::fill(out.begin(), out_begin, Scalar{0});
 
+        // std::copy assigns directly and cannot use explicit conversions from
+        // the input value type to Scalar; transform performs the cast explicitly.
         auto out_fill_begin = std::transform(
             arg_begin, arg_end, out_begin,
             [](const auto& value) { return static_cast<Scalar>(value); });
