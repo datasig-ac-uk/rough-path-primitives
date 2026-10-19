@@ -273,9 +273,46 @@ protected:
     }
 };
 
-using TypedCpuFreeTensorTestTypes = testing::Types<
-    TypedScalarAccumConfig<float, float>,
-    TypedScalarAccumConfig<double, double>>;
+// Storage deliberately has no mixed arithmetic or implicit conversions.
+// Kernels must explicitly load into and store from the double accumulator.
+class ExplicitScalar {
+    double value_ = 0;
+
+public:
+    ExplicitScalar() = default;
+    explicit constexpr ExplicitScalar(double value) : value_(value) {}
+    explicit constexpr operator double() const { return value_; }
+
+    constexpr ExplicitScalar& operator+=(ExplicitScalar rhs) {
+        value_ += rhs.value_;
+        return *this;
+    }
+    constexpr ExplicitScalar operator-() const {
+        return ExplicitScalar{-value_};
+    }
+    friend constexpr ExplicitScalar operator-(ExplicitScalar lhs,
+                                              ExplicitScalar rhs) {
+        return ExplicitScalar{lhs.value_ - rhs.value_};
+    }
+    friend constexpr ExplicitScalar operator*(ExplicitScalar lhs,
+                                              ExplicitScalar rhs) {
+        return ExplicitScalar{lhs.value_ * rhs.value_};
+    }
+    friend constexpr bool operator==(ExplicitScalar lhs, ExplicitScalar rhs) {
+        return lhs.value_ == rhs.value_;
+    }
+    friend constexpr bool operator!=(ExplicitScalar lhs, ExplicitScalar rhs) {
+        return !(lhs == rhs);
+    }
+};
+
+static_assert(!std::is_convertible_v<ExplicitScalar, double>);
+static_assert(!std::is_convertible_v<double, ExplicitScalar>);
+
+using TypedCpuFreeTensorTestTypes =
+    testing::Types<TypedScalarAccumConfig<float, float>,
+                   TypedScalarAccumConfig<double, double>,
+                   TypedScalarAccumConfig<ExplicitScalar, double>>;
 
 } // namespace rpp::tests
 

@@ -41,9 +41,10 @@ public:
     }
 
     template <typename U>
-    RPP_HOST_DEVICE constexpr ScalarView&
-    operator=(U&& val) noexcept(noexcept(*data_ = std::forward<U>(val))) {
-        *data_ = std::forward<U>(val);
+    RPP_HOST_DEVICE constexpr ScalarView& operator=(U&& val) noexcept(
+        noexcept(*data_ = static_cast<typename Traits::value_type>(
+                     std::forward<U>(val)))) {
+        *data_ = static_cast<typename Traits::value_type>(std::forward<U>(val));
         return *this;
     }
 };

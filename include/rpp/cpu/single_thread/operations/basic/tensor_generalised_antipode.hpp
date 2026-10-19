@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cstddef>
-#include <type_traits>
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
@@ -29,6 +28,7 @@ class TensorGeneralisedAntipode<
     using Strategy =
         cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
 
 public:
     static constexpr bool is_implemented = true;
@@ -49,7 +49,7 @@ public:
             const bool has_deg = arg.has_degree(degree);
 
             if (!has_deg) {
-                std::fill(out_view.begin(), out_view.end(), Scalar{});
+                std::fill(out_view.begin(), out_view.end(), Scalar{0});
             }
             else {
                 auto const arg_view = arg.degree_view(degree);
@@ -57,13 +57,13 @@ public:
                     auto const out_index = basis.reverse_index(i, degree);
                     if constexpr (Policy ==
                                   TensorAntipodeSigningPolicy::SignByDegree) {
-                        using Value = std::decay_t<decltype(arg_view[i])>;
                         auto const sign =
-                            degree % 2 == 0 ? Value{1} : Value{-1};
-                        out_view[out_index] = arg_view[i] * sign;
+                            degree % 2 == 0 ? Accum{1} : Accum{-1};
+                        out_view[out_index] =
+                            static_cast<Scalar>(Accum{arg_view[i]} * sign);
                     }
                     else {
-                        out_view[out_index] = arg_view[i];
+                        out_view[out_index] = static_cast<Scalar>(arg_view[i]);
                     }
                 }
             }

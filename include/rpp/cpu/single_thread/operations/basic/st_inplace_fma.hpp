@@ -60,7 +60,8 @@ public:
             for (Index i = 0; i < a_level.size(); ++i) {
                 auto word_product =
                     common::word_shuffle_product(ctx, i, degree, b, c);
-                const Accum value = alpha * a_level[i] + beta * word_product;
+                const Accum value =
+                    alpha * Accum{a_level[i]} + beta * word_product;
                 a_level[i] = static_cast<Scalar>(value);
             }
         }

@@ -43,6 +43,7 @@ public:
                     TensorC const& c,
                     Accum alpha = Accum{1},
                     Accum beta = Accum{1}) const noexcept {
+        using Scalar = typename TensorOut::value_type;
         auto out_min_degree = std::max(Degree{1}, out.min_degree());
 
         for (Degree out_degree = out.max_degree(); out_degree >= out_min_degree;
@@ -56,12 +57,12 @@ public:
             if (a.has_degree(out_degree)) {
                 const auto a_frag = a.degree_view(out_degree);
                 for (Index i = 0; i < out_frag.size(); ++i) {
-                    out_frag[i] = alpha * a_frag[i];
+                    out_frag[i] = static_cast<Scalar>(alpha * Accum{a_frag[i]});
                 }
             }
             else {
                 for (Index i = 0; i < out_frag.size(); ++i) {
-                    out_frag[i] = Accum{0};
+                    out_frag[i] = Scalar{0};
                 }
             }
 
@@ -74,8 +75,10 @@ public:
 
                 for (Index i = 0; i < lhs_frag.size(); ++i) {
                     for (Index j = 0; j < rhs_frag.size(); ++j) {
-                        out_frag[i * rhs_frag.size() + j] +=
-                            beta * lhs_frag[i] * rhs_frag[j];
+                        auto& value = out_frag[i * rhs_frag.size() + j];
+                        value = static_cast<Scalar>(Accum{value} +
+                                                    beta * Accum{lhs_frag[i]} *
+                                                        Accum{rhs_frag[j]});
                     }
                 }
             }
@@ -91,7 +94,7 @@ public:
                 const Accum c_val{c[0]};
                 val += beta * b_val * c_val;
             }
-            out[0] = val;
+            out[0] = static_cast<Scalar>(val);
         }
     }
 };

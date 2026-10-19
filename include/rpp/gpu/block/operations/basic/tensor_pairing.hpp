@@ -9,6 +9,7 @@
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
+#include <rpp/views/scalar_view.hpp>
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/tensor_pairing.hpp>
@@ -41,6 +42,17 @@ public:
         return sizeof(typename Strategy::BlockReduceArray);
     }
 
+    template <typename It, typename TensorFunc, typename TensorArg>
+    RPP_DEVICE void operator()(Context const& ctx,
+                               ScalarView<It>& out,
+                               TensorFunc const& functional,
+                               TensorArg const& arg) const noexcept {
+        operator()(ctx,
+                   static_cast<traits::iter_reference_t<It>>(out),
+                   functional,
+                   arg);
+    }
+
     template <typename Scalar, typename TensorFunc, typename TensorArg>
     RPP_DEVICE void operator()(Context const& ctx,
                                Scalar& out,
@@ -66,7 +78,7 @@ public:
         Accum result = ctx.reduce(val, std::plus<Accum>{});
 
         if (ctx.thread_rank() == 0) {
-            out = result;
+            out = static_cast<Scalar>(result);
         }
     }
 };

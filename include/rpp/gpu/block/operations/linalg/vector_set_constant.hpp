@@ -57,20 +57,20 @@ public:
             for (Index i = ctx.thread_rank();
                  i < std::min(count_to_align, size);
                  i += ctx.num_threads()) {
-                data[i] = value;
+                data[i] = static_cast<Scalar>(value);
             }
             data += count_to_align;
             size -= count_to_align;
 
             for (Index i = ctx.thread_rank(); i < size;
                  i += ctx.num_threads()) {
-                data[i] = value;
+                data[i] = static_cast<Scalar>(value);
             }
         }
         else {
             for (Index i = ctx.thread_rank(); i < size;
                  i += ctx.num_threads()) {
-                data[i] = value;
+                data[i] = static_cast<Scalar>(value);
             }
         }
     }

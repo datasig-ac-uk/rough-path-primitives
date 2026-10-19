@@ -15,6 +15,7 @@
 #include <rpp/views/views.hpp>
 
 #include "cpu_kernel_wrapper_test_helper.hpp"
+#include "cpu_typed_ft_ops_test_helper.hpp"
 #include "polynomial_tensor_helper.hpp"
 
 namespace {
@@ -231,7 +232,8 @@ protected:
 
 using NumericAdjointRightMulTestTypes = testing::Types<
     NumericAdjointRightMulConfig<float, float>,
-    NumericAdjointRightMulConfig<double, double>>;
+    NumericAdjointRightMulConfig<double, double>,
+    NumericAdjointRightMulConfig<rpp::tests::ExplicitScalar, double>>;
 
 TYPED_TEST_SUITE(NumericFreeTensorAdjointRightMulTests,
                  NumericAdjointRightMulTestTypes);

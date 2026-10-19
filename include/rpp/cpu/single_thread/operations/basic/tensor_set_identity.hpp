@@ -33,9 +33,10 @@ public:
                     Tensor& tensor,
                     Accum scalar = Accum{1}) const noexcept {
         ignore_unused(ctx);
-        std::fill(tensor.begin(), tensor.end(), Accum{0});
+        using Scalar = typename Tensor::value_type;
+        std::fill(tensor.begin(), tensor.end(), Scalar{0});
         if (tensor.has_degree(0)) {
-            tensor[0] = scalar;
+            tensor[0] = static_cast<Scalar>(scalar);
         }
     }
 };

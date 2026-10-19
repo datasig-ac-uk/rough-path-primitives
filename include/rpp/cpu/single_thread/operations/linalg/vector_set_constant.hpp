@@ -32,7 +32,8 @@ public:
     void operator()(Context const& ctx,
                     Vector& vec,
                     Value const& value) const noexcept {
-        std::fill(vec.begin(), vec.end(), value);
+        using Scalar = typename Vector::value_type;
+        std::fill(vec.begin(), vec.end(), static_cast<Scalar>(value));
     }
 };
 

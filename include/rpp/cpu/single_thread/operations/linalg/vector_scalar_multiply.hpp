@@ -33,6 +33,7 @@ public:
     template <typename Vector>
     RPP_HOST_DEVICE void
     operator()(Context const& ctx, Vector& vec, Accum scalar) const noexcept {
+        using Scalar = typename Vector::value_type;
         ignore_unused(ctx);
 
         auto it = vec.begin();
@@ -40,7 +41,7 @@ public:
         for (; it != end; ++it) {
             Accum val{*it};
             val *= scalar;
-            *it = val;
+            *it = static_cast<Scalar>(val);
         }
     }
 };

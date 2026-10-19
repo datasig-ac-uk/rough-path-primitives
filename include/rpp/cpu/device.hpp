@@ -70,7 +70,11 @@ public:
         }
 
         if (auto err = catch_exceptions([&] {
-                std::copy_n(data.begin(), data.size(), allocation.value());
+                std::transform(
+                    data.begin(),
+                    data.end(),
+                    allocation.value(),
+                    [](const auto& value) { return static_cast<T>(value); });
             })) {
             return err;
         }
@@ -85,8 +89,12 @@ public:
             return allocation;
         }
 
-        if (auto err = catch_exceptions(
-                [&] { std::copy(begin, end, allocation.value()); })) {
+        if (auto err = catch_exceptions([&] {
+                std::transform(
+                    begin, end, allocation.value(), [](const auto& value) {
+                        return static_cast<T>(value);
+                    });
+            })) {
             return err;
         }
 
@@ -100,8 +108,12 @@ public:
             return allocation;
         }
 
-        if (auto err = catch_exceptions(
-                [&] { std::copy_n(ptr, size, allocation.value()); })) {
+        if (auto err = catch_exceptions([&] {
+                auto out = allocation.value();
+                for (size_t i = 0; i < size; ++i, ++ptr, ++out) {
+                    *out = static_cast<T>(*ptr);
+                }
+            })) {
             return err;
         }
 
