@@ -256,46 +256,25 @@ TYPED_TEST(NumericTensorPairingTests, OverwritesPrefilledScalarForEveryDegreeRan
     }
 }
 
+TEST(ExplicitScalarConversions, PairingSupportsScalarOutputsAndScalarViews) {
+    using Scalar = rpp::tests::ExplicitScalar;
+    using Basis = rpp::tests::CpuTypedTensorBasis;
+    using Index = Basis::Index;
+    using Strategy = rpp::cpu::strategies::SingleThreadStrategy<double>;
+    Index degree_begin[] = {0, 1, 3};
+    Basis basis(2, 1, degree_begin);
+    Scalar values[] = {Scalar{1}, Scalar{2}, Scalar{3}};
+    rpp::DenseTensorView<Scalar*, Basis> view(values, basis);
+    auto ctx = Strategy::make_context(nullptr);
+    Scalar output{0};
+    rpp::ops::TensorPairing<Strategy>{}(ctx, output, view, view);
+    EXPECT_DOUBLE_EQ(static_cast<double>(output), 14);
+
+    rpp::ScalarView<Scalar*> output_view(&output);
+    output_view = 5.0;
+    EXPECT_DOUBLE_EQ(static_cast<double>(output), 5);
+    rpp::ops::TensorPairing<Strategy>{}(ctx, output_view, view, view);
+    EXPECT_DOUBLE_EQ(static_cast<double>(output), 14);
+}
 } // namespace
 
-TEST(ExplicitScalarConversions, PairingSupportsScalarOutputsAndScalarViews) {
-    using Scalar = rpp::tests::ExplicitScalar;
-    using Basis = rpp::tests::CpuTypedTensorBasis;
-    using Index = Basis::Index;
-    using Strategy = rpp::cpu::strategies::SingleThreadStrategy<double>;
-    Index degree_begin[] = {0, 1, 3};
-    Basis basis(2, 1, degree_begin);
-    Scalar values[] = {Scalar{1}, Scalar{2}, Scalar{3}};
-    rpp::DenseTensorView<Scalar*, Basis> view(values, basis);
-    auto ctx = Strategy::make_context(nullptr);
-    Scalar output{0};
-    rpp::ops::TensorPairing<Strategy>{}(ctx, output, view, view);
-    EXPECT_DOUBLE_EQ(static_cast<double>(output), 14);
-
-    rpp::ScalarView<Scalar*> output_view(&output);
-    output_view = 5.0;
-    EXPECT_DOUBLE_EQ(static_cast<double>(output), 5);
-    rpp::ops::TensorPairing<Strategy>{}(ctx, output_view, view, view);
-    EXPECT_DOUBLE_EQ(static_cast<double>(output), 14);
-}
-
-TEST(ExplicitScalarConversions, PairingSupportsScalarOutputsAndScalarViews) {
-    using Scalar = rpp::tests::ExplicitScalar;
-    using Basis = rpp::tests::CpuTypedTensorBasis;
-    using Index = Basis::Index;
-    using Strategy = rpp::cpu::strategies::SingleThreadStrategy<double>;
-    Index degree_begin[] = {0, 1, 3};
-    Basis basis(2, 1, degree_begin);
-    Scalar values[] = {Scalar{1}, Scalar{2}, Scalar{3}};
-    rpp::DenseTensorView<Scalar*, Basis> view(values, basis);
-    auto ctx = Strategy::make_context(nullptr);
-    Scalar output{0};
-    rpp::ops::TensorPairing<Strategy>{}(ctx, output, view, view);
-    EXPECT_DOUBLE_EQ(static_cast<double>(output), 14);
-
-    rpp::ScalarView<Scalar*> output_view(&output);
-    output_view = 5.0;
-    EXPECT_DOUBLE_EQ(static_cast<double>(output), 5);
-    rpp::ops::TensorPairing<Strategy>{}(ctx, output_view, view, view);
-    EXPECT_DOUBLE_EQ(static_cast<double>(output), 14);
-}
