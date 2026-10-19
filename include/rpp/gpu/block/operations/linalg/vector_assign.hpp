@@ -81,7 +81,7 @@ public:
             for (Index i = ctx.thread_rank();
                  i < std::min(count_to_align, size);
                  i += ctx.num_threads()) {
-                out_data[i] = arg_data[i];
+                out_data[i] = static_cast<Scalar>(arg_data[i]);
             }
             arg_data += count_to_align;
             out_data += count_to_align;
@@ -89,13 +89,13 @@ public:
 
             for (Index i = ctx.thread_rank(); i < size;
                  i += ctx.num_threads()) {
-                out_data[i] = arg_data[i];
+                out_data[i] = static_cast<Scalar>(arg_data[i]);
             }
         }
         else {
             for (Index i = ctx.thread_rank(); i < size;
                  i += ctx.num_threads()) {
-                out_data[i] = arg_data[i];
+                out_data[i] = static_cast<Scalar>(arg_data[i]);
             }
         }
 

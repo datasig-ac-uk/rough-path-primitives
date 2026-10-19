@@ -77,6 +77,8 @@ public:
                     Accum beta = Accum{1}) const noexcept {
         ignore_unused(ctx);
 
+        using Scalar = typename TensorA::value_type;
+
         auto a_min_degree = std::max(Degree{1}, a.min_degree());
 
         for (Degree a_degree = a.max_degree(); a_degree >= a_min_degree;
@@ -89,7 +91,7 @@ public:
             auto a_frag = a.degree_view(a_degree);
 
             for (Index i = 0; i < a_frag.size(); ++i) {
-                a_frag[i] = alpha * a_frag[i];
+                a_frag[i] = static_cast<Scalar>(alpha * Accum{a_frag[i]});
             }
 
             for (Degree b_degree = b_deg_max; b_degree >= b_deg_min;
@@ -102,17 +104,20 @@ public:
 
                 for (Index i = 0; i < b_frag.size(); ++i) {
                     for (Index j = 0; j < c_frag.size(); ++j) {
-                        a_frag[i * c_frag.size() + j] +=
-                            beta * b_frag[i] * c_frag[j];
+                        auto& value = a_frag[i * c_frag.size() + j];
+                        value = static_cast<Scalar>(Accum{value} +
+                                                    beta * Accum{b_frag[i]} *
+                                                        Accum{c_frag[j]});
                     }
                 }
             }
         }
 
         if (a.min_degree() == 0) {
-            a[0] = alpha * a[0];
+            a[0] = static_cast<Scalar>(alpha * Accum{a[0]});
             if (b.min_degree() == 0 && c.min_degree() == 0) {
-                a[0] += beta * b[0] * c[0];
+                a[0] = static_cast<Scalar>(Accum{a[0]} +
+                                           beta * Accum{b[0]} * Accum{c[0]});
             }
         }
     }

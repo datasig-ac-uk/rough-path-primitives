@@ -44,9 +44,10 @@ public:
     RPP_DEVICE void operator()(Context const& ctx,
                                Tensor& tensor,
                                Accum scalar = Accum{1}) const noexcept {
-        set_constant(ctx, tensor, Accum{0});
+        using Scalar = typename Tensor::value_type;
+        set_constant(ctx, tensor, Scalar{0});
         if (ctx.thread_rank() == 0 && tensor.has_degree(0)) {
-            tensor[0] = scalar;
+            tensor[0] = static_cast<Scalar>(scalar);
         }
     }
 };

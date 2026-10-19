@@ -229,7 +229,8 @@ private:
             ctx.sync();
             auto my_row = row_block_begin + ctx.thread_rank();
             if (my_row < row_end) {
-                out[my_row] = alpha * scratch[ctx.thread_rank()];
+                out[my_row] = static_cast<typename VectorOut::value_type>(
+                    alpha * scratch[ctx.thread_rank()]);
             }
         }
     }

@@ -48,8 +48,8 @@ word_shuffle_adjoint_multiply(Context const& ctx RPP_MAYBE_UNUSED,
 
     Accum acc{0};
     if (op_degree == 0) {
-        return multiply(op_getter(op, 0, 0),
-                        arg_getter(arg, out_degree, out_index));
+        return multiply(Accum{op_getter(op, 0, 0)},
+                        Accum{arg_getter(arg, out_degree, out_index)});
     }
 
     const auto& basis = arg.basis();
@@ -91,8 +91,8 @@ word_shuffle_adjoint_multiply(Context const& ctx RPP_MAYBE_UNUSED,
     // bitmasks of weight op_degree starting from 0..01..1. For each of these,
     // resolve the arg_index and multiply the two corresponding coefficients.
     for (;;) {
-        acc += multiply(op_getter(op, op_degree, op_index),
-                        arg_getter(arg, arg_degree, arg_index(mask)));
+        acc += multiply(Accum{op_getter(op, op_degree, op_index)},
+                        Accum{arg_getter(arg, arg_degree, arg_index(mask))});
 
         if (mask == last) {
             break;

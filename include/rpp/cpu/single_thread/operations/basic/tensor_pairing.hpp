@@ -8,6 +8,7 @@
 
 #include <rpp/config.h>
 #include <rpp/utility.hpp>
+#include <rpp/views/scalar_view.hpp>
 
 #include <rpp/operations/basic/tensor_pairing.hpp>
 
@@ -25,6 +26,17 @@ class TensorPairing<cpu::strategies::SingleThreadStrategy<Accum, Architecture>>
 
 public:
     static constexpr bool is_implemented = true;
+
+    template <typename It, typename TensorFunc, typename TensorArg>
+    void operator()(Context const& ctx,
+                    ScalarView<It>& out,
+                    TensorFunc const& functional,
+                    TensorArg const& arg) const noexcept {
+        operator()(ctx,
+                   static_cast<traits::iter_reference_t<It>>(out),
+                   functional,
+                   arg);
+    }
 
     template <typename Scalar, typename TensorFunc, typename TensorArg>
     void operator()(Context const& ctx,
@@ -47,7 +59,7 @@ public:
             tmp += func_val * arg_val;
         }
 
-        out = tmp;
+        out = static_cast<Scalar>(tmp);
     }
 };
 

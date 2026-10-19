@@ -31,12 +31,12 @@ public:
     void operator()(Context const& ctx,
                     VectorOut& out,
                     VectorArg const& arg) const noexcept {
-        using Scalar = typename VectorArg::value_type;
+        using Scalar = typename VectorOut::value_type;
         auto const& basis = out.basis();
         const auto min_deg = std::max(out.min_degree(), arg.min_degree());
         const auto max_deg = std::min(out.max_degree(), arg.max_degree());
         if (max_deg < min_deg) {
-            std::fill(out.begin(), out.end(), Scalar{});
+            std::fill(out.begin(), out.end(), Scalar{0});
             return;
         }
 
@@ -47,11 +47,15 @@ public:
         auto arg_begin = arg.data() + begin_index;
         auto arg_end = arg.data() + end_index;
 
-        std::fill(out.begin(), out_begin, Scalar{});
+        std::fill(out.begin(), out_begin, Scalar{0});
 
-        auto out_fill_begin = std::copy(arg_begin, arg_end, out_begin);
+        // std::copy assigns directly and cannot use explicit conversions from
+        // the input value type to Scalar; transform performs the cast explicitly.
+        auto out_fill_begin = std::transform(
+            arg_begin, arg_end, out_begin,
+            [](const auto& value) { return static_cast<Scalar>(value); });
 
-        std::fill(out_fill_begin, out.end(), Scalar{});
+        std::fill(out_fill_begin, out.end(), Scalar{0});
     }
 };
 

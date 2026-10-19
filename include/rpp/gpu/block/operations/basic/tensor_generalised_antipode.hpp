@@ -57,12 +57,13 @@ public:
             if (arg.has_degree(degree)) {
                 if constexpr (Policy ==
                               TensorAntipodeSigningPolicy::SignByDegree) {
-                    auto const sign =
-                        degree % 2 == 0 ? value_type{1} : value_type{-1};
-                    out[rev_idx + degree_begin] = arg[elt_idx] * sign;
+                    auto const sign = degree % 2 == 0 ? Accum{1} : Accum{-1};
+                    out[rev_idx + degree_begin] =
+                        static_cast<value_type>(Accum{arg[elt_idx]} * sign);
                 }
                 else {
-                    out[rev_idx + degree_begin] = arg[elt_idx];
+                    out[rev_idx + degree_begin] =
+                        static_cast<value_type>(arg[elt_idx]);
                 }
             }
             else {

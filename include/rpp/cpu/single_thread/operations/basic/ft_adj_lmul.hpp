@@ -22,6 +22,7 @@ class FTAdjLMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Strategy =
         cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
+    using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
     using Degree = typename Strategy::Degree;
 
@@ -99,7 +100,9 @@ public:
                     const auto& op_val = op_frag[op_idx];
 
                     for (Index i = 0; i < out_frag.size(); ++i) {
-                        out_frag[i] += op_val * arg_frag[i + op_offset];
+                        out_frag[i] = static_cast<Scalar>(
+                            Accum{out_frag[i]} + Accum{op_val} *
+                                Accum{arg_frag[i + op_offset]});
                     }
                 }
                 // ReSharper restore CppDFANullDereference
