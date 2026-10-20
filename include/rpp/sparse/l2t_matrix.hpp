@@ -31,8 +31,8 @@ void insert_commutator(FrameBuilder& frame_builder,
     auto left_frame = builder[left_idx];
     auto right_frame = builder[right_idx];
 
-    const auto left_degree = basis.degree(left_idx);
-    const auto right_degree = basis.degree(right_idx);
+    const auto left_degree = basis.degree(left_key);
+    const auto right_degree = basis.degree(right_key);
 
     const auto left_offset =
         basis::tensor_degree_size<Index>(basis.width, left_degree);
@@ -45,9 +45,9 @@ void insert_commutator(FrameBuilder& frame_builder,
                           right_frame.index[j]] +=
                 left_frame.data[i] * right_frame.data[j];
 
-            frame_builder[right_frame.index[i] * left_offset +
-                               left_frame.index[j]] -=
-                right_frame.data[i] * left_frame.data[j];
+            frame_builder[right_frame.index[j] * left_offset +
+                               left_frame.index[i]] -=
+                right_frame.data[j] * left_frame.data[i];
         }
     }
 }
