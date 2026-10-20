@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <map>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -12,6 +11,7 @@
 
 #include <rpp/architecture.hpp>
 #include <rpp/basis/lie_basis.hpp>
+#include <rpp/support/span.hpp>
 
 
 namespace rpp::basis {
@@ -81,6 +81,7 @@ class LieMultiplicationCache {
 
     using CacheInteger = std::make_signed_t<Index>;
     using DataEntry = std::pair<Index, CacheInteger>;
+    using ScratchEntry = std::vector<DataEntry>;
 
     Basis basis_;
 
@@ -88,18 +89,31 @@ public:
     using difference_type = std::ptrdiff_t;
 
     using BracketIndex = lie_mul_detail::BracketIndex<Index>;
-    using CacheEntry = std::vector<DataEntry>;
+    using CacheEntry = Span<DataEntry const>;
 
     explicit LieMultiplicationCache(Basis basis) : basis_(basis) {};
 
 private:
+    struct StoredEntry {
+        std::size_t offset;
+        std::size_t size;
+    };
+
+    std::vector<DataEntry> data_;
     std::unordered_map<BracketIndex,
-                       CacheEntry,
+                       StoredEntry,
                        lie_mul_detail::BracketIndexHash<Index>>
         cache_;
 
 
-    static auto get_scalar(CacheEntry& entry, Index index) {
+    CacheEntry view(StoredEntry entry) const noexcept {
+        if (entry.size == 0) {
+            return {data_.data(), 0};
+        }
+        return {data_.data() + entry.offset, entry.size};
+    }
+
+    static auto get_scalar(ScratchEntry& entry, Index index) {
         auto it = std::lower_bound(
             entry.begin(),
             entry.end(),
@@ -111,33 +125,38 @@ private:
         return it;
     }
 
-    void compute_bracket_half(CacheEntry& entry,
+    void compute_bracket_half(ScratchEntry& entry,
                               BracketIndex outer,
                               Index inner_right,
                               CacheInteger sign);
     void
-    compute_bracket(CacheEntry& entry, BracketIndex bracket, Degree degree);
-    void append_scaled(CacheEntry& entry,
-                       CacheEntry const& other,
-                       CacheInteger sign);
+    compute_bracket(ScratchEntry& entry, BracketIndex bracket, Degree degree);
 
 public:
-    CacheEntry const& get_bracket(BracketIndex bracket);
+    // A cache miss may reallocate the coefficient storage and invalidate any
+    // previously returned spans. Consume or copy a result before another query.
+    CacheEntry get_bracket(BracketIndex bracket);
 
-    CacheEntry const& get_bracket(Index left, Index right) {
+    CacheEntry get_bracket(Index left, Index right) {
         return get_bracket({left, right});
     }
 };
 
 template <typename Architecture>
 void LieMultiplicationCache<Architecture>::compute_bracket_half(
-    CacheEntry& entry,
+    ScratchEntry& entry,
     BracketIndex outer,
     Index inner_right,
     CacheInteger sign) {
     constexpr CacheInteger zero{0};
 
-    auto outer_product = get_bracket(outer);
+    auto const outer_view = get_bracket(outer);
+    if (outer_view.empty()) {
+        return;
+    }
+    // Recursive queries may grow data_, so retain an owning copy of the outer
+    // expansion while computing the inner brackets.
+    ScratchEntry const outer_product(outer_view.begin(), outer_view.end());
 
     for (auto const& [outer_idx, outer_val] : outer_product) {
         BracketIndex inner{outer_idx, inner_right};
@@ -154,7 +173,7 @@ void LieMultiplicationCache<Architecture>::compute_bracket_half(
 
 
 template <typename Architecture>
-void LieMultiplicationCache<Architecture>::compute_bracket(CacheEntry& entry,
+void LieMultiplicationCache<Architecture>::compute_bracket(ScratchEntry& entry,
                                                            BracketIndex bracket,
                                                            Degree degree) {
     if (const auto idx =
@@ -172,7 +191,7 @@ void LieMultiplicationCache<Architecture>::compute_bracket(CacheEntry& entry,
     }
 
     if (bracket.right < bracket.left) {
-        auto const& reverse = get_bracket({bracket.right, bracket.left});
+        auto const reverse = get_bracket({bracket.right, bracket.left});
         entry.reserve(reverse.size());
         for (auto const& [idx, val] : reverse) {
             entry.emplace_back(idx, -val);
@@ -195,9 +214,9 @@ void LieMultiplicationCache<Architecture>::compute_bracket(CacheEntry& entry,
 
 
 template <typename Architecture>
-typename LieMultiplicationCache<Architecture>::CacheEntry const&
+typename LieMultiplicationCache<Architecture>::CacheEntry
 LieMultiplicationCache<Architecture>::get_bracket(BracketIndex bracket) {
-    static const CacheEntry empty{};
+    const CacheEntry empty{data_.data(), 0};
 
     if (bracket.left <= 0 || bracket.right <= 0 ||
         bracket.left == bracket.right) {
@@ -216,12 +235,19 @@ LieMultiplicationCache<Architecture>::get_bracket(BracketIndex bracket) {
         return empty;
     }
 
-    auto [it, inserted] = cache_.emplace(bracket, empty);
-    if (inserted) {
-        compute_bracket(it->second, bracket, degree);
+    if (auto const it = cache_.find(bracket); it != cache_.end()) {
+        return view(it->second);
     }
 
-    return it->second;
+    ScratchEntry result;
+    compute_bracket(result, bracket, degree);
+
+    // Recursive results have already been appended. Publish this result only
+    // once its coefficients are complete, as one contiguous range.
+    const StoredEntry stored{data_.size(), result.size()};
+    data_.insert(data_.end(), result.begin(), result.end());
+    cache_.emplace(bracket, stored);
+    return view(stored);
 }
 } // namespace rpp::basis
 
