@@ -115,15 +115,17 @@ make_t2l_matrix(LieBasis const& basis, MultiplicationCache& cache) {
     }
 
     // normalise by degree
+    offset = 1 + basis.width;
     for (Degree degree=2; degree<=basis.depth; ++degree) {
-        const auto start_index = basis.start_of_degree(degree);
-        const auto end_index = basis.end_of_degree(degree);
+        const auto end_offset = 1 + offset * basis.width;
 
         const auto divisor = Scalar{1} / static_cast<Scalar>(degree);
-        auto [it, end] = builder.data_range(start_index, end_index);
+        auto [it, end] = builder.data_range(offset, end_offset);
         for (; it!=end; ++it) {
             *it *= divisor;
         }
+
+        offset = end_offset;
     }
 
 
