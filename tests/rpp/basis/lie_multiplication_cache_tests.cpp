@@ -14,7 +14,14 @@ using Architecture = rpp::arch::NativeArchitecture;
 using Degree = Architecture::Degree;
 using Index = Architecture::Index;
 using Cache = rpp::basis::LieMultiplicationCache<Architecture>;
-using CacheEntry = Cache::CacheEntry;
+using CacheEntry = std::vector<Cache::CacheEntry::value_type>;
+
+CacheEntry copy_entry(Cache::CacheEntry entry) {
+    if (entry.empty()) {
+        return {};
+    }
+    return {entry.begin(), entry.end()};
+}
 
 [[nodiscard]] auto make_lie_basis(Degree width = 3, Degree depth = 4) {
     return rpp::basis::HallBasis<Architecture>(width, depth);
@@ -24,8 +31,8 @@ TEST(LieMultiplicationCacheTests, ReturnsDirectAndAntisymmetricBasisProducts) {
     auto const hall = make_lie_basis();
     Cache cache(hall.to_lie_basis());
 
-    EXPECT_EQ(cache.get_bracket(1, 2), (CacheEntry{{4, 1}}));
-    EXPECT_EQ(cache.get_bracket(2, 1), (CacheEntry{{4, -1}}));
+    EXPECT_EQ(copy_entry(cache.get_bracket(1, 2)), (CacheEntry{{4, 1}}));
+    EXPECT_EQ(copy_entry(cache.get_bracket(2, 1)), (CacheEntry{{4, -1}}));
     EXPECT_TRUE(cache.get_bracket(1, 1).empty());
 }
 
@@ -42,16 +49,16 @@ TEST(LieMultiplicationCacheTests, ExpandsNonHallBracketByJacobiIdentity) {
     auto const hall = make_lie_basis();
     Cache cache(hall.to_lie_basis());
 
-    EXPECT_EQ(cache.get_bracket(1, 6), (CacheEntry{{10, 1}, {12, -1}}));
-    EXPECT_EQ(cache.get_bracket(6, 1), (CacheEntry{{10, -1}, {12, 1}}));
+    EXPECT_EQ(copy_entry(cache.get_bracket(1, 6)), (CacheEntry{{10, 1}, {12, -1}}));
+    EXPECT_EQ(copy_entry(cache.get_bracket(6, 1)), (CacheEntry{{10, -1}, {12, 1}}));
 }
 
 TEST(LieMultiplicationCacheTests, ExpandsRecursiveNonHallBracket) {
     auto const hall = make_lie_basis();
     Cache cache(hall.to_lie_basis());
 
-    EXPECT_EQ(cache.get_bracket(1, 9), (CacheEntry{{17, 1}}));
-    EXPECT_EQ(cache.get_bracket(9, 1), (CacheEntry{{17, -1}}));
+    EXPECT_EQ(copy_entry(cache.get_bracket(1, 9)), (CacheEntry{{17, 1}}));
+    EXPECT_EQ(copy_entry(cache.get_bracket(9, 1)), (CacheEntry{{17, -1}}));
 }
 
 TEST(LieMultiplicationCacheTests, EliminatesSelfBracketsInJacobiExpansion) {
@@ -60,9 +67,9 @@ TEST(LieMultiplicationCacheTests, EliminatesSelfBracketsInJacobiExpansion) {
 
     // [x,[y,[x,y]]] = [[x,y],[x,y]] + [y,[x,[x,y]]].
     // The first term vanishes, leaving a single Hall word.
-    EXPECT_EQ(cache.get_bracket(1, 9), (CacheEntry{{17, 1}}));
+    EXPECT_EQ(copy_entry(cache.get_bracket(1, 9)), (CacheEntry{{17, 1}}));
     // The same cancellation occurs with z in place of y.
-    EXPECT_EQ(cache.get_bracket(1, 13), (CacheEntry{{23, 1}}));
+    EXPECT_EQ(copy_entry(cache.get_bracket(1, 13)), (CacheEntry{{23, 1}}));
 }
 
 TEST(LieMultiplicationCacheTests, CombinesRecursiveContributionsWithMultiplicity) {
@@ -70,11 +77,11 @@ TEST(LieMultiplicationCacheTests, CombinesRecursiveContributionsWithMultiplicity
     Cache cache(hall.to_lie_basis());
 
     // [x,[y,[y,z]]] includes two copies of [[x,y],[y,z]].
-    EXPECT_EQ(cache.get_bracket(1, 11),
+    EXPECT_EQ(copy_entry(cache.get_bracket(1, 11)),
               (CacheEntry{{20, 1}, {24, -1}, {31, 2}}));
-    EXPECT_EQ(cache.get_bracket(11, 1),
+    EXPECT_EQ(copy_entry(cache.get_bracket(11, 1)),
               (CacheEntry{{20, -1}, {24, 1}, {31, -2}}));
-    EXPECT_EQ(cache.get_bracket(1, 14),
+    EXPECT_EQ(copy_entry(cache.get_bracket(1, 14)),
               (CacheEntry{{25, 1}, {27, -1}, {32, 1}}));
 }
 
@@ -106,8 +113,8 @@ TensorExpansion tensor_commutator(TensorExpansion const& left,
     return result;
 }
 
-TEST(LieMultiplicationCacheTests, AllBracketsAgreeWithTensorCommutators) {
-    auto const hall = make_lie_basis();
+void expect_all_brackets(Degree width, Degree depth) {
+    auto const hall = make_lie_basis(width, depth);
     auto const basis = hall.to_lie_basis();
     std::vector<TensorExpansion> tensors(basis.true_size());
     for (Index key = 1; key < basis.true_size(); ++key) {
@@ -133,9 +140,9 @@ TEST(LieMultiplicationCacheTests, AllBracketsAgreeWithTensorCommutators) {
                 : TensorExpansion{};
 
             Cache cold_cache(basis);
-            auto const cold_result = cold_cache.get_bracket(left, right);
-            auto const& result = warm_cache.get_bracket(left, right);
-            EXPECT_EQ(result, cold_result);
+            auto const cold_result = copy_entry(cold_cache.get_bracket(left, right));
+            auto const result = warm_cache.get_bracket(left, right);
+            EXPECT_EQ(copy_entry(result), cold_result);
 
             TensorExpansion actual;
             Index previous = 0;
@@ -152,9 +159,19 @@ TEST(LieMultiplicationCacheTests, AllBracketsAgreeWithTensorCommutators) {
             remove_zeros(actual);
             EXPECT_EQ(actual, expected);
             // A repeated request must preserve the completed result.
-            EXPECT_EQ(warm_cache.get_bracket(left, right), cold_result);
+            EXPECT_EQ(copy_entry(warm_cache.get_bracket(left, right)), cold_result);
         }
     }
+}
+
+TEST(LieMultiplicationCacheTests, AllBracketsAgreeWithTensorCommutators) {
+    expect_all_brackets(3, 4);
+}
+
+TEST(LieMultiplicationCacheTests, DeeperRecursionAgreesWithTensorCommutators) {
+    // Exercise longer Jacobi chains and multi-term outer expansions while
+    // fresh caches repeatedly grow their shared coefficient storage.
+    expect_all_brackets(3, 6);
 }
 
 } // namespace
