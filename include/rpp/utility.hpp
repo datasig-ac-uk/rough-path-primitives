@@ -36,7 +36,7 @@ RPP_HOST_DEVICE constexpr I const_power(I base, E exp) noexcept {
         if (exp % 2 == 1) {
             result *= base;
         }
-        result *= result;
+        base *= base;
         exp /= 2;
     }
     return result;

@@ -11,13 +11,16 @@
 #include <rpp/sparse/matrix.hpp>
 
 
+#include <rpp/sparse/detail/compressed_matrix.hpp>
+
 namespace rpp::sparse {
 
 
 namespace l2t_detail {
 
-template <typename Builder, typename Basis>
-void insert_commutator(Builder& builder,
+template <typename FrameBuilder, typename Builder, typename Basis>
+void insert_commutator(FrameBuilder& frame_builder,
+                       Builder const& builder,
                        Basis const& basis,
                        typename Basis::Index left_key,
                        typename Basis::Index right_key) {
@@ -25,11 +28,11 @@ void insert_commutator(Builder& builder,
 
     const auto left_idx = basis.key_to_idx(left_key);
     const auto right_idx = basis.key_to_idx(right_key);
-    auto& left_frame = builder[left_idx];
-    auto& right_frame = builder[right_idx];
+    auto left_frame = builder[left_idx];
+    auto right_frame = builder[right_idx];
 
-    const auto left_degree = basis.degree(left_idx);
-    const auto right_degree = basis.degree(right_idx);
+    const auto left_degree = basis.degree(left_key);
+    const auto right_degree = basis.degree(right_key);
 
     const auto left_offset =
         basis::tensor_degree_size<Index>(basis.width, left_degree);
@@ -38,13 +41,13 @@ void insert_commutator(Builder& builder,
 
     for (Index i = 0; i < left_frame.size; ++i) {
         for (Index j = 0; j < right_frame.size; ++j) {
-            builder.get_scalar(left_frame.index[i] * right_offset +
-                               right_frame.index[j]) +=
+            frame_builder[left_frame.index[i] * right_offset +
+                          right_frame.index[j]] +=
                 left_frame.data[i] * right_frame.data[j];
 
-            builder.get_scalar(right_frame.index[i] * left_offset +
-                               left_frame.index[j]) -=
-                right_frame.data[i] * left_frame.data[j];
+            frame_builder[right_frame.index[j] * left_offset +
+                               left_frame.index[i]] -=
+                right_frame.data[j] * left_frame.data[i];
         }
     }
 }
@@ -63,18 +66,29 @@ make_l2t_matrix(LieBasis const& basis) {
     using Offset = Index;
     using difference_type = std::ptrdiff_t;
 
-    std::vector<Scalar> data;
-    std::vector<Index> indices;
-    std::vector<Offset> offsets;
+    using DataContainer = std::vector<Scalar>;
+    using IndexContainer = std::vector<Index>;
+    using OffsetContainer = std::vector<Offset>;
+    using Builder =
+        CompressedMatrixBuilder<DataContainer, IndexContainer, OffsetContainer>;
+    using FrameBuilder =
+        CompressedMatrixFrameBuilder<DataContainer, IndexContainer>;
 
-    CompressedMatrixBuilder<std::vector<Scalar>,
-                            std::vector<Index>,
-                            std::vector<Offset>>
-        builder{data, indices, offsets};
+    DataContainer data;
+    IndexContainer indices;
+    OffsetContainer offsets;
 
-    for (Degree letter = 1; letter <= basis.width; ++letter) {
-        builder.next_frame();
-        builder.get_scalar(letter) = Scalar{1};
+    Builder builder{data, indices, offsets};
+
+    FrameBuilder frame_builder;
+    frame_builder.reserve(basis.depth + 2);
+
+    if (basis.depth > 0) {
+        frame_builder.append(0, Scalar{1});
+        for (Degree letter = 1; letter <= basis.width; ++letter) {
+            frame_builder.set_index(0, letter);
+            builder.append_frame(frame_builder);
+        }
     }
 
     for (Degree d = 2; d <= basis.depth; ++d) {
@@ -82,8 +96,11 @@ make_l2t_matrix(LieBasis const& basis) {
         const auto end = basis.end_of_degree(d);
 
         for (auto key = begin; key < end; ++key) {
-            auto& [left, right] = basis[key];
-            l2t_detail::insert_commutator(builder, basis, left, right);
+            frame_builder.clear();
+            auto&& [left, right] = basis[key];
+            l2t_detail::insert_commutator(frame_builder, builder, basis, left, right);
+            frame_builder.pop_zeros();
+            builder.append_frame(frame_builder);
         }
     }
 
