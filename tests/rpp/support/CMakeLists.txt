@@ -3,5 +3,5 @@ rpp_add_test(rpp_support_tests
         error_test.cpp
         result_test.cpp
         tagged_pointer_tests.cpp
+        utility_tests.cpp
 )
-
