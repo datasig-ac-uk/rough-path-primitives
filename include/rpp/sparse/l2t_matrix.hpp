@@ -83,10 +83,12 @@ make_l2t_matrix(LieBasis const& basis) {
     FrameBuilder frame_builder;
     frame_builder.reserve(basis.depth + 2);
 
-    frame_builder.append(0, Scalar{1});
-    for (Degree letter = 1; letter <= basis.width; ++letter) {
-        frame_builder.set_index(0, letter);
-        builder.append_frame(frame_builder);
+    if (basis.depth > 0) {
+        frame_builder.append(0, Scalar{1});
+        for (Degree letter = 1; letter <= basis.width; ++letter) {
+            frame_builder.set_index(0, letter);
+            builder.append_frame(frame_builder);
+        }
     }
 
     for (Degree d = 2; d <= basis.depth; ++d) {

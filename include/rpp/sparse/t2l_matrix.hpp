@@ -85,10 +85,12 @@ make_t2l_matrix(LieBasis const& basis, MultiplicationCache& cache) {
     // empty frame for the empty word
     builder.append_frame(frame_builder);
 
-    frame_builder.append(0, Scalar{1});
-    for (Index i = 0; i < basis.width; ++i) {
-        frame_builder.set_index(0, i);
-        builder.append_frame(frame_builder);
+    if (basis.depth > 0) {
+        frame_builder.append(0, Scalar{1});
+        for (Index i = 0; i < basis.width; ++i) {
+            frame_builder.set_index(0, i);
+            builder.append_frame(frame_builder);
+        }
     }
 
     Index offset = 1;
