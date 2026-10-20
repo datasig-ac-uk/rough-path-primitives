@@ -2,6 +2,7 @@
 #define RPP_SPARSE_COMPRESSED_MATRIX_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <memory>
@@ -188,16 +189,17 @@ public:
             return Result{std::move(mapped_offsets).error()};
         }
 
-        return Result{CompressedMatrix<
-            traits::data_map_value_t<DataMapper, DataIter>,
-            traits::data_map_index_t<DataMapper, IndexIter>,
-            traits::data_map_index_t<DataMapper, OffsetsIter>,
-            Format>{std::move(mapped_data).value(),
-                    std::move(mapped_indices).value(),
-                    std::move(mapped_offsets).value(),
-                    static_cast<MappedIndex>(matrix.nnz()),
-                    static_cast<MappedIndex>(matrix.outer_dim()),
-                    static_cast<MappedIndex>(matrix.inner_dim())}};
+        return Result{
+            CompressedMatrix<traits::data_map_value_t<DataMapper, DataIter>,
+                             traits::data_map_index_t<DataMapper, IndexIter>,
+                             traits::data_map_index_t<DataMapper, OffsetsIter>,
+                             Format>{
+                std::move(mapped_data).value(),
+                std::move(mapped_indices).value(),
+                std::move(mapped_offsets).value(),
+                static_cast<MappedIndex>(matrix.nnz()),
+                static_cast<MappedIndex>(matrix.outer_dim()),
+                static_cast<MappedIndex>(matrix.inner_dim())}};
     }
 };
 
@@ -448,6 +450,106 @@ public:
 };
 
 
+template <typename DataContainer, typename IndexContainer>
+class CompressedMatrixFrameBuilder {
+    DataContainer data_;
+    IndexContainer indices_;
+
+    using data_iterator = typename DataContainer::iterator;
+    using data_const_iterator = typename DataContainer::const_iterator;
+    using index_iterator = typename IndexContainer::iterator;
+    using index_const_iterator = typename IndexContainer::const_iterator;
+    using difference_type = typename DataContainer::difference_type;
+    using size_type = typename DataContainer::size_type;
+
+public:
+    using Scalar = typename DataContainer::value_type;
+    using Index = typename IndexContainer::value_type;
+
+private:
+    std::pair<data_iterator, index_iterator>
+    get_or_insert(Index index) noexcept {
+        const auto begin = indices_.begin();
+        const auto end = indices_.end();
+
+        std::pair<data_iterator, index_iterator> ret;
+
+        ret.second = std::lower_bound(begin, end, index);
+        ret.first =
+            data_.begin() + static_cast<difference_type>(ret.second - begin);
+
+        if (ret.second == end || *ret.second != index) {
+            ret.first = data_.insert(ret.first, Scalar{0});
+            ret.second = indices_.insert(ret.second, index);
+        }
+
+        return ret;
+    }
+
+public:
+    Scalar& operator[](Index index) noexcept {
+        auto pos = get_or_insert(index);
+        return *pos.first;
+    }
+
+    void reserve(size_type size) noexcept {
+        data_.reserve(size);
+        indices_.reserve(size);
+    }
+
+    void clear() noexcept {
+        data_.clear();
+        indices_.clear();
+    }
+
+    void set_index(size_type position, Index index) noexcept {
+        assert(position < data_.size());
+        indices_[position] = index;
+    }
+
+    void set(size_type position, Index index, Scalar scalar) noexcept {
+        assert(position < data_.size());
+        indices_[position] = index;
+        data_[position] = scalar;
+    }
+
+    void append(Index index, Scalar scalar) noexcept {
+        data_.push_back(scalar);
+        indices_.push_back(index);
+    }
+
+    void pop_zeros() noexcept;
+
+    data_const_iterator data_begin() const noexcept { return data_.begin(); }
+    data_const_iterator data_end() const noexcept { return data_.end(); }
+    index_const_iterator indices_begin() const noexcept {
+        return indices_.begin();
+    }
+    index_const_iterator indices_end() const noexcept { return indices_.end(); }
+};
+
+
+template <typename DataContainer, typename IndexContainer>
+void CompressedMatrixFrameBuilder<DataContainer,
+                                  IndexContainer>::pop_zeros() noexcept {
+
+    auto data_it = data_.end();
+    auto index_it = indices_.begin();
+    const auto data_begin = data_.begin();
+    const auto index_begin = indices_.begin();
+
+    while (index_it != index_begin) {
+        --data_it;
+        --index_it;
+
+        if (*data_it == Scalar{0}) {
+            data_.erase(data_it);
+            indices_.erase(index_it);
+        }
+    }
+}
+
+
 template <typename DataContainer,
           typename IndexContainer,
           typename OffsetContainer>
@@ -474,23 +576,16 @@ public:
 
 private:
     std::vector<MatrixFrame> frames_;
+    using size_type = typename std::vector<MatrixFrame>::size_type;
 
-    MatrixFrame& current_frame() noexcept { return frames_.back(); }
+    void insert_frame(size_type previous_size) noexcept {
+        assert(previous_size < data_.size() &&
+               "insertion should have already happened");
 
-    auto get_or_insert(Index index) noexcept {
-        auto& frame = current_frame();
-
-        auto idx_it = std::lower_bound(frame.index, indices_.end(), index);
-        const auto offset = static_cast<difference_type>(idx_it - frame.index);
-        auto data_it = frame.data + offset;
-
-        if (idx_it == indices_.end() || *idx_it != index) {
-            data_it = data_.insert(data_it, Scalar{0});
-            idx_it = indices_.insert(idx_it, index);
-            ++frame.size;
-        }
-
-        return std::make_pair(data_it, idx_it);
+        frames_.push_back(
+            {data_.begin() + previous_size,
+             indices_.begin() + previous_size,
+             static_cast<difference_type>(data_.size() - previous_size)});
     }
 
 public:
@@ -507,15 +602,18 @@ public:
         return frames_[index];
     }
 
-    RPP_HOST
-    void next_frame() {
-        offsets_.push_back(offsets_.back() + current_frame().size());
-        frames_.emplace_back(data_.end(), indices_.end(), 0);
-    }
+    template <typename NextDataContainer, typename NextIndexContainer>
+    RPP_HOST MatrixFrame const&
+    append_frame(CompressedMatrixFrameBuilder<NextDataContainer,
+                                              NextIndexContainer> const&
+                     frame) noexcept {
+        const auto current_size = data_.size();
+        data_.insert(data_.end(), frame.data_begin(), frame.data_end());
+        indices_.insert(
+            indices_.end(), frame.indices_begin(), frame.indices_end());
 
-    RPP_HOST RPP_NODISCARD Scalar& get_scalar(Index index) noexcept {
-        auto [data_it, _] = get_or_insert(index);
-        return *data_it;
+        insert_frame(current_size);
+        return frames_.back();
     }
 };
 
