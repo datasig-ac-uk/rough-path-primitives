@@ -455,6 +455,7 @@ class CompressedMatrixFrameBuilder {
     DataContainer data_;
     IndexContainer indices_;
 
+public:
     using data_iterator = typename DataContainer::iterator;
     using data_const_iterator = typename DataContainer::const_iterator;
     using index_iterator = typename IndexContainer::iterator;
@@ -462,7 +463,6 @@ class CompressedMatrixFrameBuilder {
     using difference_type = typename DataContainer::difference_type;
     using size_type = typename DataContainer::size_type;
 
-public:
     using Scalar = typename DataContainer::value_type;
     using Index = typename IndexContainer::value_type;
 
@@ -560,6 +560,7 @@ class CompressedMatrixBuilder {
     using difference_type = typename DataContainer::difference_type;
     using size_type = typename DataContainer::size_type;
 
+public:
     using data_iterator = typename DataContainer::iterator;
     using index_iterator = typename IndexContainer::iterator;
     using offset_iterator = typename OffsetContainer::iterator;
@@ -568,7 +569,6 @@ class CompressedMatrixBuilder {
     using Index = typename IndexContainer::value_type;
     using Offset = typename OffsetContainer::value_type;
 
-public:
     struct MatrixFrame {
         data_iterator data;
         index_iterator index;
@@ -581,6 +581,14 @@ public:
                                       OffsetContainer& offsets)
         : data_(data), indices_(indices), offsets_(offsets) {
         offsets_.push_back(0);
+    }
+
+    RPP_HOST
+    std::pair<data_iterator, data_iterator> data_range(Index begin, Index end) noexcept {
+        return {
+            data_.begin() + static_cast<difference_type>(offsets_[begin]),
+            data_.begin() + static_cast<difference_type>(offsets_[end]),
+        };
     }
 
     RPP_HOST
