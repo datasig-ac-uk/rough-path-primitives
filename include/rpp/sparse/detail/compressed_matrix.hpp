@@ -534,7 +534,7 @@ void CompressedMatrixFrameBuilder<DataContainer,
                                   IndexContainer>::pop_zeros() noexcept {
 
     auto data_it = data_.end();
-    auto index_it = indices_.begin();
+    auto index_it = indices_.end();
     const auto data_begin = data_.begin();
     const auto index_begin = indices_.begin();
 
@@ -558,6 +558,7 @@ class CompressedMatrixBuilder {
     IndexContainer& indices_;
     OffsetContainer& offsets_;
     using difference_type = typename DataContainer::difference_type;
+    using size_type = typename DataContainer::size_type;
 
     using data_iterator = typename DataContainer::iterator;
     using index_iterator = typename IndexContainer::iterator;
@@ -574,21 +575,6 @@ public:
         difference_type size;
     };
 
-private:
-    std::vector<MatrixFrame> frames_;
-    using size_type = typename std::vector<MatrixFrame>::size_type;
-
-    void insert_frame(size_type previous_size) noexcept {
-        assert(previous_size < data_.size() &&
-               "insertion should have already happened");
-
-        frames_.push_back(
-            {data_.begin() + previous_size,
-             indices_.begin() + previous_size,
-             static_cast<difference_type>(data_.size() - previous_size)});
-    }
-
-public:
     RPP_HOST
     constexpr CompressedMatrixBuilder(DataContainer& data,
                                       IndexContainer& indices,
@@ -598,22 +584,25 @@ public:
     }
 
     RPP_HOST
-    MatrixFrame const& operator[](difference_type index) const noexcept {
-        return frames_[index];
+    MatrixFrame operator[](difference_type index) const noexcept {
+        const auto start = offsets_[index];
+        return {
+            data_.begin() + start,
+            indices_.begin() + start,
+            offsets_[index+1] - start
+        };
     }
 
     template <typename NextDataContainer, typename NextIndexContainer>
-    RPP_HOST MatrixFrame const&
+    RPP_HOST void
     append_frame(CompressedMatrixFrameBuilder<NextDataContainer,
                                               NextIndexContainer> const&
                      frame) noexcept {
-        const auto current_size = data_.size();
         data_.insert(data_.end(), frame.data_begin(), frame.data_end());
         indices_.insert(
             indices_.end(), frame.indices_begin(), frame.indices_end());
 
-        insert_frame(current_size);
-        return frames_.back();
+        offsets_.push_back(data_.size());
     }
 };
 

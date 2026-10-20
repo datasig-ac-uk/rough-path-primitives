@@ -28,8 +28,8 @@ void insert_commutator(FrameBuilder& frame_builder,
 
     const auto left_idx = basis.key_to_idx(left_key);
     const auto right_idx = basis.key_to_idx(right_key);
-    auto& left_frame = builder[left_idx];
-    auto& right_frame = builder[right_idx];
+    auto left_frame = builder[left_idx];
+    auto right_frame = builder[right_idx];
 
     const auto left_degree = basis.degree(left_idx);
     const auto right_degree = basis.degree(right_idx);
