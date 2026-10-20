@@ -589,7 +589,7 @@ public:
         return {
             data_.begin() + start,
             indices_.begin() + start,
-            offsets_[index+1] - start
+            offsets_[index+1] - start,
         };
     }
 
