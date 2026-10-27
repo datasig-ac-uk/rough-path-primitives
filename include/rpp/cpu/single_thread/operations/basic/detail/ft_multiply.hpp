@@ -366,6 +366,7 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
     }
 }
 
+
 // Split within the prefix block: prefix = short_lhs * remainder_size +
 // remainder. Each remainder selects one contiguous rhs panel and a strided
 // group of rows.
@@ -641,5 +642,132 @@ void subtiled_low_degree_terms(Ctx const& ctx,
 }
 
 
+template <unsigned TilePower, typename Ctx, typename Basis>
+TileConfig<Ctx, TilePower> select_tile_config(Ctx const& ctx RPP_MAYBE_UNUSED,
+                                              Basis const& basis) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    using Config = TileConfig<Ctx, TilePower>;
+
+    Config config{basis.width, Degree{1}, static_cast<Index>(basis.width)};
+
+    const auto width = static_cast<Index>(config.width);
+
+    for (; config.tile_letters < basis.depth &&
+         static_cast<size_t>(config.tile_size * config.tile_size * width * width) <= Config::tile_extent;
+         ++config.tile_letters) {
+        config.tile_size *= width;
+    }
+
+    return config;
+}
+
 } // namespace detail
+
+
+// Tile dimensions and the implementation specialization are selected by the
+// caller. The writer receives a complete tile, with either its subtile position
+// or its degree and flat offset for low degrees. Output degrees are visited in
+// descending order so a writer can also update either operand in place. Output
+// and operands must use the same tensor basis.
+template <unsigned TilePower,
+          typename Ctx,
+          typename TensorOut,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Writer>
+void multiply(Ctx const& ctx,
+              TileConfig<Ctx, TilePower> const& config,
+              TensorOut& out,
+              LhsTensor const& lhs,
+              RhsTensor const& rhs,
+              Writer&& write) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    constexpr size_t tile_extent = TileConfig<Ctx, TilePower>::tile_extent;
+    constexpr size_t panel_extent = TileConfig<Ctx, TilePower>::panel_extent;
+    const auto width = static_cast<Index>(config.width);
+    const auto tile_letters = config.tile_letters;
+    const auto side = config.tile_size;
+    assert(width > 0 && tile_letters > 0 && side > 0);
+    assert(side <= tile_size || tile_letters == 1);
+    assert(out.basis().width == config.width);
+
+    alignas(64) std::array<Accum, tile_extent> tile {};
+    // Initialize once: unused lanes may retain values between panel reads.
+    alignas(64) std::array<Accum, panel_extent> left_panel{};
+    alignas(64) std::array<Accum, panel_extent> right_panel{};
+
+
+    const auto min_middle =
+        std::max<Degree>(0, out.min_degree() - 2 * tile_letters);
+    const auto max_middle = out.max_degree() - 2 * tile_letters;
+
+    for (Degree middle_degree = max_middle; middle_degree >= min_middle;
+         --middle_degree) {
+        const auto middle_size = const_power(width, middle_degree);
+        for (Index middle_word = 0; middle_word < middle_size; ++middle_word) {
+            for (Index prefix = 0; prefix < side; prefix += tile_size) {
+                for (Index suffix = 0; suffix < side; suffix += tile_size) {
+                    SubtilePosition<Ctx> pos{
+                        middle_word,
+                        static_cast<Degree>(middle_degree),
+                        prefix,
+                        suffix,
+                        std::min(tile_size, side - prefix),
+                        std::min(tile_size, side - suffix)};
+                    std::fill(tile.begin(), tile.end(), Accum{0});
+                    detail::scalar_terms<Ctx, TilePower>(
+                        tile.data(), lhs, rhs, config, pos);
+                    detail::left_small_terms<Ctx, TilePower>(ctx,
+                                                             tile.data(),
+                                                             left_panel.data(),
+                                                             right_panel.data(),
+                                                             lhs,
+                                                             rhs,
+                                                             config,
+                                                             pos);
+                    detail::mid_terms<Ctx, TilePower>(ctx,
+                                                      tile.data(),
+                                                      left_panel.data(),
+                                                      right_panel.data(),
+                                                      lhs,
+                                                      rhs,
+                                                      config,
+                                                      pos);
+                    detail::right_small_terms<Ctx, TilePower>(
+                        ctx,
+                        tile.data(),
+                        left_panel.data(),
+                        right_panel.data(),
+                        lhs,
+                        rhs,
+                        config,
+                        pos);
+                    write(ctx,
+                          out,
+                          Span<Accum const, tile_extent>{tile.data(),
+                                                         tile_extent},
+                          config,
+                          pos);
+                }
+            }
+        }
+    }
+
+    if (width > static_cast<Index>(tile_extent)) {
+        detail::subtiled_low_degree_terms(
+            ctx, config, out, lhs, rhs, {tile.data(), tile.size()}, write);
+    }
+    else {
+        detail::low_degree_terms(
+            ctx, config, out, lhs, rhs, {tile.data(), tile.size()}, write);
+    }
+}
+
+
+} // namespace rpp::cpu::single_thread::ft_multiply
+
 #endif // RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_DETAIL_FT_MULTIPLY_HPP
