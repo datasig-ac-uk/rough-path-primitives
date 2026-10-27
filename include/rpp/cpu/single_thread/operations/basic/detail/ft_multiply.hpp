@@ -25,24 +25,33 @@ template <typename Ctx>
 using DegreeOf = typename Ctx::Degree;
 
 
+// Chosen by the caller before entering the multiplication implementation.
+template <typename Ctx, unsigned TilePower>
+struct TileConfig {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    static_assert(TilePower > 0, "panels require a positive tile power");
+
+    static constexpr Index subtile_size = Index{1} << TilePower;
+    static constexpr size_t tile_extent = size_t{1} << (2 * TilePower);
+    static constexpr size_t panel_extent = size_t{1} << (2 * TilePower - 1);
+
+    Degree width;
+    Degree tile_letters;
+    Index tile_size; // W^tile_letters: full logical side length.
+};
+
 template <typename Ctx>
 struct SubtilePosition {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
 
-    Degree width;
-    Degree tile_letters;
-    Index subtile_size; // Physical side length B, including unused lanes.
-
     Index middle_word;
     Degree middle_degree;
-
     Index prefix_subtile_offset = 0;
     Index suffix_subtile_offset = 0;
-
-    Index tile_size; // W^tile_letters: full logical side length.
-    Index prefix_subtile_size; // min(B, tile_size - prefix_subtile_offset).
-    Index suffix_subtile_size; // min(B, tile_size - suffix_subtile_offset).
+    Index prefix_subtile_size; // Live rows in this subtile.
+    Index suffix_subtile_size; // Live columns in this subtile.
 };
 
 
@@ -55,27 +64,27 @@ class ScaledTileWriter {
 public:
     explicit ScaledTileWriter(Accum beta_ = Accum{1}) : beta(beta_) {}
 
-    template <typename TensorOut, typename Tile>
+    template <unsigned TilePower, typename TensorOut, typename Tile>
     RPP_FORCEINLINE void
     operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                TensorOut& out,
                Tile tile,
+               TileConfig<Ctx, TilePower> const& config,
                SubtilePosition<Ctx> const& subtile_position) {
         using Scalar = typename TensorOut::value_type;
 
         const auto degree =
-            subtile_position.middle_degree + 2 * subtile_position.tile_letters;
+            subtile_position.middle_degree + 2 * config.tile_letters;
         assert(out.has_degree(degree));
         auto out_level = out.degree_view(degree);
 
         auto& prefix = subtile_position.prefix_subtile_offset;
         auto& suffix = subtile_position.suffix_subtile_offset;
-        auto& tile_size = subtile_position.tile_size;
-        const auto middle_size =
-            const_power(static_cast<Index>(subtile_position.width),
-                        subtile_position.middle_degree);
+        auto const& tile_size = config.tile_size;
+        const auto middle_size = const_power(static_cast<Index>(config.width),
+                                             subtile_position.middle_degree);
         auto& middle_index = subtile_position.middle_word;
-        auto& tile_width = subtile_position.subtile_size;
+        constexpr auto tile_width = TileConfig<Ctx, TilePower>::subtile_size;
 
         for (Index i = 0; i < subtile_position.prefix_subtile_size; ++i) {
             for (Index j = 0; j < subtile_position.suffix_subtile_size; ++j) {
@@ -85,6 +94,21 @@ public:
                 out_level[index] =
                     static_cast<Scalar>(beta * tile[i * tile_width + j]);
             }
+        }
+    }
+
+    // Low degrees use a contiguous tile rather than prefix/suffix rows.
+    template <typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
+                                    TensorOut& out,
+                                    Tile tile,
+                                    DegreeOf<Ctx> degree,
+                                    Index offset) {
+        using Scalar = typename TensorOut::value_type;
+        assert(out.has_degree(degree));
+        auto out_level = out.degree_view(degree);
+        for (Index i = 0; i < static_cast<Index>(tile.size()); ++i) {
+            out_level[offset + i] = static_cast<Scalar>(beta * tile[i]);
         }
     }
 };
@@ -104,27 +128,27 @@ public:
                                  Accum beta_ = Accum{1})
         : a(a_), alpha(alpha_), beta(beta_) {}
 
-    template <typename TensorOut, typename Tile>
+    template <unsigned TilePower, typename TensorOut, typename Tile>
     RPP_FORCEINLINE void
     operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                TensorOut& out,
                Tile tile,
+               TileConfig<Ctx, TilePower> const& config,
                SubtilePosition<Ctx> const& subtile_position) {
         using Scalar = typename TensorOut::value_type;
 
         const auto degree =
-            subtile_position.middle_degree + 2 * subtile_position.tile_letters;
+            subtile_position.middle_degree + 2 * config.tile_letters;
         assert(out.has_degree(degree));
         auto out_level = out.degree_view(degree);
 
         auto& prefix = subtile_position.prefix_subtile_offset;
         auto& suffix = subtile_position.suffix_subtile_offset;
-        auto& tile_size = subtile_position.tile_size;
-        const auto middle_size =
-            const_power(static_cast<Index>(subtile_position.width),
-                        subtile_position.middle_degree);
+        auto const& tile_size = config.tile_size;
+        const auto middle_size = const_power(static_cast<Index>(config.width),
+                                             subtile_position.middle_degree);
         auto& middle_index = subtile_position.middle_word;
-        auto& tile_width = subtile_position.subtile_size;
+        constexpr auto tile_width = TileConfig<Ctx, TilePower>::subtile_size;
 
         if (a.has_degree(degree)) {
             auto a_level = a.degree_view(degree);
@@ -150,6 +174,28 @@ public:
                         static_cast<Scalar>(beta * tile[i * tile_width + j]);
                 }
             }
+        }
+    }
+
+    template <typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
+                                    TensorOut& out,
+                                    Tile tile,
+                                    DegreeOf<Ctx> degree,
+                                    Index offset) {
+        using Scalar = typename TensorOut::value_type;
+        assert(out.has_degree(degree));
+        auto out_level = out.degree_view(degree);
+        if (a.has_degree(degree)) {
+            const auto a_level = a.degree_view(degree);
+            for (Index i = 0; i < static_cast<Index>(tile.size()); ++i) {
+                out_level[offset + i] = static_cast<Scalar>(
+                    alpha * static_cast<Accum>(a_level[offset + i]) +
+                    beta * tile[i]);
+            }
+        }
+        else {
+            ScaledTileWriter<Ctx>{beta}(ctx, out, tile, degree, offset);
         }
     }
 };
@@ -186,13 +232,24 @@ public:
                                   Accum beta_ = Accum{1})
         : alpha(alpha_), beta(beta_) {}
 
+    template <unsigned TilePower, typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void operator()(Ctx const& ctx,
+                                    TensorOut& out,
+                                    Tile tile,
+                                    TileConfig<Ctx, TilePower> const& config,
+                                    SubtilePosition<Ctx> const& pos) {
+        ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
+            ctx, out, tile, config, pos);
+    }
+
     template <typename TensorOut, typename Tile>
     RPP_FORCEINLINE void operator()(Ctx const& ctx,
                                     TensorOut& out,
                                     Tile tile,
-                                    SubtilePosition<Ctx> const& pos) {
+                                    DegreeOf<Ctx> degree,
+                                    IndexOf<Ctx> offset) {
         ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
-            ctx, out, tile, pos);
+            ctx, out, tile, degree, offset);
     }
 };
 
@@ -244,6 +301,7 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
                Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> right_panel,
                LhsTensor const& lhs,
                RhsTensor const& rhs,
+               TileConfig<Ctx, TilePower> const& config,
                SubtilePosition<Ctx> const& subtile_position) {
 
     using Index = IndexOf<Ctx>;
@@ -254,7 +312,7 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
     constexpr Index tile_size = Index{1} << TilePower;
     constexpr Degree max_panels = Degree{1} << (TilePower - 1);
 
-    const auto prefix_shift = subtile_position.tile_size;
+    const auto prefix_shift = config.tile_size;
 
     for (Degree split_deg_start = 0;
          split_deg_start <= subtile_position.middle_degree;
@@ -264,22 +322,22 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
 
         for (Degree panel_idx = 0; panel_idx < num_panels; ++panel_idx) {
             const auto split_deg = split_deg_start + panel_idx;
-            Index subtile_split = const_power(
-                static_cast<Index>(subtile_position.width), split_deg);
+            Index subtile_split =
+                const_power(static_cast<Index>(config.width), split_deg);
 
             const auto lhs_split = subtile_position.middle_word / subtile_split;
             const auto rhs_split = subtile_position.middle_word % subtile_split;
 
             const auto lhs_degree = subtile_position.middle_degree - split_deg +
-                subtile_position.tile_letters;
-            const auto rhs_degree = split_deg + subtile_position.tile_letters;
+                config.tile_letters;
+            const auto rhs_degree = split_deg + config.tile_letters;
 
             if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
                 continue;
             }
 
             const Index lhs_stride =
-                const_power(static_cast<Index>(subtile_position.width),
+                const_power(static_cast<Index>(config.width),
                             subtile_position.middle_degree - split_deg);
             const Index rhs_stride = 1;
             const auto lhs_idx = lhs_split;
