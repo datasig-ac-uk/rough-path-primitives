@@ -366,4 +366,280 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
     }
 }
 
+// Split within the prefix block: prefix = short_lhs * remainder_size +
+// remainder. Each remainder selects one contiguous rhs panel and a strided
+// group of rows.
+template <typename Ctx,
+          unsigned TilePower,
+          typename LhsTensor,
+          typename RhsTensor>
+void left_small_terms(
+    Ctx const& ctx,
+    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower)> out_tile,
+    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> left_panel,
+    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> right_panel,
+    LhsTensor const& lhs,
+    RhsTensor const& rhs,
+    TileConfig<Ctx, TilePower> const& config,
+    SubtilePosition<Ctx> const& pos) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    constexpr Index tile_size = Index{1} << TilePower;
+    if (config.tile_letters <= 1) {
+        return;
+    }
+    // Multi-letter blocks fit in one tile; only single letters are subtiled.
+    assert(config.tile_size <= tile_size);
+    assert(pos.prefix_subtile_offset == 0 && pos.suffix_subtile_offset == 0);
+    const auto middle_size =
+        const_power(static_cast<Index>(config.width), pos.middle_degree);
+    const auto degree = pos.middle_degree + 2 * config.tile_letters;
+    for (Degree lhs_degree = 1; lhs_degree < config.tile_letters;
+         ++lhs_degree) {
+        const auto rhs_degree = degree - lhs_degree;
+        if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
+            continue;
+        }
+        const auto short_size =
+            const_power(static_cast<Index>(config.width), lhs_degree);
+        const auto remainder_size = config.tile_size / short_size;
+        stride_read_panel<Ctx, TilePower>(ctx,
+                                          left_panel.data(),
+                                          lhs.degree_view(lhs_degree),
+                                          short_size,
+                                          1,
+                                          0);
+        const auto right = rhs.degree_view(rhs_degree);
+        for (Index remainder = 0; remainder < remainder_size; ++remainder) {
+            const auto offset =
+                (remainder * middle_size + pos.middle_word) * config.tile_size;
+            stride_read_panel<Ctx, TilePower>(ctx,
+                                              right_panel.data(),
+                                              right,
+                                              pos.suffix_subtile_size,
+                                              1,
+                                              offset);
+            for (Index i = 0; i < short_size; ++i) {
+                const auto row = i * remainder_size + remainder;
+                for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
+                    out_tile[row * tile_size + j] +=
+                        left_panel[i] * right_panel[j];
+                }
+            }
+        }
+    }
+}
+
+// Split within the suffix block: suffix = remainder * short_size + short_rhs.
+// Each remainder selects a strided lhs panel and a contiguous group of columns.
+template <typename Ctx,
+          unsigned TilePower,
+          typename LhsTensor,
+          typename RhsTensor>
+void right_small_terms(
+    Ctx const& ctx,
+    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower)> out_tile,
+    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> left_panel,
+    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> right_panel,
+    LhsTensor const& lhs,
+    RhsTensor const& rhs,
+    TileConfig<Ctx, TilePower> const& config,
+    SubtilePosition<Ctx> const& pos) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    constexpr Index tile_size = Index{1} << TilePower;
+    if (config.tile_letters <= 1) {
+        return;
+    }
+    assert(config.tile_size <= tile_size);
+    assert(pos.prefix_subtile_offset == 0 && pos.suffix_subtile_offset == 0);
+    const auto middle_size =
+        const_power(static_cast<Index>(config.width), pos.middle_degree);
+    const auto degree = pos.middle_degree + 2 * config.tile_letters;
+    for (Degree rhs_degree = 1; rhs_degree < config.tile_letters;
+         ++rhs_degree) {
+        const auto lhs_degree = degree - rhs_degree;
+        if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
+            continue;
+        }
+        const auto short_size =
+            const_power(static_cast<Index>(config.width), rhs_degree);
+        const auto remainder_size = config.tile_size / short_size;
+        stride_read_panel<Ctx, TilePower>(ctx,
+                                          right_panel.data(),
+                                          rhs.degree_view(rhs_degree),
+                                          short_size,
+                                          1,
+                                          0);
+        const auto left = lhs.degree_view(lhs_degree);
+        for (Index remainder = 0; remainder < remainder_size; ++remainder) {
+            const auto offset = pos.middle_word * remainder_size + remainder;
+            stride_read_panel<Ctx, TilePower>(ctx,
+                                              left_panel.data(),
+                                              left,
+                                              pos.prefix_subtile_size,
+                                              middle_size * remainder_size,
+                                              offset);
+            for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+                for (Index j = 0; j < short_size; ++j) {
+                    const auto column = remainder * short_size + j;
+                    out_tile[i * tile_size + column] +=
+                        left_panel[i] * right_panel[j];
+                }
+            }
+        }
+    }
+}
+
+// The two scalar contributions lhs[0] * rhs[d] and lhs[d] * rhs[0].
+// Each source row is contiguous; no word splitting is needed.
+template <typename Ctx,
+          unsigned TilePower,
+          typename LhsTensor,
+          typename RhsTensor>
+void scalar_terms(AccumOf<Ctx>* out_tile,
+                  LhsTensor const& lhs,
+                  RhsTensor const& rhs,
+                  TileConfig<Ctx, TilePower> const& config,
+                  SubtilePosition<Ctx> const& pos) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    const auto degree = pos.middle_degree + 2 * config.tile_letters;
+    const auto middle_size =
+        const_power(static_cast<Index>(config.width), pos.middle_degree);
+    const auto row_stride = middle_size * config.tile_size;
+    const auto offset =
+        (pos.prefix_subtile_offset * middle_size + pos.middle_word) *
+            config.tile_size +
+        pos.suffix_subtile_offset;
+    if (lhs.has_degree(0) && rhs.has_degree(degree)) {
+        const auto scalar = static_cast<Accum>(lhs[0]);
+        const auto right = rhs.degree_view(degree);
+        for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+            const auto source_offset = offset + i * row_stride;
+            for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
+                out_tile[i * tile_size + j] +=
+                    scalar * static_cast<Accum>(right[source_offset + j]);
+            }
+        }
+    }
+    if (lhs.has_degree(degree) && rhs.has_degree(0)) {
+        const auto left = lhs.degree_view(degree);
+        const auto scalar = static_cast<Accum>(rhs[0]);
+        for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+            const auto source_offset = offset + i * row_stride;
+            for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
+                out_tile[i * tile_size + j] +=
+                    static_cast<Accum>(left[source_offset + j]) * scalar;
+            }
+        }
+    }
+}
+
+// Without subtiling, each remaining degree fits in one flat storage tile.
+// Read operand levels directly and write only after the whole product is ready.
+template <typename Ctx,
+          unsigned TilePower,
+          typename TensorOut,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Writer>
+void low_degree_terms(Ctx const& ctx,
+                      TileConfig<Ctx, TilePower> const& config,
+                      TensorOut& out,
+                      LhsTensor const& lhs,
+                      RhsTensor const& rhs,
+                      Span<AccumOf<Ctx>> tile,
+                      Writer& write) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    const auto low_max =
+        std::min<Degree>(out.max_degree(), 2 * config.tile_letters - 1);
+    for (Degree degree = low_max; degree >= out.min_degree(); --degree) {
+        const auto count =
+            const_power(static_cast<Index>(config.width), degree);
+        assert(static_cast<size_t>(count) <= tile.size());
+        std::fill_n(tile.data(), count, Accum{0});
+        const auto rhs_min =
+            std::max<Degree>(rhs.min_degree(), degree - lhs.max_degree());
+        const auto rhs_max =
+            std::min<Degree>(rhs.max_degree(), degree - lhs.min_degree());
+        for (Degree rhs_degree = rhs_min; rhs_degree <= rhs_max; ++rhs_degree) {
+            const auto left = lhs.degree_view(degree - rhs_degree);
+            const auto right = rhs.degree_view(rhs_degree);
+            const auto rhs_size = static_cast<Index>(right.size());
+            for (Index i = 0; i < left.size(); ++i) {
+                const auto value = static_cast<Accum>(left[i]);
+                for (Index j = 0; j < rhs_size; ++j) {
+                    tile[i * rhs_size + j] +=
+                        value * static_cast<Accum>(right[j]);
+                }
+            }
+        }
+        write(ctx,
+              out,
+              Span<Accum const>{tile.data(), static_cast<size_t>(count)},
+              degree,
+              Index{0});
+    }
+}
+
+// With single-letter tiles, degrees >= 2 belong to the main tiled loop.
+// Only the scalar-vector products at degree 1 and the scalar product remain.
+template <typename Ctx,
+          unsigned TilePower,
+          typename TensorOut,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Writer>
+void subtiled_low_degree_terms(Ctx const& ctx,
+                               TileConfig<Ctx, TilePower> const& config,
+                               TensorOut& out,
+                               LhsTensor const& lhs,
+                               RhsTensor const& rhs,
+                               Span<AccumOf<Ctx>> tile,
+                               Writer& write) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    assert(config.tile_letters == 1);
+    if (out.has_degree(1)) {
+        const auto width = static_cast<Index>(config.width);
+        const auto capacity = static_cast<Index>(tile.size());
+        for (Index offset = 0; offset < width; offset += capacity) {
+            const auto count = std::min(capacity, width - offset);
+            std::fill_n(tile.data(), count, Accum{0});
+            if (lhs.has_degree(0) && rhs.has_degree(1)) {
+                const auto scalar = static_cast<Accum>(lhs[0]);
+                const auto right = rhs.degree_view(1);
+                for (Index i = 0; i < count; ++i) {
+                    tile[i] += scalar * static_cast<Accum>(right[offset + i]);
+                }
+            }
+            if (lhs.has_degree(1) && rhs.has_degree(0)) {
+                const auto left = lhs.degree_view(1);
+                const auto scalar = static_cast<Accum>(rhs[0]);
+                for (Index i = 0; i < count; ++i) {
+                    tile[i] += static_cast<Accum>(left[offset + i]) * scalar;
+                }
+            }
+            write(ctx,
+                  out,
+                  Span<Accum const>{tile.data(), static_cast<size_t>(count)},
+                  1,
+                  offset);
+        }
+    }
+    if (out.has_degree(0)) {
+        tile[0] = Accum{0};
+        if (lhs.has_degree(0) && rhs.has_degree(0)) {
+            tile[0] = static_cast<Accum>(lhs[0]) * static_cast<Accum>(rhs[0]);
+        }
+        write(ctx, out, Span<Accum const>{tile.data(), size_t{1}}, 0, Index{0});
+    }
+}
+
+
+} // namespace detail
 #endif // RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_DETAIL_FT_MULTIPLY_HPP
