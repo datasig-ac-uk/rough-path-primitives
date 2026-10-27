@@ -9,6 +9,7 @@
 
 #include <rpp/config.h>
 
+#include <rpp/operations/basic/ft_inplace_fma.hpp>
 #include <rpp/support/span.hpp>
 #include <rpp/utility.hpp>
 
@@ -31,15 +32,169 @@ struct SubtilePosition {
 
     Degree width;
     Degree tile_letters;
-    Index subtile_size;
+    Index subtile_size; // Physical side length B, including unused lanes.
 
     Index middle_word;
     Degree middle_degree;
 
     Index prefix_subtile_offset = 0;
     Index suffix_subtile_offset = 0;
+
+    Index tile_size; // W^tile_letters: full logical side length.
+    Index prefix_subtile_size; // min(B, tile_size - prefix_subtile_offset).
+    Index suffix_subtile_size; // min(B, tile_size - suffix_subtile_offset).
 };
 
+
+template <typename Ctx>
+class ScaledTileWriter {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    Accum beta{1};
+
+public:
+    explicit ScaledTileWriter(Accum beta_ = Accum{1}) : beta(beta_) {}
+
+    template <typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void
+    operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
+               TensorOut& out,
+               Tile tile,
+               SubtilePosition<Ctx> const& subtile_position) {
+        using Scalar = typename TensorOut::value_type;
+
+        const auto degree =
+            subtile_position.middle_degree + 2 * subtile_position.tile_letters;
+        assert(out.has_degree(degree));
+        auto out_level = out.degree_view(degree);
+
+        auto& prefix = subtile_position.prefix_subtile_offset;
+        auto& suffix = subtile_position.suffix_subtile_offset;
+        auto& tile_size = subtile_position.tile_size;
+        const auto middle_size =
+            const_power(static_cast<Index>(subtile_position.width),
+                        subtile_position.middle_degree);
+        auto& middle_index = subtile_position.middle_word;
+        auto& tile_width = subtile_position.subtile_size;
+
+        for (Index i = 0; i < subtile_position.prefix_subtile_size; ++i) {
+            for (Index j = 0; j < subtile_position.suffix_subtile_size; ++j) {
+                auto index =
+                    ((i + prefix) * middle_size + middle_index) * tile_size +
+                    (j + suffix);
+                out_level[index] =
+                    static_cast<Scalar>(beta * tile[i * tile_width + j]);
+            }
+        }
+    }
+};
+
+template <typename Ctx, typename TensorA>
+class ScaledTileAddWriter {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    TensorA const& a;
+
+    Accum alpha{1};
+    Accum beta{1};
+
+public:
+    explicit ScaledTileAddWriter(TensorA const& a_,
+                                 Accum alpha_ = Accum{1},
+                                 Accum beta_ = Accum{1})
+        : a(a_), alpha(alpha_), beta(beta_) {}
+
+    template <typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void
+    operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
+               TensorOut& out,
+               Tile tile,
+               SubtilePosition<Ctx> const& subtile_position) {
+        using Scalar = typename TensorOut::value_type;
+
+        const auto degree =
+            subtile_position.middle_degree + 2 * subtile_position.tile_letters;
+        assert(out.has_degree(degree));
+        auto out_level = out.degree_view(degree);
+
+        auto& prefix = subtile_position.prefix_subtile_offset;
+        auto& suffix = subtile_position.suffix_subtile_offset;
+        auto& tile_size = subtile_position.tile_size;
+        const auto middle_size =
+            const_power(static_cast<Index>(subtile_position.width),
+                        subtile_position.middle_degree);
+        auto& middle_index = subtile_position.middle_word;
+        auto& tile_width = subtile_position.subtile_size;
+
+        if (a.has_degree(degree)) {
+            auto a_level = a.degree_view(degree);
+            for (Index i = 0; i < subtile_position.prefix_subtile_size; ++i) {
+                for (Index j = 0; j < subtile_position.suffix_subtile_size;
+                     ++j) {
+                    auto index = ((i + prefix) * middle_size + middle_index) *
+                            tile_size +
+                        (j + suffix);
+                    out_level[index] = static_cast<Scalar>(
+                        alpha * static_cast<Accum>(a_level[index]) +
+                        beta * tile[i * tile_width + j]);
+                }
+            }
+        }
+        else {
+            for (Index i = 0; i < subtile_position.prefix_subtile_size; ++i) {
+                for (Index j = 0; j < subtile_position.suffix_subtile_size;
+                     ++j) {
+                    out_level[((i + prefix) * middle_size + middle_index) *
+                                  tile_size +
+                              (j + suffix)] =
+                        static_cast<Scalar>(beta * tile[i * tile_width + j]);
+                }
+            }
+        }
+    }
+};
+
+// The caller accumulates the complete product tile before updating an operand,
+// visiting output degrees from highest to lowest.
+template <typename Ctx>
+class InplaceMulTileWriter : public ScaledTileWriter<Ctx> {
+public:
+    using ScaledTileWriter<Ctx>::ScaledTileWriter;
+};
+
+// For 123 and 213 the tile contains a*b or b*a respectively, and c is
+// the additive source. Operand selection belongs to the multiplication driver.
+template <typename Ctx, ops::FTInplaceFMAType FMAType, typename TensorC = void>
+class InplaceFmaTileWriter : public ScaledTileAddWriter<Ctx, TensorC> {
+    static_assert(FMAType == ops::FTInplaceFMAType::AEqualsABPlusC ||
+                  FMAType == ops::FTInplaceFMAType::AEqualsBAPlusC);
+
+public:
+    using ScaledTileAddWriter<Ctx, TensorC>::ScaledTileAddWriter;
+};
+
+// For 231 the additive source is the output itself. Read each old entry
+// during the final write, after its product contributions have been gathered.
+template <typename Ctx>
+class InplaceFmaTileWriter<Ctx, ops::FTInplaceFMAType::AEqualsBCPlusA> {
+    using Accum = AccumOf<Ctx>;
+    Accum alpha;
+    Accum beta;
+
+public:
+    explicit InplaceFmaTileWriter(Accum alpha_ = Accum{1},
+                                  Accum beta_ = Accum{1})
+        : alpha(alpha_), beta(beta_) {}
+
+    template <typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void operator()(Ctx const& ctx,
+                                    TensorOut& out,
+                                    Tile tile,
+                                    SubtilePosition<Ctx> const& pos) {
+        ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
+            ctx, out, tile, pos);
+    }
+};
 
 namespace detail {
 
@@ -99,9 +254,7 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
     constexpr Index tile_size = Index{1} << TilePower;
     constexpr Degree max_panels = Degree{1} << (TilePower - 1);
 
-    const auto prefix_shift =
-        const_power(static_cast<Index>(subtile_position.width),
-                    subtile_position.tile_letters);
+    const auto prefix_shift = subtile_position.tile_size;
 
     for (Degree split_deg_start = 0;
          split_deg_start <= subtile_position.middle_degree;
@@ -136,18 +289,14 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
                 ctx,
                 &left_panel[panel_idx * tile_size],
                 lhs.degree_view(lhs_degree),
-                std::min<Index>(prefix_shift -
-                                    subtile_position.prefix_subtile_offset,
-                                tile_size),
+                subtile_position.prefix_subtile_size,
                 lhs_stride,
                 lhs_idx + subtile_position.prefix_subtile_offset * lhs_stride);
             stride_read_panel<Ctx, TilePower>(
                 ctx,
                 &right_panel[panel_idx * tile_size],
                 rhs.degree_view(rhs_degree),
-                std::min<Index>(prefix_shift -
-                                    subtile_position.suffix_subtile_offset,
-                                tile_size),
+                subtile_position.suffix_subtile_size,
                 rhs_stride,
                 rhs_idx + subtile_position.suffix_subtile_offset * rhs_stride);
 
