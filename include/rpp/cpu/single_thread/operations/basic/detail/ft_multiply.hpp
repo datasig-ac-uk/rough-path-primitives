@@ -249,8 +249,8 @@ public:
 
 // For 231 the additive source is the output itself. Read each old entry
 // during the final write, after its product contributions have been gathered.
-template <typename Ctx>
-class InplaceFmaTileWriter<Ctx, ops::FTInplaceFMAType::AEqualsBCPlusA> {
+template <typename Ctx, typename TensorC>
+class InplaceFmaTileWriter<Ctx, ops::FTInplaceFMAType::AEqualsBCPlusA, TensorC> {
     using Accum = AccumOf<Ctx>;
     Accum alpha;
     Accum beta;
