@@ -1,3 +1,4 @@
+#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -47,6 +48,8 @@ protected:
         return {data.data(), basis, range.min, range.max};
     }
 
+    template <rpp::ops::FTInplaceFMAType FMAType =
+                  rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>
     static void
     expect_inplace_fma_matches_out_of_place(DegreeRange a_range,
                                             DegreeRange b_range,
@@ -70,10 +73,36 @@ protected:
         auto const c_view = const_tensor_view(c, basis, c_range);
 
         auto const ctx = make_context();
-        rpp::ops::FTInplaceFma231<Strategy>{}(
+        rpp::ops::FTInplaceFma<Strategy, FMAType>{}(
             ctx, inplace_a_view, b_view, c_view, alpha, beta);
-        rpp::ops::FTFma<Strategy>{}(
-            ctx, expected_view, initial_a_view, b_view, c_view, alpha, beta);
+        if constexpr (FMAType == rpp::ops::FTInplaceFMAType::AEqualsBCPlusA) {
+            rpp::ops::FTFma<Strategy>{}(ctx,
+                                        expected_view,
+                                        initial_a_view,
+                                        b_view,
+                                        c_view,
+                                        alpha,
+                                        beta);
+        }
+        else if constexpr (FMAType ==
+                           rpp::ops::FTInplaceFMAType::AEqualsABPlusC) {
+            rpp::ops::FTFma<Strategy>{}(ctx,
+                                        expected_view,
+                                        c_view,
+                                        initial_a_view,
+                                        b_view,
+                                        alpha,
+                                        beta);
+        }
+        else {
+            rpp::ops::FTFma<Strategy>{}(ctx,
+                                        expected_view,
+                                        c_view,
+                                        b_view,
+                                        initial_a_view,
+                                        alpha,
+                                        beta);
+        }
 
         EXPECT_EQ(inplace_a, expected);
     }
@@ -107,6 +136,70 @@ TEST_F(FreeTensorInplaceFmaTests,
 
     expect_inplace_fma_matches_out_of_place(
         {1, depth}, {0, 2}, {1, depth}, alpha, beta);
+}
+
+TEST_F(FreeTensorInplaceFmaTests,
+       OtherProductPositionsRespectOperandOrderAndRanges) {
+    using Type = rpp::ops::FTInplaceFMAType;
+    static_assert(
+        std::is_same_v<rpp::ops::FTInplaceFma213<Strategy>,
+                       rpp::ops::FTInplaceFma<Strategy, Type::AEqualsBAPlusC>>);
+    const auto alpha = make_scalar({{{{'p', 1}}, 3, 2}});
+    const auto beta = make_scalar({{{{'q', 2}}, 5, 3}});
+    for (auto const& ranges :
+         rpp::tests::ft_inplace_degree_range_cases<DegreeRange>()) {
+        SCOPED_TRACE(ranges.name);
+        expect_inplace_fma_matches_out_of_place<Type::AEqualsABPlusC>(
+            ranges.a, ranges.b, ranges.c, alpha, beta);
+        expect_inplace_fma_matches_out_of_place<Type::AEqualsBAPlusC>(
+            ranges.a, ranges.b, ranges.c, alpha, beta);
+    }
+}
+
+TEST_F(FreeTensorInplaceFmaTests,
+       OtherProductPositionsWorkThroughKernelWrapper) {
+    using Wrapper = rpp::tests::CpuKernelWrapperTestHelper;
+    using Type = rpp::ops::FTInplaceFMAType;
+    const Wrapper::BasisData basis_data(Wrapper::width, Wrapper::depth);
+    const auto& basis = basis_data.basis;
+    auto verify = [&](auto tag) {
+        constexpr auto type = decltype(tag)::value;
+        auto actual = Wrapper::make_batch('a', basis);
+        auto expected = actual;
+        const auto initial = actual;
+        const auto b = Wrapper::make_batch('b', basis);
+        const auto c = Wrapper::make_batch('c', basis);
+        const auto alpha = Scalar{2};
+        const auto beta = Scalar{-3};
+        const auto error =
+            rpp::ops::ft_inplace_fma<type>(Wrapper::Strategy{},
+                                           {},
+                                           Wrapper::tensor_batch(actual, basis),
+                                           Wrapper::tensor_batch(b, basis),
+                                           Wrapper::tensor_batch(c, basis),
+                                           basis,
+                                           Wrapper::tensor_count,
+                                           alpha,
+                                           beta);
+        EXPECT_TRUE(static_cast<bool>(error)) << error.message();
+        for (Wrapper::Index i = 0; i < Wrapper::tensor_count; ++i) {
+            auto out = Wrapper::tensor_view(expected, basis, i);
+            const auto a_view = Wrapper::tensor_view(initial, basis, i);
+            const auto b_view = Wrapper::tensor_view(b, basis, i);
+            const auto c_view = Wrapper::tensor_view(c, basis, i);
+            if constexpr (type == Type::AEqualsABPlusC) {
+                rpp::ops::FTFma<Wrapper::Strategy>{}(
+                    make_context(), out, c_view, a_view, b_view, alpha, beta);
+            }
+            else {
+                rpp::ops::FTFma<Wrapper::Strategy>{}(
+                    make_context(), out, c_view, b_view, a_view, alpha, beta);
+            }
+        }
+        EXPECT_EQ(actual, expected);
+    };
+    verify(std::integral_constant<Type, Type::AEqualsABPlusC>{});
+    verify(std::integral_constant<Type, Type::AEqualsBAPlusC>{});
 }
 
 TEST_F(FreeTensorInplaceFmaTests, KernelWrapperMatchesDirectOperation) {
@@ -152,19 +245,21 @@ class NumericFreeTensorInplaceFmaTests
     : public rpp::tests::TypedCpuFreeTensorOpTestBase<Config> {
 protected:
     using Base = rpp::tests::TypedCpuFreeTensorOpTestBase<Config>;
-    using typename Base::Accum;
-    using typename Base::Basis;
-    using typename Base::ConstTensorView;
-    using typename Base::DegreeRange;
-    using typename Base::Strategy;
-    using typename Base::TensorView;
     using Base::const_tensor_view;
     using Base::expect_tensor_near;
     using Base::full_range;
     using Base::make_tensor;
     using Base::mutable_tensor_view;
     using Base::reference_fma;
+    using typename Base::Accum;
+    using typename Base::Basis;
+    using typename Base::ConstTensorView;
+    using typename Base::DegreeRange;
+    using typename Base::Strategy;
+    using typename Base::TensorView;
 
+    template <rpp::ops::FTInplaceFMAType FMAType =
+                  rpp::ops::FTInplaceFMAType::AEqualsBCPlusA>
     [[nodiscard]] static std::vector<typename Base::Scalar>
     run_inplace_fma(Basis const& basis,
                     std::vector<typename Base::Scalar> const& initial_a,
@@ -182,7 +277,7 @@ protected:
         auto const c_view = const_tensor_view(c, basis, c_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::FTInplaceFma231<Strategy>{}(
+        rpp::ops::FTInplaceFma<Strategy, FMAType>{}(
             ctx, a_view, b_view, c_view, alpha, beta);
         return a;
     }
@@ -191,7 +286,8 @@ protected:
 TYPED_TEST_SUITE(NumericFreeTensorInplaceFmaTests,
                  rpp::tests::TypedCpuFreeTensorTestTypes);
 
-TYPED_TEST(NumericFreeTensorInplaceFmaTests, MatchesOutOfPlaceReferenceOnFullView) {
+TYPED_TEST(NumericFreeTensorInplaceFmaTests,
+           MatchesOutOfPlaceReferenceOnFullView) {
     auto const basis_data =
         typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
     auto const& basis = basis_data.basis;
@@ -202,28 +298,28 @@ TYPED_TEST(NumericFreeTensorInplaceFmaTests, MatchesOutOfPlaceReferenceOnFullVie
     auto const b = TestFixture::make_tensor(2, basis);
     auto const c = TestFixture::make_tensor(3, basis);
 
-    auto const actual = TestFixture::run_inplace_fma(
-        basis,
-        initial_a,
-        b,
-        c,
-        TestFixture::full_range(basis),
-        TestFixture::full_range(basis),
-        TestFixture::full_range(basis),
-        alpha,
-        beta);
-    auto const expected = TestFixture::reference_fma(
-        basis,
-        initial_a,
-        initial_a,
-        b,
-        c,
-        TestFixture::full_range(basis),
-        TestFixture::full_range(basis),
-        TestFixture::full_range(basis),
-        TestFixture::full_range(basis),
-        alpha,
-        beta);
+    auto const actual =
+        TestFixture::run_inplace_fma(basis,
+                                     initial_a,
+                                     b,
+                                     c,
+                                     TestFixture::full_range(basis),
+                                     TestFixture::full_range(basis),
+                                     TestFixture::full_range(basis),
+                                     alpha,
+                                     beta);
+    auto const expected =
+        TestFixture::reference_fma(basis,
+                                   initial_a,
+                                   initial_a,
+                                   b,
+                                   c,
+                                   TestFixture::full_range(basis),
+                                   TestFixture::full_range(basis),
+                                   TestFixture::full_range(basis),
+                                   TestFixture::full_range(basis),
+                                   alpha,
+                                   beta);
     TestFixture::expect_tensor_near(actual, expected);
 }
 
@@ -266,18 +362,17 @@ TYPED_TEST(NumericFreeTensorInplaceFmaTests,
 
     auto const actual = TestFixture::run_inplace_fma(
         basis, initial_a, b, c, a_range, b_range, c_range, alpha, beta);
-    auto const expected = TestFixture::reference_fma(
-        basis,
-        initial_a,
-        initial_a,
-        b,
-        c,
-        a_range,
-        a_range,
-        b_range,
-        c_range,
-        alpha,
-        beta);
+    auto const expected = TestFixture::reference_fma(basis,
+                                                     initial_a,
+                                                     initial_a,
+                                                     b,
+                                                     c,
+                                                     a_range,
+                                                     a_range,
+                                                     b_range,
+                                                     c_range,
+                                                     alpha,
+                                                     beta);
     TestFixture::expect_tensor_near(actual, expected);
 }
 
@@ -293,17 +388,91 @@ TYPED_TEST(NumericFreeTensorInplaceFmaTests,
     auto const c = TestFixture::make_tensor(53, basis);
     auto const beta = typename TestFixture::Accum{-1.25};
 
-    for (auto const& ranges : rpp::tests::ft_inplace_degree_range_cases<Range>()) {
+    for (auto const& ranges :
+         rpp::tests::ft_inplace_degree_range_cases<Range>()) {
         SCOPED_TRACE(ranges.name);
         for (auto const alpha : {typename TestFixture::Accum{0},
                                  typename TestFixture::Accum{0.5}}) {
             SCOPED_TRACE(static_cast<double>(alpha));
-            auto const actual = TestFixture::run_inplace_fma(
-                basis, initial_a, b, c, ranges.a, ranges.b, ranges.c, alpha, beta);
-            auto const expected = TestFixture::reference_fma(
-                basis, initial_a, initial_a, b, c,
-                ranges.a, ranges.a, ranges.b, ranges.c, alpha, beta);
+            auto const actual = TestFixture::run_inplace_fma(basis,
+                                                             initial_a,
+                                                             b,
+                                                             c,
+                                                             ranges.a,
+                                                             ranges.b,
+                                                             ranges.c,
+                                                             alpha,
+                                                             beta);
+            auto const expected = TestFixture::reference_fma(basis,
+                                                             initial_a,
+                                                             initial_a,
+                                                             b,
+                                                             c,
+                                                             ranges.a,
+                                                             ranges.a,
+                                                             ranges.b,
+                                                             ranges.c,
+                                                             alpha,
+                                                             beta);
             TestFixture::expect_tensor_near(actual, expected);
+        }
+    }
+}
+
+TYPED_TEST(NumericFreeTensorInplaceFmaTests,
+           OtherProductPositionsMatchReference) {
+    using Type = rpp::ops::FTInplaceFMAType;
+    using Range = typename TestFixture::DegreeRange;
+    using Accum = typename TestFixture::Accum;
+    for (auto width : {1, 3}) {
+        const typename TestFixture::BasisData basis_data(width,
+                                                         TestFixture::depth);
+        const auto& basis = basis_data.basis;
+        const auto initial_a = TestFixture::make_tensor(61, basis);
+        const auto b = TestFixture::make_tensor(62, basis);
+        const auto c = TestFixture::make_tensor(63, basis);
+        for (const auto& ranges :
+             rpp::tests::ft_inplace_degree_range_cases<Range>()) {
+            SCOPED_TRACE(ranges.name);
+            auto verify = [&](auto tag) {
+                constexpr auto type = decltype(tag)::value;
+                const auto actual =
+                    TestFixture::template run_inplace_fma<type>(basis,
+                                                                initial_a,
+                                                                b,
+                                                                c,
+                                                                ranges.a,
+                                                                ranges.b,
+                                                                ranges.c,
+                                                                Accum{0.75},
+                                                                Accum{-1.25});
+                const auto expected = type == Type::AEqualsABPlusC
+                    ? TestFixture::reference_fma(basis,
+                                                 initial_a,
+                                                 c,
+                                                 initial_a,
+                                                 b,
+                                                 ranges.a,
+                                                 ranges.c,
+                                                 ranges.a,
+                                                 ranges.b,
+                                                 Accum{0.75},
+                                                 Accum{-1.25})
+                    : TestFixture::reference_fma(basis,
+                                                 initial_a,
+                                                 c,
+                                                 b,
+                                                 initial_a,
+                                                 ranges.a,
+                                                 ranges.c,
+                                                 ranges.b,
+                                                 ranges.a,
+                                                 Accum{0.75},
+                                                 Accum{-1.25});
+                TestFixture::expect_tensor_near(actual, expected);
+            };
+            verify(std::integral_constant<Type, Type::AEqualsABPlusC>{});
+            verify(std::integral_constant<Type, Type::AEqualsBAPlusC>{});
         }
     }
 }
