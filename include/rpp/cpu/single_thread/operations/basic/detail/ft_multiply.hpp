@@ -670,8 +670,8 @@ TileConfig<Ctx, TilePower> select_tile_config(Ctx const& ctx RPP_MAYBE_UNUSED,
 
     const auto width = static_cast<Index>(config.width);
 
-    for (; config.tile_letters < basis.depth &&
-         static_cast<size_t>(config.tile_size * config.tile_size * width * width) <= Config::tile_extent;
+    for (;static_cast<size_t>(config.tile_size * config.tile_size * width *
+                             width) <= Config::tile_extent;
          ++config.tile_letters) {
         config.tile_size *= width;
     }
