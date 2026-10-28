@@ -385,8 +385,7 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
 
 
 // Split within the prefix block: prefix = short_lhs * remainder_size +
-// remainder. Each remainder selects one contiguous rhs panel and a strided
-// group of rows.
+// remainder. Pack rhs panels by remainder, then visit output rows in order.
 template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
@@ -412,14 +411,19 @@ void left_small_terms(
     const auto middle_size =
         const_power(static_cast<Index>(config.width), pos.middle_degree);
     const auto degree = pos.middle_degree + 2 * config.tile_letters;
-    for (Degree lhs_degree = 1; lhs_degree < config.tile_letters;
-         ++lhs_degree) {
+    const auto min_degree = std::max<Degree>(
+        1, std::max(lhs.min_degree(), degree - rhs.max_degree()));
+    const auto max_degree =
+        std::min<Degree>(config.tile_letters - 1,
+                         std::min(lhs.max_degree(), degree - rhs.min_degree()));
+    if (min_degree > max_degree) {
+        return;
+    }
+    const auto width = static_cast<Index>(config.width);
+    auto short_size = const_power(width, min_degree);
+    for (Degree lhs_degree = min_degree; lhs_degree <= max_degree;
+         ++lhs_degree, short_size *= width) {
         const auto rhs_degree = degree - lhs_degree;
-        if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
-            continue;
-        }
-        const auto short_size =
-            const_power(static_cast<Index>(config.width), lhs_degree);
         const auto remainder_size = config.tile_size / short_size;
         stride_read_panel<Ctx, TilePower>(ctx,
                                           left_panel.data(),
@@ -428,28 +432,37 @@ void left_small_terms(
                                           1,
                                           0);
         const auto right = rhs.degree_view(rhs_degree);
+        assert(remainder_size * tile_size <=
+               static_cast<Index>(right_panel.size()));
+        // Keep every remainder panel so output rows can be updated in order.
+        const auto source_stride = middle_size * config.tile_size;
+        auto source_offset = pos.middle_word * config.tile_size;
         for (Index remainder = 0; remainder < remainder_size; ++remainder) {
-            const auto offset =
-                (remainder * middle_size + pos.middle_word) * config.tile_size;
             stride_read_panel<Ctx, TilePower>(ctx,
-                                              right_panel.data(),
+                                              right_panel.data() +
+                                                  remainder * tile_size,
                                               right,
                                               pos.suffix_subtile_size,
                                               1,
-                                              offset);
-            for (Index i = 0; i < short_size; ++i) {
-                const auto row = i * remainder_size + remainder;
+                                              source_offset);
+            source_offset += source_stride;
+        }
+        for (Index i = 0; i < short_size; ++i) {
+            const auto value = left_panel[i];
+            auto* row = out_tile.data() + i * remainder_size * tile_size;
+            for (Index remainder = 0; remainder < remainder_size; ++remainder) {
+                const auto* panel = right_panel.data() + remainder * tile_size;
                 for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
-                    out_tile[row * tile_size + j] +=
-                        left_panel[i] * right_panel[j];
+                    row[j] += value * panel[j];
                 }
+                row += tile_size;
             }
         }
     }
 }
 
 // Split within the suffix block: suffix = remainder * short_size + short_rhs.
-// Each remainder selects a strided lhs panel and a contiguous group of columns.
+// Pack lhs remainders contiguously per row, then visit output columns in order.
 template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
@@ -474,14 +487,19 @@ void right_small_terms(
     const auto middle_size =
         const_power(static_cast<Index>(config.width), pos.middle_degree);
     const auto degree = pos.middle_degree + 2 * config.tile_letters;
-    for (Degree rhs_degree = 1; rhs_degree < config.tile_letters;
-         ++rhs_degree) {
+    const auto min_degree = std::max<Degree>(
+        1, std::max(rhs.min_degree(), degree - lhs.max_degree()));
+    const auto max_degree =
+        std::min<Degree>(config.tile_letters - 1,
+                         std::min(rhs.max_degree(), degree - lhs.min_degree()));
+    if (min_degree > max_degree) {
+        return;
+    }
+    const auto width = static_cast<Index>(config.width);
+    auto short_size = const_power(width, min_degree);
+    for (Degree rhs_degree = min_degree; rhs_degree <= max_degree;
+         ++rhs_degree, short_size *= width) {
         const auto lhs_degree = degree - rhs_degree;
-        if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
-            continue;
-        }
-        const auto short_size =
-            const_power(static_cast<Index>(config.width), rhs_degree);
         const auto remainder_size = config.tile_size / short_size;
         stride_read_panel<Ctx, TilePower>(ctx,
                                           right_panel.data(),
@@ -490,20 +508,30 @@ void right_small_terms(
                                           1,
                                           0);
         const auto left = lhs.degree_view(lhs_degree);
-        for (Index remainder = 0; remainder < remainder_size; ++remainder) {
-            const auto offset = pos.middle_word * remainder_size + remainder;
+        assert(pos.prefix_subtile_size * remainder_size <=
+               static_cast<Index>(left_panel.size()));
+        // Read each source run contiguously, retaining all remainders per row.
+        const auto source_stride = middle_size * remainder_size;
+        auto source_offset = pos.middle_word * remainder_size;
+        for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
             stride_read_panel<Ctx, TilePower>(ctx,
-                                              left_panel.data(),
+                                              left_panel.data() +
+                                                  i * remainder_size,
                                               left,
-                                              pos.prefix_subtile_size,
-                                              middle_size * remainder_size,
-                                              offset);
-            for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+                                              remainder_size,
+                                              1,
+                                              source_offset);
+            source_offset += source_stride;
+        }
+        for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+            auto* row = out_tile.data() + i * tile_size;
+            const auto* panel = left_panel.data() + i * remainder_size;
+            for (Index remainder = 0; remainder < remainder_size; ++remainder) {
+                const auto value = panel[remainder];
                 for (Index j = 0; j < short_size; ++j) {
-                    const auto column = remainder * short_size + j;
-                    out_tile[i * tile_size + column] +=
-                        left_panel[i] * right_panel[j];
+                    row[j] += value * right_panel[j];
                 }
+                row += short_size;
             }
         }
     }
@@ -712,7 +740,7 @@ void multiply(Ctx const& ctx,
     assert(side <= tile_size || tile_letters == 1);
     assert(out.basis().width == config.width);
 
-    alignas(64) std::array<Accum, tile_extent> tile {};
+    alignas(64) std::array<Accum, tile_extent> tile{};
     // Initialize once: unused lanes may retain values between panel reads.
     alignas(64) std::array<Accum, panel_extent> left_panel{};
     alignas(64) std::array<Accum, panel_extent> right_panel{};
