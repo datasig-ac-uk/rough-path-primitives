@@ -13,7 +13,9 @@
 
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
 
+#include <rpp/cpu/single_thread/operations/basic/detail/ft_multiply.hpp>
 #include <rpp/cpu/single_thread/strategy.hpp>
+
 namespace rpp::ops {
 
 // TODO: The inplace a <- a*b + c and a <- b*a + c variants need a different
@@ -77,51 +79,17 @@ public:
                     TensorC const& c,
                     Accum alpha = Accum{1},
                     Accum beta = Accum{1}) const noexcept {
-        ignore_unused(ctx);
+        namespace ftm = cpu::single_thread::ft_multiply;
 
-        using Scalar = typename TensorA::value_type;
-
-        auto a_min_degree = std::max(Degree{1}, a.min_degree());
-
-        for (Degree a_degree = a.max_degree(); a_degree >= a_min_degree;
-             --a_degree) {
-            auto const b_deg_max =
-                std::min(b.max_degree(), a_degree - c.min_degree());
-            auto const b_deg_min =
-                std::max(b.min_degree(), a_degree - c.max_degree());
-
-            auto a_frag = a.degree_view(a_degree);
-
-            for (Index i = 0; i < a_frag.size(); ++i) {
-                a_frag[i] = static_cast<Scalar>(alpha * Accum{a_frag[i]});
-            }
-
-            for (Degree b_degree = b_deg_max; b_degree >= b_deg_min;
-                 --b_degree) {
-                auto const c_degree = a_degree - b_degree;
-
-                auto b_frag = b.degree_view(b_degree);
-                auto c_frag = c.degree_view(c_degree);
-
-
-                for (Index i = 0; i < b_frag.size(); ++i) {
-                    for (Index j = 0; j < c_frag.size(); ++j) {
-                        auto& value = a_frag[i * c_frag.size() + j];
-                        value = static_cast<Scalar>(Accum{value} +
-                                                    beta * Accum{b_frag[i]} *
-                                                        Accum{c_frag[j]});
-                    }
-                }
-            }
-        }
-
-        if (a.min_degree() == 0) {
-            a[0] = static_cast<Scalar>(alpha * Accum{a[0]});
-            if (b.min_degree() == 0 && c.min_degree() == 0) {
-                a[0] = static_cast<Scalar>(Accum{a[0]} +
-                                           beta * Accum{b[0]} * Accum{c[0]});
-            }
-        }
+        ftm::multiply(
+            ctx,
+            ftm::detail::select_tile_config<4>(ctx, a.basis()),
+            a,
+            b,
+            c,
+            ftm::InplaceFmaTileWriter<Context,
+                                      FTInplaceFMAType::AEqualsBCPlusA>{alpha,
+                                                                        beta});
     }
 };
 

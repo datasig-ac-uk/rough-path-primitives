@@ -15,6 +15,8 @@
 
 #include <rpp/cpu/single_thread/strategy.hpp>
 
+#include <rpp/cpu/single_thread/operations/basic/detail/ft_multiply.hpp>
+
 
 namespace rpp::ops {
 template <typename Accum_, typename Architecture>
@@ -45,59 +47,15 @@ public:
                     TensorC const& c,
                     Accum alpha = Accum{1},
                     Accum beta = Accum{1}) const noexcept {
-        using Scalar = typename TensorOut::value_type;
-        auto out_min_degree = std::max(Degree{1}, out.min_degree());
+        namespace ftm = cpu::single_thread::ft_multiply;
 
-        for (Degree out_degree = out.max_degree(); out_degree >= out_min_degree;
-             --out_degree) {
-            auto const lhs_deg_max =
-                std::min(b.max_degree(), out_degree - c.min_degree());
-            auto const lhs_deg_min =
-                std::max(b.min_degree(), out_degree - c.max_degree());
+        ftm::multiply(
+            ctx,
+            ftm::detail::select_tile_config<4>(ctx, out.basis()),
+            out, b, c,
+            ftm::ScaledTileAddWriter<Context, TensorA> {a, alpha, beta}
+            );
 
-            auto out_frag = out.degree_view(out_degree);
-            if (a.has_degree(out_degree)) {
-                const auto a_frag = a.degree_view(out_degree);
-                for (Index i = 0; i < out_frag.size(); ++i) {
-                    out_frag[i] = static_cast<Scalar>(alpha * Accum{a_frag[i]});
-                }
-            }
-            else {
-                for (Index i = 0; i < out_frag.size(); ++i) {
-                    out_frag[i] = Scalar{0};
-                }
-            }
-
-            for (Degree lhs_degree = lhs_deg_max; lhs_degree >= lhs_deg_min;
-                 --lhs_degree) {
-                auto const rhs_degree = out_degree - lhs_degree;
-
-                auto lhs_frag = b.degree_view(lhs_degree);
-                auto rhs_frag = c.degree_view(rhs_degree);
-
-                for (Index i = 0; i < lhs_frag.size(); ++i) {
-                    for (Index j = 0; j < rhs_frag.size(); ++j) {
-                        auto& value = out_frag[i * rhs_frag.size() + j];
-                        value = static_cast<Scalar>(Accum{value} +
-                                                    beta * Accum{lhs_frag[i]} *
-                                                        Accum{rhs_frag[j]});
-                    }
-                }
-            }
-        }
-
-        if (out.min_degree() == 0) {
-            Accum val{0};
-            if (a.min_degree() == 0) {
-                val += alpha * Accum{a[0]};
-            }
-            if (b.min_degree() == 0 && c.min_degree() == 0) {
-                const Accum b_val{b[0]};
-                const Accum c_val{c[0]};
-                val += beta * b_val * c_val;
-            }
-            out[0] = static_cast<Scalar>(val);
-        }
     }
 };
 } // namespace rpp::ops
