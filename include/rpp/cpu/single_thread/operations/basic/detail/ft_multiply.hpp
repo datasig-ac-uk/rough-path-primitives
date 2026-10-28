@@ -111,6 +111,18 @@ public:
             out_level[offset + i] = static_cast<Scalar>(beta * tile[i]);
         }
     }
+
+    // Width one: the tile contains consecutive degrees, one coefficient each.
+    template <typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
+                                    TensorOut& out,
+                                    Tile tile,
+                                    DegreeOf<Ctx> first_degree) {
+        using Scalar = typename TensorOut::value_type;
+        for (Index i = 0; i < static_cast<Index>(tile.size()); ++i) {
+            out[first_degree + i] = static_cast<Scalar>(beta * tile[i]);
+        }
+    }
 };
 
 template <typename Ctx, typename TensorA>
@@ -198,6 +210,22 @@ public:
             ScaledTileWriter<Ctx>{beta}(ctx, out, tile, degree, offset);
         }
     }
+
+    template <typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
+                                    TensorOut& out,
+                                    Tile tile,
+                                    DegreeOf<Ctx> first_degree) {
+        using Scalar = typename TensorOut::value_type;
+        for (Index i = 0; i < static_cast<Index>(tile.size()); ++i) {
+            const auto degree = first_degree + i;
+            Accum value = beta * tile[i];
+            if (a.has_degree(degree)) {
+                value += alpha * static_cast<Accum>(a[degree]);
+            }
+            out[degree] = static_cast<Scalar>(value);
+        }
+    }
 };
 
 // The caller accumulates the complete product tile before updating an operand,
@@ -250,6 +278,15 @@ public:
                                     IndexOf<Ctx> offset) {
         ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
             ctx, out, tile, degree, offset);
+    }
+
+    template <typename TensorOut, typename Tile>
+    RPP_FORCEINLINE void operator()(Ctx const& ctx,
+                                    TensorOut& out,
+                                    Tile tile,
+                                    DegreeOf<Ctx> first_degree) {
+        ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
+            ctx, out, tile, first_degree);
     }
 };
 
@@ -687,6 +724,42 @@ void subtiled_low_degree_terms(Ctx const& ctx,
 }
 
 
+// Width one is a scalar convolution across degrees. Complete each block
+// before writing it, and visit blocks from high to low for in-place updates.
+template <typename Ctx, typename TensorOut, typename LhsTensor,
+          typename RhsTensor, typename Writer>
+void width_one_terms(Ctx const& ctx, TensorOut& out,
+                     LhsTensor const& lhs, RhsTensor const& rhs,
+                     Span<AccumOf<Ctx>> tile, Writer& write) {
+    using Degree = DegreeOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    assert(tile.size() > 0);
+    const auto capacity = static_cast<Degree>(tile.size());
+    for (Degree last = out.max_degree(); last >= out.min_degree();) {
+        const auto first =
+            std::max<Degree>(out.min_degree(), last - capacity + 1);
+        const auto count = last - first + 1;
+        std::fill_n(tile.data(), count, Accum{0});
+        const auto lhs_min =
+            std::max<Degree>(lhs.min_degree(), first - rhs.max_degree());
+        const auto lhs_max =
+            std::min<Degree>(lhs.max_degree(), last - rhs.min_degree());
+        for (Degree ld = lhs_min; ld <= lhs_max; ++ld) {
+            const auto value = static_cast<Accum>(lhs[ld]);
+            const auto rhs_min = std::max<Degree>(rhs.min_degree(), first - ld);
+            const auto rhs_max = std::min<Degree>(rhs.max_degree(), last - ld);
+            for (Degree rd = rhs_min; rd <= rhs_max; ++rd) {
+                tile[ld + rd - first] += value * static_cast<Accum>(rhs[rd]);
+            }
+        }
+        write(ctx,
+              out,
+              Span<Accum const>{tile.data(), static_cast<size_t>(count)},
+              first);
+        last = first - 1;
+    }
+}
+
 template <unsigned TilePower, typename Ctx, typename Basis>
 TileConfig<Ctx, TilePower> select_tile_config(Ctx const& ctx RPP_MAYBE_UNUSED,
                                               Basis const& basis) {
@@ -698,11 +771,11 @@ TileConfig<Ctx, TilePower> select_tile_config(Ctx const& ctx RPP_MAYBE_UNUSED,
 
     const auto width = static_cast<Index>(config.width);
     if (width > 1) {
-        for (;static_cast<size_t>(config.tile_size * config.tile_size * width *
-                                 width) <= Config::tile_extent;
+        for (; static_cast<size_t>(config.tile_size * config.tile_size * width *
+                                   width) <= Config::tile_extent;
              ++config.tile_letters) {
             config.tile_size *= width;
-             }
+        }
     }
 
     return config;
@@ -742,6 +815,10 @@ void multiply(Ctx const& ctx,
     assert(out.basis().width == config.width);
 
     alignas(64) std::array<Accum, tile_extent> tile{};
+    if (width == 1) {
+        detail::width_one_terms(ctx, out, lhs, rhs, {tile.data(), tile.size()}, write);
+        return;
+    }
     // Initialize once: unused lanes may retain values between panel reads.
     alignas(64) std::array<Accum, panel_extent> left_panel{};
     alignas(64) std::array<Accum, panel_extent> right_panel{};
