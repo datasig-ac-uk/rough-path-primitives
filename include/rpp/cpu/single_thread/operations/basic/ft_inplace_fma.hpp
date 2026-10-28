@@ -18,45 +18,9 @@
 
 namespace rpp::ops {
 
-// TODO: The inplace a <- a*b + c and a <- b*a + c variants need a different
-// strategy
-
-// template<typename Accum_, typename Architecture, InplaceFMAType FMAType>
-// class FTInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_,
-// Architecture>, FMAType> {
-//     using Strategy = cpu::strategies::SingleThreadStrategy<Accum_,
-//     Architecture>; using Context = typename Strategy::Context; using Accum =
-//     typename Strategy::Accum;
-//
-//     using Index = typename Strategy::Index;
-//     using Degree = typename Strategy::Degree;
-//
-// public:
-//     template<typename Basis>
-//     static constexpr std::size_t scratch_space_size(Strategy const &strategy,
-//     Basis const &basis) noexcept {
-//         ignore_unused(strategy, basis);
-//         return 0;
-//     }
-//
-//     template<typename TensorA, typename TensorB, typename TensorC>
-//     void operator()(
-//         Context const &ctx,
-//         TensorA &a,
-//         TensorB const &b,
-//         TensorC const &c,
-//         Accum alpha = Accum{1},
-//         Accum beta = Accum{1}
-//     ) const noexcept {
-//         RPP_UNREACHABLE();
-//     }
-//
-// };
-
-
-template <typename Accum_, typename Architecture>
+template <typename Accum_, typename Architecture, FTInplaceFMAType FMAType>
 class FTInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
-                   FTInplaceFMAType::AEqualsBCPlusA>
+                   FMAType>
     : public BaseOperation<
           cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
     using Strategy =
@@ -81,15 +45,21 @@ public:
                     Accum beta = Accum{1}) const noexcept {
         namespace ftm = cpu::single_thread::ft_multiply;
 
-        ftm::multiply(
-            ctx,
-            ftm::detail::select_tile_config<4>(ctx, a.basis()),
-            a,
-            b,
-            c,
-            ftm::InplaceFmaTileWriter<Context,
-                                      FTInplaceFMAType::AEqualsBCPlusA>{alpha,
-                                                                        beta});
+        const auto config = ftm::detail::select_tile_config<4>(ctx, a.basis());
+        if constexpr (FMAType == FTInplaceFMAType::AEqualsBCPlusA) {
+            using Writer = ftm::InplaceFmaTileWriter<Context, FMAType, TensorA>;
+            ftm::multiply(ctx, config, a, b, c, Writer{alpha, beta});
+        }
+        else if constexpr (FMAType == FTInplaceFMAType::AEqualsABPlusC) {
+            using Writer = ftm::InplaceFmaTileWriter<Context, FMAType, TensorC>;
+            ftm::multiply(ctx, config, a, a, b, Writer{c, alpha, beta});
+        }
+        else {
+            static_assert(FMAType == FTInplaceFMAType::AEqualsBAPlusC,
+                          "unsupported in-place FMA type");
+            using Writer = ftm::InplaceFmaTileWriter<Context, FMAType, TensorC>;
+            ftm::multiply(ctx, config, a, b, a, Writer{c, alpha, beta});
+        }
     }
 };
 
