@@ -258,16 +258,31 @@ namespace detail {
 
 template <typename Ctx, unsigned TilePower>
 RPP_FORCEINLINE void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
+                                   TileConfig<Ctx, TilePower> const& config,
+                                   SubtilePosition<Ctx> const& pos,
                                    AccumOf<Ctx>* out_tile,
                                    AccumOf<Ctx> const* lhs_tile,
                                    AccumOf<Ctx> const* rhs_tile) {
     using Index = IndexOf<Ctx>;
 
+    constexpr Index vector_size = 4;
     constexpr Index tile_size = Index{1} << TilePower;
+    static_assert(tile_size >= vector_size,
+                  "tile size must be at least the vector size");
 
-    for (Index i = 0; i < tile_size; ++i) {
-        for (Index j = 0; j < tile_size; ++j) {
-            out_tile[i * tile_size + j] += lhs_tile[i] * rhs_tile[j];
+    out_tile = (AccumOf<Ctx>*)__builtin_assume_aligned(out_tile, 32);
+    lhs_tile = (AccumOf<Ctx> const*)__builtin_assume_aligned(lhs_tile, 32);
+    rhs_tile = (AccumOf<Ctx> const*)__builtin_assume_aligned(rhs_tile, 32);
+
+    for (Index ii = 0; ii < pos.prefix_subtile_size; ii += vector_size) {
+        for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
+
+            for (Index i = 0; i < vector_size; ++i) {
+                for (Index j = 0; j < vector_size; ++j) {
+                    out_tile[(ii + i) * tile_size + (jj + j)] +=
+                        lhs_tile[ii + i] * rhs_tile[jj + j];
+                }
+            }
         }
     }
 }
@@ -358,10 +373,12 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
                 rhs_stride,
                 rhs_idx + subtile_position.suffix_subtile_offset * rhs_stride);
 
-            outer_product<Ctx, TilePower>(ctx,
-                                          out_tile.data(),
-                                          &left_panel[panel_idx * tile_size],
-                                          &right_panel[panel_idx * tile_size]);
+            outer_product(ctx,
+                          config,
+                          subtile_position,
+                          out_tile.data(),
+                          &left_panel[panel_idx * tile_size],
+                          &right_panel[panel_idx * tile_size]);
         }
     }
 }
