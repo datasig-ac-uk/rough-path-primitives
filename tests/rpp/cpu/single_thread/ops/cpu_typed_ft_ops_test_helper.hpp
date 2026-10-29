@@ -71,8 +71,8 @@ protected:
         return PolynomialTensorHelper::make_degree_begin(width_, depth_);
     }
 
-    [[nodiscard]] static auto make_context() noexcept {
-        return Strategy::make_context(nullptr);
+    [[nodiscard]] static auto make_context() {
+        return CpuScratchContext<typename Strategy::Context>{};
     }
 
     [[nodiscard]] static Scalar cast_scalar(float value) {
