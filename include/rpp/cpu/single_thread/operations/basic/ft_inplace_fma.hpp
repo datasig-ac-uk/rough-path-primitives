@@ -21,8 +21,9 @@ namespace rpp::ops {
 template <typename Accum_, typename Architecture, FTInplaceFMAType FMAType>
 class FTInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
                    FMAType>
-    : public BaseOperation<
-          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    : public cpu::single_thread::ft_multiply::Operation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
+          4> {
     using Strategy =
         cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;

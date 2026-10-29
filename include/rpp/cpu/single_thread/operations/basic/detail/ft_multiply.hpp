@@ -6,9 +6,11 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <new>
 
 #include <rpp/config.h>
 
+#include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
 #include <rpp/support/span.hpp>
 #include <rpp/utility.hpp>
@@ -40,6 +42,63 @@ struct TileConfig {
     Degree width;
     Degree tile_letters;
     Index tile_size; // W^tile_letters: full logical side length.
+};
+
+// One live storage object per operation context, reused across multiplications.
+// Reserve alignment padding because the underlying byte allocation may be
+// unaligned.
+template <typename Ctx, unsigned TilePower>
+struct TileStorage {
+    using Accum = AccumOf<Ctx>;
+    using Config = TileConfig<Ctx, TilePower>;
+
+    static constexpr size_t alignment = std::max(size_t{64}, alignof(Accum));
+    alignas(alignment) std::array<Accum, Config::tile_extent> tile;
+    alignas(alignment) std::array<Accum, Config::panel_extent> left_panel{};
+    alignas(alignment) std::array<Accum, Config::panel_extent> right_panel{};
+
+    static constexpr size_t scratch_size() noexcept {
+        return sizeof(TileStorage) + alignof(TileStorage) - 1;
+    }
+
+    static void* address(Ctx const& ctx) noexcept {
+        auto* data = ctx.template scratch_space<std::byte*>();
+        assert(data != nullptr &&
+               "multiplication requires initialized scratch space");
+        return align_up<alignof(TileStorage)>(data);
+    }
+
+    static TileStorage& get(Ctx const& ctx) noexcept {
+        return *std::launder(static_cast<TileStorage*>(address(ctx)));
+    }
+
+    static void construct(Ctx const& ctx) { ::new (address(ctx)) TileStorage; }
+
+    static void destroy(Ctx const& ctx) { get(ctx).~TileStorage(); }
+};
+
+// Common scratch lifecycle for the CPU multiplication and FMA operations.
+template <typename Strategy, unsigned TilePower>
+class Operation : public ops::BaseOperation<Strategy> {
+    using Context = typename Strategy::Context;
+    using Storage = TileStorage<Context, TilePower>;
+
+public:
+    template <typename Basis>
+    static constexpr size_t scratch_space_size(Strategy const&,
+                                               Basis const&) noexcept {
+        return Storage::scratch_size();
+    }
+
+    template <typename Basis>
+    static void init_scratch_space(Context const& ctx, Basis const&) {
+        Storage::construct(ctx);
+    }
+
+    template <typename Basis>
+    static void destroy_scratch_space(Context const& ctx, Basis const&) {
+        Storage::destroy(ctx);
+    }
 };
 
 template <typename Ctx>
@@ -251,7 +310,9 @@ public:
 // For 231 the additive source is the output itself. Read each old entry
 // during the final write, after its product contributions have been gathered.
 template <typename Ctx, typename TensorC>
-class InplaceFmaTileWriter<Ctx, ops::FTInplaceFMAType::AEqualsBCPlusA, TensorC> {
+class InplaceFmaTileWriter<Ctx,
+                           ops::FTInplaceFMAType::AEqualsBCPlusA,
+                           TensorC> {
     using Accum = AccumOf<Ctx>;
     Accum alpha;
     Accum beta;
@@ -751,11 +812,17 @@ void subtiled_low_degree_terms(Ctx const& ctx,
 
 // Width one is a scalar convolution across degrees. Complete each block
 // before writing it, and visit blocks from high to low for in-place updates.
-template <typename Ctx, typename TensorOut, typename LhsTensor,
-          typename RhsTensor, typename Writer>
-void width_one_terms(Ctx const& ctx, TensorOut& out,
-                     LhsTensor const& lhs, RhsTensor const& rhs,
-                     Span<AccumOf<Ctx>> tile, Writer& write) {
+template <typename Ctx,
+          typename TensorOut,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Writer>
+void width_one_terms(Ctx const& ctx,
+                     TensorOut& out,
+                     LhsTensor const& lhs,
+                     RhsTensor const& rhs,
+                     Span<AccumOf<Ctx>> tile,
+                     Writer& write) {
     using Degree = DegreeOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     assert(tile.size() > 0);
@@ -831,7 +898,6 @@ void multiply(Ctx const& ctx,
     using Accum = AccumOf<Ctx>;
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     constexpr size_t tile_extent = TileConfig<Ctx, TilePower>::tile_extent;
-    constexpr size_t panel_extent = TileConfig<Ctx, TilePower>::panel_extent;
     const auto width = static_cast<Index>(config.width);
     const auto tile_letters = config.tile_letters;
     const auto side = config.tile_size;
@@ -839,14 +905,15 @@ void multiply(Ctx const& ctx,
     assert(side <= tile_size || tile_letters == 1);
     assert(out.basis().width == config.width);
 
-    alignas(64) std::array<Accum, tile_extent> tile;
+    auto& storage = TileStorage<Ctx, TilePower>::get(ctx);
+    auto& tile = storage.tile;
     if (width == 1) {
-        detail::width_one_terms(ctx, out, lhs, rhs, {tile.data(), tile.size()}, write);
+        detail::width_one_terms(
+            ctx, out, lhs, rhs, {tile.data(), tile.size()}, write);
         return;
     }
-    // Initialize once: unused lanes may retain values between panel reads.
-    alignas(64) std::array<Accum, panel_extent> left_panel{};
-    alignas(64) std::array<Accum, panel_extent> right_panel{};
+    auto& left_panel = storage.left_panel;
+    auto& right_panel = storage.right_panel;
 
 
     const auto min_middle =

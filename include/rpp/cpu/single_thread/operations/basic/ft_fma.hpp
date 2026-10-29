@@ -21,8 +21,9 @@
 namespace rpp::ops {
 template <typename Accum_, typename Architecture>
 class FTFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
-    : public BaseOperation<
-          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    : public cpu::single_thread::ft_multiply::Operation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
+          4> {
     using Strategy =
         cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
@@ -52,10 +53,10 @@ public:
         ftm::multiply(
             ctx,
             ftm::detail::select_tile_config<4>(ctx, out.basis()),
-            out, b, c,
-            ftm::ScaledTileAddWriter<Context, TensorA> {a, alpha, beta}
-            );
-
+            out,
+            b,
+            c,
+            ftm::ScaledTileAddWriter<Context, TensorA>{a, alpha, beta});
     }
 };
 } // namespace rpp::ops

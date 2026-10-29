@@ -11,6 +11,7 @@
 
 #include <rpp/operations/intermediate/ft_fmexp.hpp>
 
+#include <rpp/cpu/single_thread/operations/basic/ft_inplace_fma.hpp>
 #include <rpp/cpu/single_thread/operations/basic/ft_inplace_mul.hpp>
 #include <rpp/cpu/single_thread/operations/linalg/vector_assign.hpp>
 #include <rpp/cpu/single_thread/operations/linalg/vector_inplace_add.hpp>

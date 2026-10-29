@@ -22,8 +22,9 @@ namespace rpp::ops {
 
 template <typename Accum_, typename Architecture>
 class FTMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
-    : public BaseOperation<
-          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>> {
+    : public cpu::single_thread::ft_multiply::Operation<
+          cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
+          4> {
     using Strategy =
         cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
@@ -31,13 +32,6 @@ class FTMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
 
 public:
     static constexpr bool is_implemented = true;
-
-    template <typename Basis>
-    static constexpr std::size_t
-    scratch_space_size(Strategy const& strategy, Basis const& basis) noexcept {
-        ignore_unused(strategy, basis);
-        return 0;
-    }
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>
     void operator()(Context const& ctx,

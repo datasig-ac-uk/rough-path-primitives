@@ -48,6 +48,18 @@ public:
                         Assign::scratch_space_size(strategy, pack));
     }
 
+    template <typename Basis>
+    RPP_HOST_DEVICE static void init_scratch_space(Context const& ctx,
+                                                   Basis const& basis) {
+        InplaceFMA123::init_scratch_space(ctx, basis);
+    }
+
+    template <typename Basis>
+    RPP_HOST_DEVICE static void destroy_scratch_space(Context const& ctx,
+                                                      Basis const& basis) {
+        InplaceFMA123::destroy_scratch_space(ctx, basis);
+    }
+
     template <typename TensorOut,
               typename TensorMultiplier,
               typename TensorExponent>
