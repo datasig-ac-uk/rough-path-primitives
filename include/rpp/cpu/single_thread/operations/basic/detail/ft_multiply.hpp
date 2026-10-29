@@ -32,6 +32,7 @@ struct TileConfig {
     using Degree = DegreeOf<Ctx>;
     static_assert(TilePower > 0, "panels require a positive tile power");
 
+    static constexpr Index vector_size = 4;
     static constexpr Index subtile_size = Index{1} << TilePower;
     static constexpr size_t tile_extent = size_t{1} << (2 * TilePower);
     static constexpr size_t panel_extent = size_t{1} << (2 * TilePower - 1);
@@ -293,6 +294,30 @@ public:
 namespace detail {
 
 
+// Clear only the rectangle touched by the vector-rounded outer product.
+// The remaining physical rows and columns are never read or written back.
+template <typename Ctx, unsigned TilePower>
+RPP_FORCEINLINE void
+clear_tile(Span<AccumOf<Ctx>, TileConfig<Ctx, TilePower>::tile_extent> tile,
+           SubtilePosition<Ctx> const& pos) {
+    using Index = IndexOf<Ctx>;
+    using Config = TileConfig<Ctx, TilePower>;
+    constexpr Index vector_size = Config::vector_size;
+    constexpr Index tile_size = Config::subtile_size;
+    static_assert(tile_size >= vector_size,
+                  "tile size must be at least the vector size");
+    const auto rows = align_up(pos.prefix_subtile_size, vector_size);
+    const auto cols = align_up(pos.suffix_subtile_size, vector_size);
+    assert(rows <= tile_size && cols <= tile_size);
+    for (Index i = 0; i < rows; ++i) {
+        for (Index j = 0; j < cols; j += vector_size) {
+            for (Index lane = 0; lane < vector_size; ++lane) {
+                tile[i * tile_size + j + lane] = AccumOf<Ctx>{0};
+            }
+        }
+    }
+}
+
 template <typename Ctx, unsigned TilePower>
 RPP_FORCEINLINE void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
                                    TileConfig<Ctx, TilePower> const& config,
@@ -302,7 +327,7 @@ RPP_FORCEINLINE void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
                                    AccumOf<Ctx> const* rhs_tile) {
     using Index = IndexOf<Ctx>;
 
-    constexpr Index vector_size = 4;
+    constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
     constexpr Index tile_size = Index{1} << TilePower;
     static_assert(tile_size >= vector_size,
                   "tile size must be at least the vector size");
@@ -814,7 +839,7 @@ void multiply(Ctx const& ctx,
     assert(side <= tile_size || tile_letters == 1);
     assert(out.basis().width == config.width);
 
-    alignas(64) std::array<Accum, tile_extent> tile{};
+    alignas(64) std::array<Accum, tile_extent> tile;
     if (width == 1) {
         detail::width_one_terms(ctx, out, lhs, rhs, {tile.data(), tile.size()}, write);
         return;
@@ -841,7 +866,7 @@ void multiply(Ctx const& ctx,
                         suffix,
                         std::min(tile_size, side - prefix),
                         std::min(tile_size, side - suffix)};
-                    std::fill(tile.begin(), tile.end(), Accum{0});
+                    detail::clear_tile<Ctx, TilePower>(tile.data(), pos);
                     detail::scalar_terms<Ctx, TilePower>(
                         tile.data(), lhs, rhs, config, pos);
                     detail::left_small_terms<Ctx, TilePower>(ctx,
