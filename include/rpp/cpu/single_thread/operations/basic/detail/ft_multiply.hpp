@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstddef>
 #include <new>
+#include <type_traits>
 
 #include <rpp/config.h>
 
@@ -14,6 +15,7 @@
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
 #include <rpp/support/span.hpp>
 #include <rpp/utility.hpp>
+#include <rpp/views/dense_tensor_view.hpp>
 
 namespace rpp::cpu::single_thread::ft_multiply {
 
@@ -172,6 +174,16 @@ public:
         }
     }
 
+    // The low-degree tile is a complete contiguous tensor prefix.
+    template <typename TensorOut, typename TensorTile>
+    RPP_FORCEINLINE void
+    operator()(Ctx const&, TensorOut& out, TensorTile const& tile) {
+        using Scalar = typename TensorOut::value_type;
+        for (Index i = tile.begin_index(); i < tile.end_index(); ++i) {
+            out[i] = static_cast<Scalar>(beta * tile[i]);
+        }
+    }
+
     // Width one: the tile contains consecutive degrees, one coefficient each.
     template <typename TensorOut, typename Tile>
     RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
@@ -246,6 +258,26 @@ public:
                         static_cast<Scalar>(beta * tile[i * tile_width + j]);
                 }
             }
+        }
+    }
+
+    template <typename TensorOut, typename TensorTile>
+    RPP_FORCEINLINE void
+    operator()(Ctx const&, TensorOut& out, TensorTile const& tile) {
+        using Scalar = typename TensorOut::value_type;
+        const auto first = tile.begin_index();
+        const auto last = tile.end_index();
+        const auto add_first = std::clamp<Index>(a.begin_index(), first, last);
+        const auto add_last = std::clamp<Index>(a.end_index(), add_first, last);
+        for (Index i = first; i < add_first; ++i) {
+            out[i] = static_cast<Scalar>(beta * tile[i]);
+        }
+        for (Index i = add_first; i < add_last; ++i) {
+            out[i] = static_cast<Scalar>(alpha * static_cast<Accum>(a[i]) +
+                                         beta * tile[i]);
+        }
+        for (Index i = add_last; i < last; ++i) {
+            out[i] = static_cast<Scalar>(beta * tile[i]);
         }
     }
 
@@ -706,8 +738,8 @@ void scalar_terms(AccumOf<Ctx>* out_tile,
     }
 }
 
-// Without subtiling, each remaining degree fits in one flat storage tile.
-// Read operand levels directly and write only after the whole product is ready.
+// Accumulate the remaining tensor prefix in one tile, then write it once.
+// Read operand levels directly; no panel packing is needed.
 template <typename Ctx,
           unsigned TilePower,
           typename TensorOut,
@@ -726,11 +758,15 @@ void low_degree_terms(Ctx const& ctx,
     using Accum = AccumOf<Ctx>;
     const auto low_max =
         std::min<Degree>(out.max_degree(), 2 * config.tile_letters - 1);
+    if (low_max < out.min_degree()) {
+        return;
+    }
+    DenseTensorView<Accum*, typename TensorOut::Basis> product(
+        tile.data(), out.basis(), out.min_degree(), low_max);
+    assert(static_cast<size_t>(product.end_index()) <= tile.size());
+    std::fill(product.begin(), product.end(), Accum{0});
     for (Degree degree = low_max; degree >= out.min_degree(); --degree) {
-        const auto count =
-            const_power(static_cast<Index>(config.width), degree);
-        assert(static_cast<size_t>(count) <= tile.size());
-        std::fill_n(tile.data(), count, Accum{0});
+        auto level = product.degree_view(degree);
         const auto rhs_min =
             std::max<Degree>(rhs.min_degree(), degree - lhs.max_degree());
         const auto rhs_max =
@@ -742,17 +778,13 @@ void low_degree_terms(Ctx const& ctx,
             for (Index i = 0; i < left.size(); ++i) {
                 const auto value = static_cast<Accum>(left[i]);
                 for (Index j = 0; j < rhs_size; ++j) {
-                    tile[i * rhs_size + j] +=
+                    level[i * rhs_size + j] +=
                         value * static_cast<Accum>(right[j]);
                 }
             }
         }
-        write(ctx,
-              out,
-              Span<Accum const>{tile.data(), static_cast<size_t>(count)},
-              degree,
-              Index{0});
     }
+    write(ctx, out, product);
 }
 
 // With single-letter tiles, degrees >= 2 belong to the main tiled loop.
