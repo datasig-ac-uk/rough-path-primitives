@@ -354,6 +354,12 @@ public:
                                   Accum beta_ = Accum{1})
         : alpha(alpha_), beta(beta_) {}
 
+    template <typename TensorOut, typename TensorTile>
+    RPP_FORCEINLINE void
+    operator()(Ctx const& ctx, TensorOut& out, TensorTile const& tile) {
+        ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(ctx, out, tile);
+    }
+
     template <unsigned TilePower, typename TensorOut, typename Tile>
     RPP_FORCEINLINE void operator()(Ctx const& ctx,
                                     TensorOut& out,
