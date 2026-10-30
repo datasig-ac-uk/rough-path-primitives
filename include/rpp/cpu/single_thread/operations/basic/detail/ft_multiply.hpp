@@ -703,6 +703,31 @@ void right_small_terms(
     }
 }
 
+template <typename Ctx,
+          unsigned TilePower,
+          typename TensorLevel,
+          typename Multiply>
+RPP_FORCEINLINE
+void scalar_stride_outer_product(TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
+                                 SubtilePosition<Ctx> const& pos,
+                                 AccumOf<Ctx>* out_tile,
+                                 TensorLevel const& tensor_level,
+                                 IndexOf<Ctx> offset,
+                                 IndexOf<Ctx> stride,
+                                 Multiply&& multiply) {
+    using Index = IndexOf<Ctx>;
+
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+        for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
+            out_tile[i * tile_size + j] +=
+                multiply(static_cast<AccumOf<Ctx>>(
+                    tensor_level[i * stride + j + offset]));
+        }
+    }
+}
+
+
 // The two scalar contributions lhs[0] * rhs[d] and lhs[d] * rhs[0].
 // Each source row is contiguous; no word splitting is needed.
 template <typename Ctx,
@@ -728,24 +753,35 @@ void scalar_terms(AccumOf<Ctx>* out_tile,
     if (lhs.has_degree(0) && rhs.has_degree(degree)) {
         const auto scalar = static_cast<Accum>(lhs[0]);
         const auto right = rhs.degree_view(degree);
-        for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
-            const auto source_offset = offset + i * row_stride;
-            for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
-                out_tile[i * tile_size + j] +=
-                    scalar * static_cast<Accum>(right[source_offset + j]);
-            }
-        }
+
+        scalar_stride_outer_product(
+            config, pos, out_tile, right, offset, row_stride, [&](Accum val) {
+                return scalar * val;
+            });
+
+        // for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+        //     const auto source_offset = offset + i * row_stride;
+        //     for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
+        //         out_tile[i * tile_size + j] +=
+        //             scalar * static_cast<Accum>(right[source_offset + j]);
+        //     }
+        // }
     }
     if (lhs.has_degree(degree) && rhs.has_degree(0)) {
         const auto left = lhs.degree_view(degree);
         const auto scalar = static_cast<Accum>(rhs[0]);
-        for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
-            const auto source_offset = offset + i * row_stride;
-            for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
-                out_tile[i * tile_size + j] +=
-                    static_cast<Accum>(left[source_offset + j]) * scalar;
-            }
-        }
+
+        scalar_stride_outer_product(
+            config, pos, out_tile, left, offset, row_stride, [&](Accum val) {
+                return val * scalar;
+            });
+        // for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+        //     const auto source_offset = offset + i * row_stride;
+        //     for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
+        //         out_tile[i * tile_size + j] +=
+        //             static_cast<Accum>(left[source_offset + j]) * scalar;
+        //     }
+        // }
     }
 }
 
