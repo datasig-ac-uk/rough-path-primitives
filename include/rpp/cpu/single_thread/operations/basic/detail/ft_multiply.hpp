@@ -421,9 +421,9 @@ template <typename Ctx, unsigned TilePower>
 RPP_FORCEINLINE void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
                                    TileConfig<Ctx, TilePower> const& config,
                                    SubtilePosition<Ctx> const& pos,
-                                   AccumOf<Ctx>* out_tile,
-                                   AccumOf<Ctx> const* lhs_tile,
-                                   AccumOf<Ctx> const* rhs_tile) {
+                                   AccumOf<Ctx>* RPP_RESTRICT out_tile,
+                                   AccumOf<Ctx> const* RPP_RESTRICT lhs_tile,
+                                   AccumOf<Ctx> const* RPP_RESTRICT rhs_tile) {
     using Index = IndexOf<Ctx>;
 
     constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
@@ -450,7 +450,7 @@ RPP_FORCEINLINE void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
 
 template <typename Ctx, unsigned TilePower, typename TensorData>
 RPP_FORCEINLINE void stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
-                                       AccumOf<Ctx>* panel,
+                                       AccumOf<Ctx>* RPP_RESTRICT panel,
                                        TensorData const& source,
                                        IndexOf<Ctx> count,
                                        IndexOf<Ctx> stride,
@@ -710,7 +710,7 @@ template <typename Ctx,
 RPP_FORCEINLINE
 void scalar_stride_outer_product(TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
                                  SubtilePosition<Ctx> const& pos,
-                                 AccumOf<Ctx>* out_tile,
+                                 AccumOf<Ctx>* RPP_RESTRICT out_tile,
                                  TensorLevel const& tensor_level,
                                  IndexOf<Ctx> offset,
                                  IndexOf<Ctx> stride,
