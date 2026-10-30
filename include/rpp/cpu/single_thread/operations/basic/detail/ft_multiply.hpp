@@ -1051,7 +1051,9 @@ void multiply(Ctx const& ctx,
         }
     }
 
-    if (width > static_cast<Index>(tile_extent)) {
+    // At width == capacity, degree one fits alone but its scalar prefix does
+    // not.
+    if (width >= static_cast<Index>(tile_extent)) {
         detail::subtiled_low_degree_terms(
             ctx, config, out, lhs, rhs, {tile.data(), tile.size()}, write);
     }
