@@ -563,6 +563,7 @@ void left_small_terms(
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     constexpr Index tile_size = Index{1} << TilePower;
+    constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
     if (config.tile_letters <= 1) {
         return;
     }
@@ -608,13 +609,17 @@ void left_small_terms(
                                               source_offset);
             source_offset += source_stride;
         }
+        // Panel tails are initialized scratch; only live columns are written
+        // back. Fixed lane groups avoid a separate scalar tail.
         for (Index i = 0; i < short_size; ++i) {
             const auto value = left_panel[i];
             auto* row = out_tile.data() + i * remainder_size * tile_size;
             for (Index remainder = 0; remainder < remainder_size; ++remainder) {
                 const auto* panel = right_panel.data() + remainder * tile_size;
-                for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
-                    row[j] += value * panel[j];
+                for (Index j = 0; j < pos.suffix_subtile_size; j += vector_size) {
+                    for (Index lane = 0; lane < vector_size; ++lane) {
+                        row[j + lane] += value * panel[j + lane];
+                    }
                 }
                 row += tile_size;
             }
