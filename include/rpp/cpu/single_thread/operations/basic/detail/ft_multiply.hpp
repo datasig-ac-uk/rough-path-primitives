@@ -28,6 +28,10 @@ using IndexOf = typename Ctx::Index;
 template <typename Ctx>
 using DegreeOf = typename Ctx::Degree;
 
+template <typename S>
+RPP_FORCEINLINE bool is_zero(S const& scalar) {
+    return scalar = S{0};
+}
 
 // Chosen by the caller before entering the multiplication implementation.
 template <typename Ctx, unsigned TilePower>
@@ -750,24 +754,15 @@ void scalar_terms(AccumOf<Ctx>* out_tile,
         (pos.prefix_subtile_offset * middle_size + pos.middle_word) *
             config.tile_size +
         pos.suffix_subtile_offset;
-    if (lhs.has_degree(0) && rhs.has_degree(degree)) {
+    if (lhs.has_degree(0) && rhs.has_degree(degree) && !is_zero(lhs[0])) {
         const auto scalar = static_cast<Accum>(lhs[0]);
         const auto right = rhs.degree_view(degree);
-
         scalar_stride_outer_product(
             config, pos, out_tile, right, offset, row_stride, [&](Accum val) {
                 return scalar * val;
             });
-
-        // for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
-        //     const auto source_offset = offset + i * row_stride;
-        //     for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
-        //         out_tile[i * tile_size + j] +=
-        //             scalar * static_cast<Accum>(right[source_offset + j]);
-        //     }
-        // }
     }
-    if (lhs.has_degree(degree) && rhs.has_degree(0)) {
+    if (lhs.has_degree(degree) && rhs.has_degree(0) && !is_zero(rhs[0])) {
         const auto left = lhs.degree_view(degree);
         const auto scalar = static_cast<Accum>(rhs[0]);
 
@@ -775,13 +770,6 @@ void scalar_terms(AccumOf<Ctx>* out_tile,
             config, pos, out_tile, left, offset, row_stride, [&](Accum val) {
                 return val * scalar;
             });
-        // for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
-        //     const auto source_offset = offset + i * row_stride;
-        //     for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
-        //         out_tile[i * tile_size + j] +=
-        //             static_cast<Accum>(left[source_offset + j]) * scalar;
-        //     }
-        // }
     }
 }
 
