@@ -400,9 +400,8 @@ namespace detail {
 // Clear only the rectangle touched by the vector-rounded outer product.
 // The remaining physical rows and columns are never read or written back.
 template <typename Ctx, unsigned TilePower>
-RPP_FORCEINLINE void
-clear_tile(Span<AccumOf<Ctx>, TileConfig<Ctx, TilePower>::tile_extent> tile,
-           SubtilePosition<Ctx> const& pos) {
+RPP_FORCEINLINE void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
+                                SubtilePosition<Ctx> const& pos) {
     using Index = IndexOf<Ctx>;
     using Config = TileConfig<Ctx, TilePower>;
     constexpr Index vector_size = Config::vector_size;
@@ -416,6 +415,7 @@ clear_tile(Span<AccumOf<Ctx>, TileConfig<Ctx, TilePower>::tile_extent> tile,
         for (Index j = 0; j < cols; j += vector_size) {
             for (Index lane = 0; lane < vector_size; ++lane) {
                 tile[i * tile_size + j + lane] = AccumOf<Ctx>{0};
+    tile = assume_aligned<16>(tile);
             }
         }
     }
@@ -435,9 +435,9 @@ RPP_FORCEINLINE void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
     static_assert(tile_size >= vector_size,
                   "tile size must be at least the vector size");
 
-    out_tile = (AccumOf<Ctx>*)__builtin_assume_aligned(out_tile, 32);
-    lhs_tile = (AccumOf<Ctx> const*)__builtin_assume_aligned(lhs_tile, 32);
-    rhs_tile = (AccumOf<Ctx> const*)__builtin_assume_aligned(rhs_tile, 32);
+    out_tile = assume_aligned<32>(out_tile);
+    lhs_tile = assume_aligned<32>(lhs_tile);
+    rhs_tile = assume_aligned<32>(rhs_tile);
 
     for (Index ii = 0; ii < pos.prefix_subtile_size; ii += vector_size) {
         for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
@@ -721,6 +721,7 @@ void scalar_stride_outer_product(TileConfig<Ctx, TilePower> const& config RPP_MA
                                  Multiply&& multiply) {
     using Index = IndexOf<Ctx>;
 
+    out_tile = assume_aligned<16>(out_tile);
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
         for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
