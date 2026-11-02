@@ -13,7 +13,6 @@
 
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
-#include <rpp/support/span.hpp>
 #include <rpp/utility.hpp>
 #include <rpp/views/dense_tensor_view.hpp>
 
@@ -130,11 +129,11 @@ class ScaledTileWriter {
 public:
     explicit ScaledTileWriter(Accum beta_ = Accum{1}) : beta(beta_) {}
 
-    template <unsigned TilePower, typename TensorOut, typename Tile>
+    template <unsigned TilePower, typename TensorOut>
     RPP_FORCEINLINE void
     operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                TensorOut& out,
-               Tile tile,
+               Accum const* RPP_RESTRICT tile,
                TileConfig<Ctx, TilePower> const& config,
                SubtilePosition<Ctx> const& subtile_position) {
         using Scalar = typename TensorOut::value_type;
@@ -164,16 +163,17 @@ public:
     }
 
     // Low degrees use a contiguous tile rather than prefix/suffix rows.
-    template <typename TensorOut, typename Tile>
+    template <typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                                     TensorOut& out,
-                                    Tile tile,
+                                    Accum const* RPP_RESTRICT tile,
                                     DegreeOf<Ctx> degree,
-                                    Index offset) {
+                                    Index offset,
+                                    Index count) {
         using Scalar = typename TensorOut::value_type;
         assert(out.has_degree(degree));
         auto out_level = out.degree_view(degree);
-        for (Index i = 0; i < static_cast<Index>(tile.size()); ++i) {
+        for (Index i = 0; i < count; ++i) {
             out_level[offset + i] = static_cast<Scalar>(beta * tile[i]);
         }
     }
@@ -189,13 +189,14 @@ public:
     }
 
     // Width one: the tile contains consecutive degrees, one coefficient each.
-    template <typename TensorOut, typename Tile>
+    template <typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                                     TensorOut& out,
-                                    Tile tile,
-                                    DegreeOf<Ctx> first_degree) {
+                                    Accum const* RPP_RESTRICT tile,
+                                    DegreeOf<Ctx> first_degree,
+                                    IndexOf<Ctx> count) {
         using Scalar = typename TensorOut::value_type;
-        for (Index i = 0; i < static_cast<Index>(tile.size()); ++i) {
+        for (Index i = 0; i < count; ++i) {
             out[first_degree + i] = static_cast<Scalar>(beta * tile[i]);
         }
     }
@@ -216,11 +217,11 @@ public:
                                  Accum beta_ = Accum{1})
         : a(a_), alpha(alpha_), beta(beta_) {}
 
-    template <unsigned TilePower, typename TensorOut, typename Tile>
+    template <unsigned TilePower, typename TensorOut>
     RPP_FORCEINLINE void
     operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                TensorOut& out,
-               Tile tile,
+               Accum const* RPP_RESTRICT tile,
                TileConfig<Ctx, TilePower> const& config,
                SubtilePosition<Ctx> const& subtile_position) {
         using Scalar = typename TensorOut::value_type;
@@ -285,35 +286,37 @@ public:
         }
     }
 
-    template <typename TensorOut, typename Tile>
+    template <typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                                     TensorOut& out,
-                                    Tile tile,
+                                    Accum const* RPP_RESTRICT tile,
                                     DegreeOf<Ctx> degree,
-                                    Index offset) {
+                                    Index offset,
+                                    Index count) {
         using Scalar = typename TensorOut::value_type;
         assert(out.has_degree(degree));
         auto out_level = out.degree_view(degree);
         if (a.has_degree(degree)) {
             const auto a_level = a.degree_view(degree);
-            for (Index i = 0; i < static_cast<Index>(tile.size()); ++i) {
+            for (Index i = 0; i < count; ++i) {
                 out_level[offset + i] = static_cast<Scalar>(
                     alpha * static_cast<Accum>(a_level[offset + i]) +
                     beta * tile[i]);
             }
         }
         else {
-            ScaledTileWriter<Ctx>{beta}(ctx, out, tile, degree, offset);
+            ScaledTileWriter<Ctx>{beta}(ctx, out, tile, degree, offset, count);
         }
     }
 
-    template <typename TensorOut, typename Tile>
+    template <typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                                     TensorOut& out,
-                                    Tile tile,
-                                    DegreeOf<Ctx> first_degree) {
+                                    Accum const* RPP_RESTRICT tile,
+                                    DegreeOf<Ctx> first_degree,
+                                    IndexOf<Ctx> count) {
         using Scalar = typename TensorOut::value_type;
-        for (Index i = 0; i < static_cast<Index>(tile.size()); ++i) {
+        for (Index i = 0; i < count; ++i) {
             const auto degree = first_degree + i;
             Accum value = beta * tile[i];
             if (a.has_degree(degree)) {
@@ -364,33 +367,35 @@ public:
         ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(ctx, out, tile);
     }
 
-    template <unsigned TilePower, typename TensorOut, typename Tile>
+    template <unsigned TilePower, typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx,
                                     TensorOut& out,
-                                    Tile tile,
+                                    Accum const* RPP_RESTRICT tile,
                                     TileConfig<Ctx, TilePower> const& config,
                                     SubtilePosition<Ctx> const& pos) {
         ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
             ctx, out, tile, config, pos);
     }
 
-    template <typename TensorOut, typename Tile>
+    template <typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx,
                                     TensorOut& out,
-                                    Tile tile,
+                                    Accum const* RPP_RESTRICT tile,
                                     DegreeOf<Ctx> degree,
-                                    IndexOf<Ctx> offset) {
+                                    IndexOf<Ctx> offset,
+                                    IndexOf<Ctx> count) {
         ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
-            ctx, out, tile, degree, offset);
+            ctx, out, tile, degree, offset, count);
     }
 
-    template <typename TensorOut, typename Tile>
+    template <typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx,
                                     TensorOut& out,
-                                    Tile tile,
-                                    DegreeOf<Ctx> first_degree) {
+                                    Accum const* RPP_RESTRICT tile,
+                                    DegreeOf<Ctx> first_degree,
+                                    IndexOf<Ctx> count) {
         ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
-            ctx, out, tile, first_degree);
+            ctx, out, tile, first_degree, count);
     }
 };
 
@@ -494,9 +499,9 @@ template <typename Ctx,
           typename LhsTensor,
           typename RhsTensor>
 void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
-               Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower)> out_tile,
-               Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> left_panel,
-               Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> right_panel,
+               AccumOf<Ctx>* RPP_RESTRICT out_tile,
+               AccumOf<Ctx>* RPP_RESTRICT left_panel,
+               AccumOf<Ctx>* RPP_RESTRICT right_panel,
                LhsTensor const& lhs,
                RhsTensor const& rhs,
                TileConfig<Ctx, TilePower> const& config,
@@ -559,7 +564,7 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
             outer_product(ctx,
                           config,
                           subtile_position,
-                          out_tile.data(),
+                          out_tile,
                           &left_panel[panel_idx * tile_size],
                           &right_panel[panel_idx * tile_size]);
         }
@@ -575,9 +580,9 @@ template <typename Ctx,
           typename RhsTensor>
 void left_small_terms(
     Ctx const& ctx,
-    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower)> out_tile,
-    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> left_panel,
-    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> right_panel,
+    AccumOf<Ctx>* RPP_RESTRICT out_tile,
+    AccumOf<Ctx>* RPP_RESTRICT left_panel,
+    AccumOf<Ctx>* RPP_RESTRICT right_panel,
     LhsTensor const& lhs,
     RhsTensor const& rhs,
     TileConfig<Ctx, TilePower> const& config,
@@ -610,20 +615,20 @@ void left_small_terms(
         const auto rhs_degree = degree - lhs_degree;
         const auto remainder_size = config.tile_size / short_size;
         stride_read_panel<Ctx, TilePower>(ctx,
-                                          left_panel.data(),
+                                          left_panel,
                                           lhs.degree_view(lhs_degree),
                                           short_size,
                                           1,
                                           0);
         const auto right = rhs.degree_view(rhs_degree);
         assert(remainder_size * tile_size <=
-               static_cast<Index>(right_panel.size()));
+               static_cast<Index>(TileConfig<Ctx, TilePower>::panel_extent));
         // Keep every remainder panel so output rows can be updated in order.
         const auto source_stride = middle_size * config.tile_size;
         auto source_offset = pos.middle_word * config.tile_size;
         for (Index remainder = 0; remainder < remainder_size; ++remainder) {
             stride_read_panel<Ctx, TilePower>(ctx,
-                                              right_panel.data() +
+                                              right_panel +
                                                   remainder * tile_size,
                                               right,
                                               pos.suffix_subtile_size,
@@ -635,9 +640,9 @@ void left_small_terms(
         // back. Fixed lane groups avoid a separate scalar tail.
         for (Index i = 0; i < short_size; ++i) {
             const auto value = left_panel[i];
-            auto* row = out_tile.data() + i * remainder_size * tile_size;
+            auto* row = out_tile + i * remainder_size * tile_size;
             for (Index remainder = 0; remainder < remainder_size; ++remainder) {
-                const auto* panel = right_panel.data() + remainder * tile_size;
+                const auto* panel = right_panel + remainder * tile_size;
                 for (Index j = 0; j < pos.suffix_subtile_size;
                      j += vector_size) {
                     for (Index lane = 0; lane < vector_size; ++lane) {
@@ -658,9 +663,9 @@ template <typename Ctx,
           typename RhsTensor>
 void right_small_terms(
     Ctx const& ctx,
-    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower)> out_tile,
-    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> left_panel,
-    Span<AccumOf<Ctx>, size_t{1} << (2 * TilePower - 1)> right_panel,
+    AccumOf<Ctx>* RPP_RESTRICT out_tile,
+    AccumOf<Ctx>* RPP_RESTRICT left_panel,
+    AccumOf<Ctx>* RPP_RESTRICT right_panel,
     LhsTensor const& lhs,
     RhsTensor const& rhs,
     TileConfig<Ctx, TilePower> const& config,
@@ -691,20 +696,20 @@ void right_small_terms(
         const auto lhs_degree = degree - rhs_degree;
         const auto remainder_size = config.tile_size / short_size;
         stride_read_panel<Ctx, TilePower>(ctx,
-                                          right_panel.data(),
+                                          right_panel,
                                           rhs.degree_view(rhs_degree),
                                           short_size,
                                           1,
                                           0);
         const auto left = lhs.degree_view(lhs_degree);
         assert(pos.prefix_subtile_size * remainder_size <=
-               static_cast<Index>(left_panel.size()));
+               static_cast<Index>(TileConfig<Ctx, TilePower>::panel_extent));
         // Read each source run contiguously, retaining all remainders per row.
         const auto source_stride = middle_size * remainder_size;
         auto source_offset = pos.middle_word * remainder_size;
         for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
             stride_read_panel<Ctx, TilePower>(ctx,
-                                              left_panel.data() +
+                                              left_panel +
                                                   i * remainder_size,
                                               left,
                                               remainder_size,
@@ -713,8 +718,8 @@ void right_small_terms(
             source_offset += source_stride;
         }
         for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
-            auto* row = out_tile.data() + i * tile_size;
-            const auto* panel = left_panel.data() + i * remainder_size;
+            auto* row = out_tile + i * tile_size;
+            const auto* panel = left_panel + i * remainder_size;
             for (Index remainder = 0; remainder < remainder_size; ++remainder) {
                 const auto value = panel[remainder];
                 for (Index j = 0; j < short_size; ++j) {
@@ -805,7 +810,7 @@ void low_degree_terms(Ctx const& ctx,
                       TensorOut& out,
                       LhsTensor const& lhs,
                       RhsTensor const& rhs,
-                      Span<AccumOf<Ctx>> tile,
+                      AccumOf<Ctx>* RPP_RESTRICT tile,
                       Writer& write) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
@@ -816,8 +821,9 @@ void low_degree_terms(Ctx const& ctx,
         return;
     }
     DenseTensorView<Accum*, typename TensorOut::Basis> product(
-        tile.data(), out.basis(), out.min_degree(), low_max);
-    assert(static_cast<size_t>(product.end_index()) <= tile.size());
+        tile, out.basis(), out.min_degree(), low_max);
+    assert((static_cast<size_t>(product.end_index()) <=
+            TileConfig<Ctx, TilePower>::tile_extent));
     std::fill(product.begin(), product.end(), Accum{0});
     for (Degree degree = low_max; degree >= out.min_degree(); --degree) {
         auto level = product.degree_view(degree);
@@ -854,17 +860,18 @@ void subtiled_low_degree_terms(Ctx const& ctx,
                                TensorOut& out,
                                LhsTensor const& lhs,
                                RhsTensor const& rhs,
-                               Span<AccumOf<Ctx>> tile,
+                               AccumOf<Ctx>* RPP_RESTRICT tile,
                                Writer& write) {
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     assert(config.tile_letters == 1);
     if (out.has_degree(1)) {
         const auto width = static_cast<Index>(config.width);
-        const auto capacity = static_cast<Index>(tile.size());
+        constexpr auto capacity =
+            static_cast<Index>(TileConfig<Ctx, TilePower>::tile_extent);
         for (Index offset = 0; offset < width; offset += capacity) {
             const auto count = std::min(capacity, width - offset);
-            std::fill_n(tile.data(), count, Accum{0});
+            std::fill_n(tile, count, Accum{0});
             if (lhs.has_degree(0) && rhs.has_degree(1)) {
                 const auto scalar = static_cast<Accum>(lhs[0]);
                 const auto right = rhs.degree_view(1);
@@ -879,11 +886,7 @@ void subtiled_low_degree_terms(Ctx const& ctx,
                     tile[i] += static_cast<Accum>(left[offset + i]) * scalar;
                 }
             }
-            write(ctx,
-                  out,
-                  Span<Accum const>{tile.data(), static_cast<size_t>(count)},
-                  1,
-                  offset);
+            write(ctx, out, tile, 1, offset, count);
         }
     }
     if (out.has_degree(0)) {
@@ -891,7 +894,7 @@ void subtiled_low_degree_terms(Ctx const& ctx,
         if (lhs.has_degree(0) && rhs.has_degree(0)) {
             tile[0] = static_cast<Accum>(lhs[0]) * static_cast<Accum>(rhs[0]);
         }
-        write(ctx, out, Span<Accum const>{tile.data(), size_t{1}}, 0, Index{0});
+        write(ctx, out, tile, 0, Index{0}, Index{1});
     }
 }
 
@@ -899,6 +902,7 @@ void subtiled_low_degree_terms(Ctx const& ctx,
 // Width one is a scalar convolution across degrees. Complete each block
 // before writing it, and visit blocks from high to low for in-place updates.
 template <typename Ctx,
+          unsigned TilePower,
           typename TensorOut,
           typename LhsTensor,
           typename RhsTensor,
@@ -907,17 +911,17 @@ void width_one_terms(Ctx const& ctx,
                      TensorOut& out,
                      LhsTensor const& lhs,
                      RhsTensor const& rhs,
-                     Span<AccumOf<Ctx>> tile,
+                     AccumOf<Ctx>* RPP_RESTRICT tile,
                      Writer& write) {
     using Degree = DegreeOf<Ctx>;
     using Accum = AccumOf<Ctx>;
-    assert(tile.size() > 0);
-    const auto capacity = static_cast<Degree>(tile.size());
+    constexpr auto capacity =
+        static_cast<Degree>(TileConfig<Ctx, TilePower>::tile_extent);
     for (Degree last = out.max_degree(); last >= out.min_degree();) {
         const auto first =
             std::max<Degree>(out.min_degree(), last - capacity + 1);
         const auto count = last - first + 1;
-        std::fill_n(tile.data(), count, Accum{0});
+        std::fill_n(tile, count, Accum{0});
         const auto lhs_min =
             std::max<Degree>(lhs.min_degree(), first - rhs.max_degree());
         const auto lhs_max =
@@ -930,10 +934,7 @@ void width_one_terms(Ctx const& ctx,
                 tile[ld + rd - first] += value * static_cast<Accum>(rhs[rd]);
             }
         }
-        write(ctx,
-              out,
-              Span<Accum const>{tile.data(), static_cast<size_t>(count)},
-              first);
+        write(ctx, out, tile, first, count);
         last = first - 1;
     }
 }
@@ -963,10 +964,10 @@ TileConfig<Ctx, TilePower> select_tile_config(Ctx const& ctx RPP_MAYBE_UNUSED,
 
 
 // Tile dimensions and the implementation specialization are selected by the
-// caller. The writer receives a complete tile, with either its subtile position
-// or its degree and flat offset for low degrees. Output degrees are visited in
-// descending order so a writer can also update either operand in place. Output
-// and operands must use the same tensor basis.
+// caller. Writers receive a tile pointer and subtile position, a tensor view
+// for the low-degree prefix, or a pointer and count for contiguous chunks.
+// Output degrees are visited in descending order so a writer can also update
+// either operand in place. Output and operands must use the same tensor basis.
 template <unsigned TilePower,
           typename Ctx,
           typename TensorOut,
@@ -992,14 +993,14 @@ void multiply(Ctx const& ctx,
     assert(out.basis().width == config.width);
 
     auto& storage = TileStorage<Ctx, TilePower>::get(ctx);
-    auto& tile = storage.tile;
+    auto* tile = storage.tile.data();
     if (width == 1) {
-        detail::width_one_terms(
-            ctx, out, lhs, rhs, {tile.data(), tile.size()}, write);
+        detail::width_one_terms<Ctx, TilePower>(
+            ctx, out, lhs, rhs, tile, write);
         return;
     }
-    auto& left_panel = storage.left_panel;
-    auto& right_panel = storage.right_panel;
+    auto* left_panel = storage.left_panel.data();
+    auto* right_panel = storage.right_panel.data();
 
 
     const auto min_middle =
@@ -1019,40 +1020,35 @@ void multiply(Ctx const& ctx,
                         suffix,
                         std::min(tile_size, side - prefix),
                         std::min(tile_size, side - suffix)};
-                    detail::clear_tile<Ctx, TilePower>(tile.data(), pos);
+                    detail::clear_tile<Ctx, TilePower>(tile, pos);
                     detail::scalar_terms<Ctx, TilePower>(
-                        tile.data(), lhs, rhs, config, pos);
+                        tile, lhs, rhs, config, pos);
                     detail::left_small_terms<Ctx, TilePower>(ctx,
-                                                             tile.data(),
-                                                             left_panel.data(),
-                                                             right_panel.data(),
+                                                             tile,
+                                                             left_panel,
+                                                             right_panel,
                                                              lhs,
                                                              rhs,
                                                              config,
                                                              pos);
                     detail::mid_terms<Ctx, TilePower>(ctx,
-                                                      tile.data(),
-                                                      left_panel.data(),
-                                                      right_panel.data(),
+                                                      tile,
+                                                      left_panel,
+                                                      right_panel,
                                                       lhs,
                                                       rhs,
                                                       config,
                                                       pos);
                     detail::right_small_terms<Ctx, TilePower>(
                         ctx,
-                        tile.data(),
-                        left_panel.data(),
-                        right_panel.data(),
+                        tile,
+                        left_panel,
+                        right_panel,
                         lhs,
                         rhs,
                         config,
                         pos);
-                    write(ctx,
-                          out,
-                          Span<Accum const, tile_extent>{tile.data(),
-                                                         tile_extent},
-                          config,
-                          pos);
+                    write(ctx, out, tile, config, pos);
                 }
             }
         }
@@ -1062,11 +1058,11 @@ void multiply(Ctx const& ctx,
     // not.
     if (width >= static_cast<Index>(tile_extent)) {
         detail::subtiled_low_degree_terms(
-            ctx, config, out, lhs, rhs, {tile.data(), tile.size()}, write);
+            ctx, config, out, lhs, rhs, tile, write);
     }
     else {
         detail::low_degree_terms(
-            ctx, config, out, lhs, rhs, {tile.data(), tile.size()}, write);
+            ctx, config, out, lhs, rhs, tile, write);
     }
 }
 
