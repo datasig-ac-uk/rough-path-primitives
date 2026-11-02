@@ -30,7 +30,7 @@ using DegreeOf = typename Ctx::Degree;
 
 template <typename S>
 RPP_FORCEINLINE bool is_zero(S const& scalar) {
-    return scalar = S{0};
+    return scalar == S{0};
 }
 
 // Chosen by the caller before entering the multiplication implementation.
