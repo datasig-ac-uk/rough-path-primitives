@@ -408,14 +408,23 @@ RPP_FORCEINLINE void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
     constexpr Index tile_size = Config::subtile_size;
     static_assert(tile_size >= vector_size,
                   "tile size must be at least the vector size");
-    const auto rows = align_up(pos.prefix_subtile_size, vector_size);
-    const auto cols = align_up(pos.suffix_subtile_size, vector_size);
-    assert(rows <= tile_size && cols <= tile_size);
-    for (Index i = 0; i < rows; ++i) {
-        for (Index j = 0; j < cols; j += vector_size) {
-            for (Index lane = 0; lane < vector_size; ++lane) {
-                tile[i * tile_size + j + lane] = AccumOf<Ctx>{0};
+
     tile = assume_aligned<16>(tile);
+
+    // for (Index ii=0; ii<pos.prefix_subtile_size; ii += vector_size) {
+    //     for (Index jj=0; jj<pos.suffix_subtile_size; jj += vector_size) {
+    //         for (Index i=0; i<vector_size; ++i) {
+    //             for (Index j=0; j<vector_size; ++j) {
+    //                 tile[(ii + i) * tile_size + (jj +j)] = AccumOf<Ctx>{0};
+    //             }
+    //         }
+    //     }
+    // }
+
+    for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+        for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
+            for (Index j = 0; j < vector_size; ++j) {
+                tile[i * tile_size + (jj + j)] = AccumOf<Ctx>{0};
             }
         }
     }
