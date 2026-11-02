@@ -638,7 +638,8 @@ void left_small_terms(
             auto* row = out_tile.data() + i * remainder_size * tile_size;
             for (Index remainder = 0; remainder < remainder_size; ++remainder) {
                 const auto* panel = right_panel.data() + remainder * tile_size;
-                for (Index j = 0; j < pos.suffix_subtile_size; j += vector_size) {
+                for (Index j = 0; j < pos.suffix_subtile_size;
+                     j += vector_size) {
                     for (Index lane = 0; lane < vector_size; ++lane) {
                         row[j + lane] += value * panel[j + lane];
                     }
@@ -729,23 +730,22 @@ template <typename Ctx,
           unsigned TilePower,
           typename TensorLevel,
           typename Multiply>
-RPP_FORCEINLINE
-void scalar_stride_outer_product(TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
-                                 SubtilePosition<Ctx> const& pos,
-                                 AccumOf<Ctx>* RPP_RESTRICT out_tile,
-                                 TensorLevel const& tensor_level,
-                                 IndexOf<Ctx> offset,
-                                 IndexOf<Ctx> stride,
-                                 Multiply&& multiply) {
+RPP_FORCEINLINE void scalar_stride_outer_product(
+    TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
+    SubtilePosition<Ctx> const& pos,
+    AccumOf<Ctx>* RPP_RESTRICT out_tile,
+    TensorLevel const& tensor_level,
+    IndexOf<Ctx> offset,
+    IndexOf<Ctx> stride,
+    Multiply&& multiply) {
     using Index = IndexOf<Ctx>;
 
     out_tile = assume_aligned<16>(out_tile);
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
         for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
-            out_tile[i * tile_size + j] +=
-                multiply(static_cast<AccumOf<Ctx>>(
-                    tensor_level[i * stride + j + offset]));
+            out_tile[i * tile_size + j] += multiply(static_cast<AccumOf<Ctx>>(
+                tensor_level[i * stride + j + offset]));
         }
     }
 }
