@@ -2,6 +2,7 @@
 #define RPP_UTILITY_HPP
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <tuple>
@@ -59,6 +60,28 @@ RPP_HOST_DEVICE inline T* align_up(T* ptr) noexcept {
         return reinterpret_cast<T*>(
             (reinterpret_cast<uintptr_t>(ptr) + modifier) & ~modifier);
     }
+}
+
+
+// The pointer must already have this alignment; its address is not adjusted.
+// Use the returned pointer so subsequent accesses carry the assumption.
+template <size_t Alignment, typename T>
+[[nodiscard]] RPP_HOST_DEVICE RPP_FORCEINLINE T*
+assume_aligned(T* ptr) noexcept {
+    static_assert(is_pow_2(Alignment), "alignment must be a nonzero power of two");
+    assert((reinterpret_cast<uintptr_t>(ptr) & (Alignment - 1)) == 0 &&
+           "pointer does not satisfy the assumed alignment");
+#if RPP_CUDA_DEVICE_COMPILE
+    return ptr;
+#elif RPP_HAS_BUILTIN(__builtin_assume_aligned) || RPP_COMPILER_GCC
+    return static_cast<T*>(__builtin_assume_aligned(
+        const_cast<std::remove_cv_t<T>*>(ptr), Alignment));
+#elif RPP_COMPILER_MSVC
+    __assume((reinterpret_cast<uintptr_t>(ptr) & (Alignment - 1)) == 0);
+    return ptr;
+#else
+    return ptr;
+#endif
 }
 
 
