@@ -448,14 +448,23 @@ RPP_FORCEINLINE void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
     lhs_tile = assume_aligned<32>(lhs_tile);
     rhs_tile = assume_aligned<32>(rhs_tile);
 
-    for (Index ii = 0; ii < pos.prefix_subtile_size; ii += vector_size) {
-        for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
+    // for (Index ii = 0; ii < pos.prefix_subtile_size; ii += vector_size) {
+    //     for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
+    //
+    //         for (Index i = 0; i < vector_size; ++i) {
+    //             for (Index j = 0; j < vector_size; ++j) {
+    //                 out_tile[(ii + i) * tile_size + (jj + j)] +=
+    //                     lhs_tile[ii + i] * rhs_tile[jj + j];
+    //             }
+    //         }
+    //     }
+    // }
 
-            for (Index i = 0; i < vector_size; ++i) {
-                for (Index j = 0; j < vector_size; ++j) {
-                    out_tile[(ii + i) * tile_size + (jj + j)] +=
-                        lhs_tile[ii + i] * rhs_tile[jj + j];
-                }
+    for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+        for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
+            for (Index j = 0; j < vector_size; ++j) {
+                out_tile[i * tile_size + (jj + j)] +=
+                    lhs_tile[i] * rhs_tile[jj + j];
             }
         }
     }
