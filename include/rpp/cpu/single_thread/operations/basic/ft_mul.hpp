@@ -24,7 +24,7 @@ template <typename Accum_, typename Architecture>
 class FTMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     : public cpu::single_thread::ft_multiply::Operation<
           cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
-          4> {
+          cpu::single_thread::ft_multiply::default_tile_power> {
     using Strategy =
         cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
@@ -42,7 +42,8 @@ public:
         namespace ftm = cpu::single_thread::ft_multiply;
 
         ftm::multiply(ctx,
-                      ftm::detail::select_tile_config<4>(ctx, out.basis()),
+                      ftm::detail::select_tile_config<ftm::default_tile_power>(
+                          ctx, out.basis()),
                       out,
                       lhs,
                       rhs,

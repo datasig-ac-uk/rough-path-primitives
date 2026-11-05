@@ -23,7 +23,7 @@ class FTInplaceFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
                    FMAType>
     : public cpu::single_thread::ft_multiply::Operation<
           cpu::strategies::SingleThreadStrategy<Accum_, Architecture>,
-          4> {
+          cpu::single_thread::ft_multiply::default_tile_power> {
     using Strategy =
         cpu::strategies::SingleThreadStrategy<Accum_, Architecture>;
     using Context = typename Strategy::Context;
@@ -46,7 +46,9 @@ public:
                     Accum beta = Accum{1}) const noexcept {
         namespace ftm = cpu::single_thread::ft_multiply;
 
-        const auto config = ftm::detail::select_tile_config<4>(ctx, a.basis());
+        const auto config =
+            ftm::detail::select_tile_config<ftm::default_tile_power>(
+                ctx, a.basis());
         if constexpr (FMAType == FTInplaceFMAType::AEqualsBCPlusA) {
             using Writer = ftm::InplaceFmaTileWriter<Context, FMAType, TensorA>;
             ftm::multiply(ctx, config, a, b, c, Writer{alpha, beta});
