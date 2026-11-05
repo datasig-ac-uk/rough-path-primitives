@@ -16,6 +16,8 @@
 #include <rpp/utility.hpp>
 #include <rpp/views/dense_tensor_view.hpp>
 
+#define RPP_NOINLINE __attribute__((noinline))
+
 namespace rpp::cpu::single_thread::ft_multiply {
 
 inline constexpr unsigned default_tile_power = 4;
@@ -407,7 +409,7 @@ namespace detail {
 // Clear only the rectangle touched by the vector-rounded outer product.
 // The remaining physical rows and columns are never read or written back.
 template <typename Ctx, unsigned TilePower>
-RPP_FORCEINLINE void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
+void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
                                 SubtilePosition<Ctx> const& pos) {
     using Index = IndexOf<Ctx>;
     using Config = TileConfig<Ctx, TilePower>;
@@ -465,7 +467,7 @@ template <typename Ctx,
           unsigned TilePower,
           typename LhsScalar,
           typename RhsScalar>
-RPP_FORCEINLINE void
+void
 outer_product_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
                       TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
                       AccumOf<Ctx>* RPP_RESTRICT out,
@@ -490,7 +492,7 @@ outer_product_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
 
 // Packed panels retain the alignment guarantees of the original tiled kernel.
 template <typename Ctx, unsigned TilePower>
-RPP_FORCEINLINE void outer_product(Ctx const& ctx,
+void outer_product(Ctx const& ctx,
                                    TileConfig<Ctx, TilePower> const& config,
                                    SubtilePosition<Ctx> const& pos,
                                    AccumOf<Ctx>* RPP_RESTRICT out_tile,
@@ -510,7 +512,7 @@ RPP_FORCEINLINE void outer_product(Ctx const& ctx,
 }
 
 template <typename Ctx, unsigned TilePower, typename RhsScalar>
-RPP_FORCEINLINE void
+void
 left_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
                     TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
                     AccumOf<Ctx>* RPP_RESTRICT out,
@@ -526,7 +528,8 @@ left_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
 }
 
 template <typename Ctx, unsigned TilePower, typename RhsScalar>
-RPP_FORCEINLINE void left_multiply_range_overrun(
+void
+left_multiply_range_overrun(
     Ctx const& ctx RPP_MAYBE_UNUSED,
     TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
     AccumOf<Ctx>* RPP_RESTRICT out,
@@ -546,7 +549,7 @@ RPP_FORCEINLINE void left_multiply_range_overrun(
 }
 
 template <typename Ctx, unsigned TilePower, typename LhsScalar>
-RPP_FORCEINLINE void
+void
 right_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
                      TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
                      AccumOf<Ctx>* RPP_RESTRICT out,
@@ -562,7 +565,8 @@ right_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
 }
 
 template <typename Ctx, unsigned TilePower, typename LhsScalar>
-RPP_FORCEINLINE void right_multiply_range_overrun(
+void
+right_multiply_range_overrun(
     Ctx const& ctx RPP_MAYBE_UNUSED,
     TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
     AccumOf<Ctx>* RPP_RESTRICT out,
@@ -582,7 +586,8 @@ RPP_FORCEINLINE void right_multiply_range_overrun(
 }
 
 template <typename Ctx, unsigned TilePower, typename TensorData>
-RPP_FORCEINLINE void stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
+void
+stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
                                        AccumOf<Ctx>* RPP_RESTRICT panel,
                                        TensorData const& source,
                                        IndexOf<Ctx> count,
@@ -898,7 +903,7 @@ template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
           typename RhsTensor>
-RPP_FORCEINLINE void
+void
 contiguous_level_terms(Ctx const& ctx,
                        TileConfig<Ctx, TilePower> const& config,
                        AccumOf<Ctx>* RPP_RESTRICT level,
