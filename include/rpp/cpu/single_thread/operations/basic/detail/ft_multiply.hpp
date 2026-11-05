@@ -435,42 +435,146 @@ RPP_FORCEINLINE void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
     }
 }
 
+// Exact-count kernels can read tensor storage directly. Overrun variants round
+// up to a lane group and require initialized padding in both input and output.
+template <typename Ctx,
+          unsigned TilePower,
+          typename LhsScalar,
+          typename RhsScalar>
+void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
+                   TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
+                   AccumOf<Ctx>* RPP_RESTRICT out,
+                   LhsScalar const* lhs,
+                   IndexOf<Ctx> lhs_size,
+                   RhsScalar const* rhs,
+                   IndexOf<Ctx> rhs_size,
+                   IndexOf<Ctx> out_stride) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    for (Index i = 0; i < lhs_size; ++i) {
+        const auto lhs_val = static_cast<Accum>(lhs[i]);
+        for (Index j = 0; j < rhs_size; ++j) {
+            out[i * out_stride + j] += lhs_val * static_cast<Accum>(rhs[j]);
+        }
+    }
+}
+
+template <typename Ctx,
+          unsigned TilePower,
+          typename LhsScalar,
+          typename RhsScalar>
+RPP_FORCEINLINE void
+outer_product_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
+                      TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
+                      AccumOf<Ctx>* RPP_RESTRICT out,
+                      LhsScalar const* lhs,
+                      IndexOf<Ctx> lhs_size,
+                      RhsScalar const* rhs,
+                      IndexOf<Ctx> rhs_size,
+                      IndexOf<Ctx> out_stride) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
+    for (Index i = 0; i < lhs_size; ++i) {
+        const auto lhs_val = static_cast<Accum>(lhs[i]);
+        for (Index jj = 0; jj < rhs_size; jj += vector_size) {
+            for (Index j = 0; j < vector_size; ++j) {
+                out[i * out_stride + jj + j] +=
+                    lhs_val * static_cast<Accum>(rhs[jj + j]);
+            }
+        }
+    }
+}
+
+// Packed panels retain the alignment guarantees of the original tiled kernel.
 template <typename Ctx, unsigned TilePower>
-RPP_FORCEINLINE void outer_product(Ctx const& ctx RPP_MAYBE_UNUSED,
+RPP_FORCEINLINE void outer_product(Ctx const& ctx,
                                    TileConfig<Ctx, TilePower> const& config,
                                    SubtilePosition<Ctx> const& pos,
                                    AccumOf<Ctx>* RPP_RESTRICT out_tile,
                                    AccumOf<Ctx> const* RPP_RESTRICT lhs_tile,
                                    AccumOf<Ctx> const* RPP_RESTRICT rhs_tile) {
-    using Index = IndexOf<Ctx>;
-
-    constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
-    constexpr Index tile_size = Index{1} << TilePower;
-    static_assert(tile_size >= vector_size,
+    constexpr auto tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    static_assert(tile_size >= TileConfig<Ctx, TilePower>::vector_size,
                   "tile size must be at least the vector size");
+    outer_product_overrun(ctx,
+                          config,
+                          assume_aligned<32>(out_tile),
+                          assume_aligned<32>(lhs_tile),
+                          pos.prefix_subtile_size,
+                          assume_aligned<32>(rhs_tile),
+                          pos.suffix_subtile_size,
+                          tile_size);
+}
 
-    out_tile = assume_aligned<32>(out_tile);
-    lhs_tile = assume_aligned<32>(lhs_tile);
-    rhs_tile = assume_aligned<32>(rhs_tile);
+template <typename Ctx, unsigned TilePower, typename RhsScalar>
+RPP_FORCEINLINE void
+left_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
+                    TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
+                    AccumOf<Ctx>* RPP_RESTRICT out,
+                    AccumOf<Ctx> lhs_val,
+                    RhsScalar const* rhs,
+                    IndexOf<Ctx> rhs_size,
+                    IndexOf<Ctx> out_stride) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    for (Index i = 0; i < rhs_size; ++i) {
+        out[i * out_stride] += lhs_val * static_cast<Accum>(rhs[i]);
+    }
+}
 
-    // for (Index ii = 0; ii < pos.prefix_subtile_size; ii += vector_size) {
-    //     for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
-    //
-    //         for (Index i = 0; i < vector_size; ++i) {
-    //             for (Index j = 0; j < vector_size; ++j) {
-    //                 out_tile[(ii + i) * tile_size + (jj + j)] +=
-    //                     lhs_tile[ii + i] * rhs_tile[jj + j];
-    //             }
-    //         }
-    //     }
-    // }
+template <typename Ctx, unsigned TilePower, typename RhsScalar>
+RPP_FORCEINLINE void left_multiply_range_overrun(
+    Ctx const& ctx RPP_MAYBE_UNUSED,
+    TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
+    AccumOf<Ctx>* RPP_RESTRICT out,
+    AccumOf<Ctx> lhs_val,
+    RhsScalar const* rhs,
+    IndexOf<Ctx> rhs_size,
+    IndexOf<Ctx> out_stride) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
+    for (Index ii = 0; ii < rhs_size; ii += vector_size) {
+        for (Index i = 0; i < vector_size; ++i) {
+            out[(ii + i) * out_stride] +=
+                lhs_val * static_cast<Accum>(rhs[ii + i]);
+        }
+    }
+}
 
-    for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
-        for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
-            for (Index j = 0; j < vector_size; ++j) {
-                out_tile[i * tile_size + (jj + j)] +=
-                    lhs_tile[i] * rhs_tile[jj + j];
-            }
+template <typename Ctx, unsigned TilePower, typename LhsScalar>
+RPP_FORCEINLINE void
+right_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
+                     TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
+                     AccumOf<Ctx>* RPP_RESTRICT out,
+                     LhsScalar const* lhs,
+                     IndexOf<Ctx> lhs_size,
+                     AccumOf<Ctx> rhs_val,
+                     IndexOf<Ctx> out_stride) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    for (Index i = 0; i < lhs_size; ++i) {
+        out[i * out_stride] += static_cast<Accum>(lhs[i]) * rhs_val;
+    }
+}
+
+template <typename Ctx, unsigned TilePower, typename LhsScalar>
+RPP_FORCEINLINE void right_multiply_range_overrun(
+    Ctx const& ctx RPP_MAYBE_UNUSED,
+    TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
+    AccumOf<Ctx>* RPP_RESTRICT out,
+    LhsScalar const* lhs,
+    IndexOf<Ctx> lhs_size,
+    AccumOf<Ctx> rhs_val,
+    IndexOf<Ctx> out_stride) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
+    for (Index ii = 0; ii < lhs_size; ii += vector_size) {
+        for (Index i = 0; i < vector_size; ++i) {
+            out[(ii + i) * out_stride] +=
+                static_cast<Accum>(lhs[ii + i]) * rhs_val;
         }
     }
 }
@@ -590,7 +694,6 @@ void left_small_terms(
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     constexpr Index tile_size = Index{1} << TilePower;
-    constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
     if (config.tile_letters <= 1) {
         return;
     }
@@ -643,12 +746,13 @@ void left_small_terms(
             auto* row = out_tile + i * remainder_size * tile_size;
             for (Index remainder = 0; remainder < remainder_size; ++remainder) {
                 const auto* panel = right_panel + remainder * tile_size;
-                for (Index j = 0; j < pos.suffix_subtile_size;
-                     j += vector_size) {
-                    for (Index lane = 0; lane < vector_size; ++lane) {
-                        row[j + lane] += value * panel[j + lane];
-                    }
-                }
+                left_multiply_range_overrun(ctx,
+                                            config,
+                                            row,
+                                            value,
+                                            panel,
+                                            pos.suffix_subtile_size,
+                                            Index{1});
                 row += tile_size;
             }
         }
@@ -720,41 +824,17 @@ void right_small_terms(
         for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
             auto* row = out_tile + i * tile_size;
             const auto* panel = left_panel + i * remainder_size;
-            for (Index remainder = 0; remainder < remainder_size; ++remainder) {
-                const auto value = panel[remainder];
-                for (Index j = 0; j < short_size; ++j) {
-                    row[j] += value * right_panel[j];
-                }
-                row += short_size;
-            }
+            outer_product(ctx,
+                          config,
+                          row,
+                          panel,
+                          remainder_size,
+                          right_panel,
+                          short_size,
+                          short_size);
         }
     }
 }
-
-template <typename Ctx,
-          unsigned TilePower,
-          typename TensorLevel,
-          typename Multiply>
-RPP_FORCEINLINE void scalar_stride_outer_product(
-    TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
-    SubtilePosition<Ctx> const& pos,
-    AccumOf<Ctx>* RPP_RESTRICT out_tile,
-    TensorLevel const& tensor_level,
-    IndexOf<Ctx> offset,
-    IndexOf<Ctx> stride,
-    Multiply&& multiply) {
-    using Index = IndexOf<Ctx>;
-
-    out_tile = assume_aligned<16>(out_tile);
-    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
-    for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
-        for (Index j = 0; j < pos.suffix_subtile_size; ++j) {
-            out_tile[i * tile_size + j] += multiply(static_cast<AccumOf<Ctx>>(
-                tensor_level[i * stride + j + offset]));
-        }
-    }
-}
-
 
 // The two scalar contributions lhs[0] * rhs[d] and lhs[d] * rhs[0].
 // Each source row is contiguous; no word splitting is needed.
@@ -762,7 +842,8 @@ template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
           typename RhsTensor>
-void scalar_terms(AccumOf<Ctx>* out_tile,
+void scalar_terms(Ctx const& ctx,
+                  AccumOf<Ctx>* RPP_RESTRICT out_tile,
                   LhsTensor const& lhs,
                   RhsTensor const& rhs,
                   TileConfig<Ctx, TilePower> const& config,
@@ -781,19 +862,78 @@ void scalar_terms(AccumOf<Ctx>* out_tile,
     if (lhs.has_degree(0) && rhs.has_degree(degree) && !is_zero(lhs[0])) {
         const auto scalar = static_cast<Accum>(lhs[0]);
         const auto right = rhs.degree_view(degree);
-        scalar_stride_outer_product(
-            config, pos, out_tile, right, offset, row_stride, [&](Accum val) {
-                return scalar * val;
-            });
+        for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+            left_multiply_range(ctx,
+                                config,
+                                assume_aligned<16>(out_tile) + i * tile_size,
+                                scalar,
+                                raw_pointer_cast(right.begin()) +
+                                    i * row_stride + offset,
+                                pos.suffix_subtile_size,
+                                Index{1});
+        }
     }
     if (lhs.has_degree(degree) && rhs.has_degree(0) && !is_zero(rhs[0])) {
         const auto left = lhs.degree_view(degree);
         const auto scalar = static_cast<Accum>(rhs[0]);
 
-        scalar_stride_outer_product(
-            config, pos, out_tile, left, offset, row_stride, [&](Accum val) {
-                return val * scalar;
-            });
+        for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
+            right_multiply_range(ctx,
+                                 config,
+                                 assume_aligned<16>(out_tile) + i * tile_size,
+                                 raw_pointer_cast(left.begin()) +
+                                     i * row_stride + offset,
+                                 pos.suffix_subtile_size,
+                                 scalar,
+                                 Index{1});
+        }
+    }
+}
+
+// Keep scalar-right products contiguous so the compiler can vectorize across
+// the left level rather than an inner loop of length one.
+template <typename Ctx,
+          unsigned TilePower,
+          typename LhsTensor,
+          typename RhsTensor>
+RPP_FORCEINLINE void
+contiguous_level_terms(Ctx const& ctx,
+                       TileConfig<Ctx, TilePower> const& config,
+                       AccumOf<Ctx>* RPP_RESTRICT level,
+                       DegreeOf<Ctx> degree,
+                       LhsTensor const& lhs,
+                       RhsTensor const& rhs) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    const auto rhs_min =
+        std::max<Degree>(rhs.min_degree(), degree - lhs.max_degree());
+    const auto rhs_max =
+        std::min<Degree>(rhs.max_degree(), degree - lhs.min_degree());
+    for (Degree rhs_degree = rhs_min; rhs_degree <= rhs_max; ++rhs_degree) {
+        const auto left = lhs.degree_view(degree - rhs_degree);
+        const auto right = rhs.degree_view(rhs_degree);
+        const auto left_size = static_cast<Index>(left.size());
+        const auto right_size = static_cast<Index>(right.size());
+        if (rhs_degree == 0) {
+            right_multiply_range(ctx,
+                                 config,
+                                 level,
+                                 raw_pointer_cast(left.begin()),
+                                 left_size,
+                                 static_cast<Accum>(right[0]),
+                                 Index{1});
+        }
+        else {
+            outer_product(ctx,
+                          config,
+                          level,
+                          raw_pointer_cast(left.begin()),
+                          left_size,
+                          raw_pointer_cast(right.begin()),
+                          right_size,
+                          right_size);
+        }
     }
 }
 
@@ -812,7 +952,6 @@ void low_degree_terms(Ctx const& ctx,
                       RhsTensor const& rhs,
                       AccumOf<Ctx>* RPP_RESTRICT tile,
                       Writer& write) {
-    using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     const auto low_max =
@@ -826,23 +965,8 @@ void low_degree_terms(Ctx const& ctx,
             TileConfig<Ctx, TilePower>::tile_extent));
     std::fill(product.begin(), product.end(), Accum{0});
     for (Degree degree = low_max; degree >= out.min_degree(); --degree) {
-        auto level = product.degree_view(degree);
-        const auto rhs_min =
-            std::max<Degree>(rhs.min_degree(), degree - lhs.max_degree());
-        const auto rhs_max =
-            std::min<Degree>(rhs.max_degree(), degree - lhs.min_degree());
-        for (Degree rhs_degree = rhs_min; rhs_degree <= rhs_max; ++rhs_degree) {
-            const auto left = lhs.degree_view(degree - rhs_degree);
-            const auto right = rhs.degree_view(rhs_degree);
-            const auto rhs_size = static_cast<Index>(right.size());
-            for (Index i = 0; i < left.size(); ++i) {
-                const auto value = static_cast<Accum>(left[i]);
-                for (Index j = 0; j < rhs_size; ++j) {
-                    level[i * rhs_size + j] +=
-                        value * static_cast<Accum>(right[j]);
-                }
-            }
-        }
+        contiguous_level_terms(
+            ctx, config, product.degree_view(degree).begin(), degree, lhs, rhs);
     }
     write(ctx, out, product);
 }
@@ -875,16 +999,24 @@ void subtiled_low_degree_terms(Ctx const& ctx,
             if (lhs.has_degree(0) && rhs.has_degree(1)) {
                 const auto scalar = static_cast<Accum>(lhs[0]);
                 const auto right = rhs.degree_view(1);
-                for (Index i = 0; i < count; ++i) {
-                    tile[i] += scalar * static_cast<Accum>(right[offset + i]);
-                }
+                left_multiply_range(ctx,
+                                    config,
+                                    tile,
+                                    scalar,
+                                    raw_pointer_cast(right.begin()) + offset,
+                                    count,
+                                    Index{1});
             }
             if (lhs.has_degree(1) && rhs.has_degree(0)) {
                 const auto left = lhs.degree_view(1);
                 const auto scalar = static_cast<Accum>(rhs[0]);
-                for (Index i = 0; i < count; ++i) {
-                    tile[i] += static_cast<Accum>(left[offset + i]) * scalar;
-                }
+                right_multiply_range(ctx,
+                                     config,
+                                     tile,
+                                     raw_pointer_cast(left.begin()) + offset,
+                                     count,
+                                     scalar,
+                                     Index{1});
             }
             write(ctx, out, tile, 1, offset, count);
         }
@@ -908,6 +1040,7 @@ template <typename Ctx,
           typename RhsTensor,
           typename Writer>
 void width_one_terms(Ctx const& ctx,
+                     TileConfig<Ctx, TilePower> const& config,
                      TensorOut& out,
                      LhsTensor const& lhs,
                      RhsTensor const& rhs,
@@ -930,8 +1063,15 @@ void width_one_terms(Ctx const& ctx,
             const auto value = static_cast<Accum>(lhs[ld]);
             const auto rhs_min = std::max<Degree>(rhs.min_degree(), first - ld);
             const auto rhs_max = std::min<Degree>(rhs.max_degree(), last - ld);
-            for (Degree rd = rhs_min; rd <= rhs_max; ++rd) {
-                tile[ld + rd - first] += value * static_cast<Accum>(rhs[rd]);
+            if (rhs_min <= rhs_max) {
+                left_multiply_range(
+                    ctx,
+                    config,
+                    tile + ld + rhs_min - first,
+                    value,
+                    raw_pointer_cast(rhs.data()) + rhs_min,
+                    static_cast<IndexOf<Ctx>>(rhs_max - rhs_min + 1),
+                    IndexOf<Ctx>{1});
             }
         }
         write(ctx, out, tile, first, count);
@@ -996,7 +1136,7 @@ void multiply(Ctx const& ctx,
     auto* tile = storage.tile.data();
     if (width == 1) {
         detail::width_one_terms<Ctx, TilePower>(
-            ctx, out, lhs, rhs, tile, write);
+            ctx, config, out, lhs, rhs, tile, write);
         return;
     }
     auto* left_panel = storage.left_panel.data();
@@ -1009,6 +1149,14 @@ void multiply(Ctx const& ctx,
 
     for (Degree middle_degree = max_middle; middle_degree >= min_middle;
          --middle_degree) {
+        const auto degree = middle_degree + 2 * tile_letters;
+        const auto level_size = out.basis().size_of_degree(degree);
+        if (static_cast<size_t>(level_size) <= tile_extent) {
+            std::fill_n(tile, level_size, Accum{0});
+            detail::contiguous_level_terms(ctx, config, tile, degree, lhs, rhs);
+            write(ctx, out, tile, degree, Index{0}, level_size);
+            continue;
+        }
         const auto middle_size = const_power(width, middle_degree);
         for (Index middle_word = 0; middle_word < middle_size; ++middle_word) {
             for (Index prefix = 0; prefix < side; prefix += tile_size) {
@@ -1022,7 +1170,7 @@ void multiply(Ctx const& ctx,
                         std::min(tile_size, side - suffix)};
                     detail::clear_tile<Ctx, TilePower>(tile, pos);
                     detail::scalar_terms<Ctx, TilePower>(
-                        tile, lhs, rhs, config, pos);
+                        ctx, tile, lhs, rhs, config, pos);
                     detail::left_small_terms<Ctx, TilePower>(ctx,
                                                              tile,
                                                              left_panel,
