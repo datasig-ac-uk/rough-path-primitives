@@ -18,6 +18,8 @@
 
 namespace rpp::cpu::single_thread::ft_multiply {
 
+inline constexpr unsigned default_tile_power = 4;
+
 template <typename Ctx>
 using AccumOf = typename Ctx::Accum;
 
