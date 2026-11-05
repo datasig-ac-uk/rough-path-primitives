@@ -15,6 +15,10 @@ void BM_FTMul(benchmark::State& state) {
         });
 }
 
-BENCHMARK(BM_FTMul)->Apply(rb::apply_configs);
+BENCHMARK(BM_FTMul)
+    ->Apply(rb::apply_configs)
+    ->Args({2, 15})
+    ->Args({3, 10})
+    ->Args({10, 3});
 
 } // namespace
