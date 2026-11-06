@@ -117,6 +117,7 @@ struct SubtilePosition {
 
     Index middle_word;
     Degree middle_degree;
+    Index middle_size; // width^middle_degree, computed once by the driver.
     Index prefix_subtile_offset = 0;
     Index suffix_subtile_offset = 0;
     Index prefix_subtile_size; // Live rows in this subtile.
@@ -150,8 +151,7 @@ public:
         auto& prefix = subtile_position.prefix_subtile_offset;
         auto& suffix = subtile_position.suffix_subtile_offset;
         auto const& tile_size = config.tile_size;
-        const auto middle_size = const_power(static_cast<Index>(config.width),
-                                             subtile_position.middle_degree);
+        const auto middle_size = subtile_position.middle_size;
         auto& middle_index = subtile_position.middle_word;
         constexpr auto tile_width = TileConfig<Ctx, TilePower>::subtile_size;
 
@@ -238,8 +238,7 @@ public:
         auto& prefix = subtile_position.prefix_subtile_offset;
         auto& suffix = subtile_position.suffix_subtile_offset;
         auto const& tile_size = config.tile_size;
-        const auto middle_size = const_power(static_cast<Index>(config.width),
-                                             subtile_position.middle_degree);
+        const auto middle_size = subtile_position.middle_size;
         auto& middle_index = subtile_position.middle_word;
         constexpr auto tile_width = TileConfig<Ctx, TilePower>::subtile_size;
 
@@ -747,8 +746,7 @@ void left_small_terms(Ctx const& ctx,
     // Multi-letter blocks fit in one tile; only single letters are subtiled.
     assert(config.tile_size <= tile_size);
     assert(pos.prefix_subtile_offset == 0 && pos.suffix_subtile_offset == 0);
-    const auto middle_size =
-        const_power(static_cast<Index>(config.width), pos.middle_degree);
+    const auto middle_size = pos.middle_size;
     const auto degree = pos.middle_degree + 2 * config.tile_letters;
     const auto min_degree = std::max<Degree>(
         1, std::max(lhs.min_degree(), degree - rhs.max_degree()));
@@ -824,8 +822,7 @@ void right_small_terms(Ctx const& ctx,
     }
     assert(config.tile_size <= tile_size);
     assert(pos.prefix_subtile_offset == 0 && pos.suffix_subtile_offset == 0);
-    const auto middle_size =
-        const_power(static_cast<Index>(config.width), pos.middle_degree);
+    const auto middle_size = pos.middle_size;
     const auto degree = pos.middle_degree + 2 * config.tile_letters;
     const auto min_degree = std::max<Degree>(
         1, std::max(rhs.min_degree(), degree - lhs.max_degree()));
@@ -889,8 +886,7 @@ void scalar_terms(Ctx const& ctx,
     using Accum = AccumOf<Ctx>;
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     const auto degree = pos.middle_degree + 2 * config.tile_letters;
-    const auto middle_size =
-        const_power(static_cast<Index>(config.width), pos.middle_degree);
+    const auto middle_size = pos.middle_size;
     const auto row_stride = middle_size * config.tile_size;
     const auto offset =
         (pos.prefix_subtile_offset * middle_size + pos.middle_word) *
@@ -1115,6 +1111,108 @@ void width_one_terms(Ctx const& ctx,
     }
 }
 
+// Levels with a middle block use panel traversal and middle-word split state.
+// Single-letter blocks wider than a physical tile also need this for subtiling.
+// Keep this boundary out of line so its split-state frame stays on this path.
+template <typename Ctx,
+          unsigned TilePower,
+          typename TensorOut,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Writer>
+RPP_NOINLINE void tiled_terms(Ctx const& ctx,
+                 TileConfig<Ctx, TilePower> const& config,
+                 TensorOut& out,
+                 LhsTensor const& lhs,
+                 RhsTensor const& rhs,
+                 DegreeOf<Ctx> first_degree,
+                 Writer& write) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    const auto width = static_cast<Index>(config.width);
+    const auto tile_letters = config.tile_letters;
+    const auto side = config.tile_size;
+    auto& storage = TileStorage<Ctx, TilePower>::get(ctx);
+    auto* tile = storage.tile.data();
+    auto* left_panel = storage.left_panel.data();
+    auto* right_panel = storage.right_panel.data();
+
+    const auto min_middle = first_degree - 2 * tile_letters;
+    const auto max_middle = out.max_degree() - 2 * tile_letters;
+
+    for (Degree middle_degree = max_middle; middle_degree >= min_middle;
+         --middle_degree) {
+        const auto middle_size =
+            static_cast<Index>(out.basis().size_of_degree(middle_degree));
+        MiddleWordSplits<Ctx> splits(width, middle_degree);
+        for (Index middle_word = 0; middle_word < middle_size; ++middle_word) {
+            for (Index prefix = 0; prefix < side; prefix += tile_size) {
+                for (Index suffix = 0; suffix < side; suffix += tile_size) {
+                    SubtilePosition<Ctx> pos{
+                        middle_word,
+                        static_cast<Degree>(middle_degree),
+                        middle_size,
+                        prefix,
+                        suffix,
+                        std::min(tile_size, side - prefix),
+                        std::min(tile_size, side - suffix)};
+                    clear_tile<Ctx, TilePower>(tile, pos);
+                    scalar_terms<Ctx, TilePower>(
+                        ctx, tile, lhs, rhs, config, pos);
+                    left_small_terms<Ctx, TilePower>(
+                        ctx, tile, left_panel, right_panel, lhs, rhs, config, pos);
+                    mid_terms<Ctx, TilePower>(ctx, tile, left_panel, right_panel,
+                                              lhs, rhs, config, pos, splits);
+                    right_small_terms<Ctx, TilePower>(
+                        ctx, tile, left_panel, right_panel, lhs, rhs, config, pos);
+                    write(ctx, out, tile, config, pos);
+                }
+            }
+            splits.advance();
+        }
+    }
+}
+
+// Finish the level spanning just the prefix/suffix blocks, followed by the
+// low-degree prefix. Keep the same descending write order for aliased operands.
+template <typename Ctx,
+          unsigned TilePower,
+          typename TensorOut,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Writer>
+void contiguous_terms(Ctx const& ctx,
+                      TileConfig<Ctx, TilePower> const& config,
+                      TensorOut& out,
+                      LhsTensor const& lhs,
+                      RhsTensor const& rhs,
+                      DegreeOf<Ctx> last_degree,
+                      Writer& write) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+    constexpr size_t tile_extent = TileConfig<Ctx, TilePower>::tile_extent;
+    auto* tile = TileStorage<Ctx, TilePower>::get(ctx).tile.data();
+    const auto first_degree =
+        std::max<Degree>(out.min_degree(), 2 * config.tile_letters);
+    for (Degree degree = last_degree; degree >= first_degree; --degree) {
+        const auto level_size = out.basis().size_of_degree(degree);
+        std::fill_n(tile, level_size, Accum{0});
+        contiguous_level_terms(ctx, config, tile, degree, lhs, rhs);
+        write(ctx, out, tile, degree, Index{0}, level_size);
+    }
+
+    // At width == capacity, degree one fits alone but its scalar prefix does
+    // not.
+    if (config.width >= static_cast<Index>(tile_extent)) {
+        subtiled_low_degree_terms(ctx, config, out, lhs, rhs, tile, write);
+    }
+    else {
+        low_degree_terms(ctx, config, out, lhs, rhs, tile, write);
+    }
+}
+
 template <unsigned TilePower, typename Ctx, typename Basis>
 TileConfig<Ctx, TilePower> select_tile_config(Ctx const& ctx RPP_MAYBE_UNUSED,
                                               Basis const& basis) {
@@ -1158,97 +1256,31 @@ void multiply(Ctx const& ctx,
               Writer&& write) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
-    using Accum = AccumOf<Ctx>;
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
-    constexpr size_t tile_extent = TileConfig<Ctx, TilePower>::tile_extent;
     const auto width = static_cast<Index>(config.width);
-    const auto tile_letters = config.tile_letters;
-    const auto side = config.tile_size;
-    assert(width > 0 && tile_letters > 0 && side > 0);
-    assert(side <= tile_size || tile_letters == 1);
+    assert(width > 0 && config.tile_letters > 0 && config.tile_size > 0);
+    assert(config.tile_size <= tile_size || config.tile_letters == 1);
     assert(out.basis().width == config.width);
 
-    auto& storage = TileStorage<Ctx, TilePower>::get(ctx);
-    auto* tile = storage.tile.data();
     if (width == 1) {
+        auto* tile = TileStorage<Ctx, TilePower>::get(ctx).tile.data();
         detail::width_one_terms<Ctx, TilePower>(
             ctx, config, out, lhs, rhs, tile, write);
         return;
     }
-    auto* left_panel = storage.left_panel.data();
-    auto* right_panel = storage.right_panel.data();
 
-
-    const auto min_middle =
-        std::max<Degree>(0, out.min_degree() - 2 * tile_letters);
-    const auto max_middle = out.max_degree() - 2 * tile_letters;
-
-    for (Degree middle_degree = max_middle; middle_degree >= min_middle;
-         --middle_degree) {
-        const auto degree = middle_degree + 2 * tile_letters;
-        const auto level_size = out.basis().size_of_degree(degree);
-        if (static_cast<size_t>(level_size) <= tile_extent) {
-            std::fill_n(tile, level_size, Accum{0});
-            detail::contiguous_level_terms(ctx, config, tile, degree, lhs, rhs);
-            write(ctx, out, tile, degree, Index{0}, level_size);
-            continue;
-        }
-        const auto middle_size = const_power(width, middle_degree);
-        detail::MiddleWordSplits<Ctx> splits(width, middle_degree);
-        for (Index middle_word = 0; middle_word < middle_size; ++middle_word) {
-            for (Index prefix = 0; prefix < side; prefix += tile_size) {
-                for (Index suffix = 0; suffix < side; suffix += tile_size) {
-                    SubtilePosition<Ctx> pos{
-                        middle_word,
-                        static_cast<Degree>(middle_degree),
-                        prefix,
-                        suffix,
-                        std::min(tile_size, side - prefix),
-                        std::min(tile_size, side - suffix)};
-                    detail::clear_tile<Ctx, TilePower>(tile, pos);
-                    detail::scalar_terms<Ctx, TilePower>(
-                        ctx, tile, lhs, rhs, config, pos);
-                    detail::left_small_terms<Ctx, TilePower>(ctx,
-                                                             tile,
-                                                             left_panel,
-                                                             right_panel,
-                                                             lhs,
-                                                             rhs,
-                                                             config,
-                                                             pos);
-                    detail::mid_terms<Ctx, TilePower>(ctx,
-                                                      tile,
-                                                      left_panel,
-                                                      right_panel,
-                                                      lhs,
-                                                      rhs,
-                                                      config,
-                                                      pos,
-                                                      splits);
-                    detail::right_small_terms<Ctx, TilePower>(ctx,
-                                                              tile,
-                                                              left_panel,
-                                                              right_panel,
-                                                              lhs,
-                                                              rhs,
-                                                              config,
-                                                              pos);
-                    write(ctx, out, tile, config, pos);
-                }
-            }
-            splits.advance();
-        }
+    // Tiling starts with the first middle letter, except when a single-letter
+    // prefix/suffix already needs subtiling to fit the physical tile side.
+    const auto first_tiled_degree = std::max<Degree>(
+        out.min_degree(),
+        2 * config.tile_letters + (config.tile_size <= tile_size ? 1 : 0));
+    if (first_tiled_degree <= out.max_degree()) {
+        detail::tiled_terms(
+            ctx, config, out, lhs, rhs, first_tiled_degree, write);
     }
-
-    // At width == capacity, degree one fits alone but its scalar prefix does
-    // not.
-    if (width >= static_cast<Index>(tile_extent)) {
-        detail::subtiled_low_degree_terms(
-            ctx, config, out, lhs, rhs, tile, write);
-    }
-    else {
-        detail::low_degree_terms(ctx, config, out, lhs, rhs, tile, write);
-    }
+    detail::contiguous_terms(
+        ctx, config, out, lhs, rhs,
+        std::min<Degree>(out.max_degree(), first_tiled_degree - 1), write);
 }
 
 
