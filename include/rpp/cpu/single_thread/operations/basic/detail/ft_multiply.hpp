@@ -410,7 +410,7 @@ namespace detail {
 // The remaining physical rows and columns are never read or written back.
 template <typename Ctx, unsigned TilePower>
 void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
-                                SubtilePosition<Ctx> const& pos) {
+                SubtilePosition<Ctx> const& pos) {
     using Index = IndexOf<Ctx>;
     using Config = TileConfig<Ctx, TilePower>;
     constexpr Index vector_size = Config::vector_size;
@@ -467,15 +467,15 @@ template <typename Ctx,
           unsigned TilePower,
           typename LhsScalar,
           typename RhsScalar>
-void
-outer_product_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
-                      TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
-                      AccumOf<Ctx>* RPP_RESTRICT out,
-                      LhsScalar const* lhs,
-                      IndexOf<Ctx> lhs_size,
-                      RhsScalar const* rhs,
-                      IndexOf<Ctx> rhs_size,
-                      IndexOf<Ctx> out_stride) {
+void outer_product_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
+                           TileConfig<Ctx, TilePower> const& config
+                               RPP_MAYBE_UNUSED,
+                           AccumOf<Ctx>* RPP_RESTRICT out,
+                           LhsScalar const* lhs,
+                           IndexOf<Ctx> lhs_size,
+                           RhsScalar const* rhs,
+                           IndexOf<Ctx> rhs_size,
+                           IndexOf<Ctx> out_stride) {
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
@@ -493,11 +493,11 @@ outer_product_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
 // Packed panels retain the alignment guarantees of the original tiled kernel.
 template <typename Ctx, unsigned TilePower>
 void outer_product(Ctx const& ctx,
-                                   TileConfig<Ctx, TilePower> const& config,
-                                   SubtilePosition<Ctx> const& pos,
-                                   AccumOf<Ctx>* RPP_RESTRICT out_tile,
-                                   AccumOf<Ctx> const* RPP_RESTRICT lhs_tile,
-                                   AccumOf<Ctx> const* RPP_RESTRICT rhs_tile) {
+                   TileConfig<Ctx, TilePower> const& config,
+                   SubtilePosition<Ctx> const& pos,
+                   AccumOf<Ctx>* RPP_RESTRICT out_tile,
+                   AccumOf<Ctx> const* RPP_RESTRICT lhs_tile,
+                   AccumOf<Ctx> const* RPP_RESTRICT rhs_tile) {
     constexpr auto tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     static_assert(tile_size >= TileConfig<Ctx, TilePower>::vector_size,
                   "tile size must be at least the vector size");
@@ -512,14 +512,14 @@ void outer_product(Ctx const& ctx,
 }
 
 template <typename Ctx, unsigned TilePower, typename RhsScalar>
-void
-left_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
-                    TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
-                    AccumOf<Ctx>* RPP_RESTRICT out,
-                    AccumOf<Ctx> lhs_val,
-                    RhsScalar const* rhs,
-                    IndexOf<Ctx> rhs_size,
-                    IndexOf<Ctx> out_stride) {
+void left_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
+                         TileConfig<Ctx, TilePower> const& config
+                             RPP_MAYBE_UNUSED,
+                         AccumOf<Ctx>* RPP_RESTRICT out,
+                         AccumOf<Ctx> lhs_val,
+                         RhsScalar const* rhs,
+                         IndexOf<Ctx> rhs_size,
+                         IndexOf<Ctx> out_stride) {
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     for (Index i = 0; i < rhs_size; ++i) {
@@ -528,15 +528,14 @@ left_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
 }
 
 template <typename Ctx, unsigned TilePower, typename RhsScalar>
-void
-left_multiply_range_overrun(
-    Ctx const& ctx RPP_MAYBE_UNUSED,
-    TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
-    AccumOf<Ctx>* RPP_RESTRICT out,
-    AccumOf<Ctx> lhs_val,
-    RhsScalar const* rhs,
-    IndexOf<Ctx> rhs_size,
-    IndexOf<Ctx> out_stride) {
+void left_multiply_range_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
+                                 TileConfig<Ctx, TilePower> const& config
+                                     RPP_MAYBE_UNUSED,
+                                 AccumOf<Ctx>* RPP_RESTRICT out,
+                                 AccumOf<Ctx> lhs_val,
+                                 RhsScalar const* rhs,
+                                 IndexOf<Ctx> rhs_size,
+                                 IndexOf<Ctx> out_stride) {
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
@@ -549,14 +548,14 @@ left_multiply_range_overrun(
 }
 
 template <typename Ctx, unsigned TilePower, typename LhsScalar>
-void
-right_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
-                     TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
-                     AccumOf<Ctx>* RPP_RESTRICT out,
-                     LhsScalar const* lhs,
-                     IndexOf<Ctx> lhs_size,
-                     AccumOf<Ctx> rhs_val,
-                     IndexOf<Ctx> out_stride) {
+void right_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
+                          TileConfig<Ctx, TilePower> const& config
+                              RPP_MAYBE_UNUSED,
+                          AccumOf<Ctx>* RPP_RESTRICT out,
+                          LhsScalar const* lhs,
+                          IndexOf<Ctx> lhs_size,
+                          AccumOf<Ctx> rhs_val,
+                          IndexOf<Ctx> out_stride) {
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     for (Index i = 0; i < lhs_size; ++i) {
@@ -565,15 +564,14 @@ right_multiply_range(Ctx const& ctx RPP_MAYBE_UNUSED,
 }
 
 template <typename Ctx, unsigned TilePower, typename LhsScalar>
-void
-right_multiply_range_overrun(
-    Ctx const& ctx RPP_MAYBE_UNUSED,
-    TileConfig<Ctx, TilePower> const& config RPP_MAYBE_UNUSED,
-    AccumOf<Ctx>* RPP_RESTRICT out,
-    LhsScalar const* lhs,
-    IndexOf<Ctx> lhs_size,
-    AccumOf<Ctx> rhs_val,
-    IndexOf<Ctx> out_stride) {
+void right_multiply_range_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
+                                  TileConfig<Ctx, TilePower> const& config
+                                      RPP_MAYBE_UNUSED,
+                                  AccumOf<Ctx>* RPP_RESTRICT out,
+                                  LhsScalar const* lhs,
+                                  IndexOf<Ctx> lhs_size,
+                                  AccumOf<Ctx> rhs_val,
+                                  IndexOf<Ctx> out_stride) {
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     constexpr Index vector_size = TileConfig<Ctx, TilePower>::vector_size;
@@ -586,13 +584,12 @@ right_multiply_range_overrun(
 }
 
 template <typename Ctx, unsigned TilePower, typename TensorData>
-void
-stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
-                                       AccumOf<Ctx>* RPP_RESTRICT panel,
-                                       TensorData const& source,
-                                       IndexOf<Ctx> count,
-                                       IndexOf<Ctx> stride,
-                                       IndexOf<Ctx> offset) {
+void stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
+                       AccumOf<Ctx>* RPP_RESTRICT panel,
+                       TensorData const& source,
+                       IndexOf<Ctx> count,
+                       IndexOf<Ctx> stride,
+                       IndexOf<Ctx> offset) {
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
 
@@ -605,6 +602,52 @@ stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
 }
 
 
+// All decompositions of a sequential middle word into a prefix and suffix.
+// Powers are fixed for an output degree; advancing uses a carry instead of
+// dividing the word again for every split and subtile.
+template <typename Ctx>
+class MiddleWordSplits {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    using Architecture = typename Ctx::Architecture;
+
+    struct Split {
+        Index divisor;
+        Index lhs;
+        Index rhs;
+    };
+
+    std::array<Split, Architecture::max_depth + 1> splits;
+    Degree middle_degree;
+
+public:
+    MiddleWordSplits(Index width, Degree degree) : middle_degree(degree) {
+        assert(width > 1 && degree >= 0 &&
+               static_cast<size_t>(degree) <= Architecture::max_depth);
+        Index divisor = 1;
+        for (Degree split = 0; split <= middle_degree; ++split) {
+            splits[split] = {divisor, Index{0}, Index{0}};
+            if (split < middle_degree) {
+                divisor *= width;
+            }
+        }
+    }
+
+    auto const& operator[](Degree split) const noexcept {
+        return splits[split];
+    }
+
+    void advance() noexcept {
+        for (Degree split = 0; split <= middle_degree; ++split) {
+            auto& state = splits[split];
+            if (++state.rhs == state.divisor) {
+                state.rhs = 0;
+                ++state.lhs;
+            }
+        }
+    }
+};
+
 template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
@@ -616,7 +659,8 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
                LhsTensor const& lhs,
                RhsTensor const& rhs,
                TileConfig<Ctx, TilePower> const& config,
-               SubtilePosition<Ctx> const& subtile_position) {
+               SubtilePosition<Ctx> const& subtile_position,
+               MiddleWordSplits<Ctx> const& splits) {
 
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
@@ -636,11 +680,11 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
 
         for (Degree panel_idx = 0; panel_idx < num_panels; ++panel_idx) {
             const auto split_deg = split_deg_start + panel_idx;
-            Index subtile_split =
-                const_power(static_cast<Index>(config.width), split_deg);
+            const Index lhs_stride =
+                splits[subtile_position.middle_degree - split_deg].divisor;
 
-            const auto lhs_split = subtile_position.middle_word / subtile_split;
-            const auto rhs_split = subtile_position.middle_word % subtile_split;
+            const auto lhs_split = splits[split_deg].lhs;
+            const auto rhs_split = splits[split_deg].rhs;
 
             const auto lhs_degree = subtile_position.middle_degree - split_deg +
                 config.tile_letters;
@@ -650,9 +694,6 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
                 continue;
             }
 
-            const Index lhs_stride =
-                const_power(static_cast<Index>(config.width),
-                            subtile_position.middle_degree - split_deg);
             const Index rhs_stride = 1;
             const auto lhs_idx = lhs_split;
             const auto rhs_idx = rhs_split * prefix_shift;
@@ -689,15 +730,14 @@ template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
           typename RhsTensor>
-void left_small_terms(
-    Ctx const& ctx,
-    AccumOf<Ctx>* RPP_RESTRICT out_tile,
-    AccumOf<Ctx>* RPP_RESTRICT left_panel,
-    AccumOf<Ctx>* RPP_RESTRICT right_panel,
-    LhsTensor const& lhs,
-    RhsTensor const& rhs,
-    TileConfig<Ctx, TilePower> const& config,
-    SubtilePosition<Ctx> const& pos) {
+void left_small_terms(Ctx const& ctx,
+                      AccumOf<Ctx>* RPP_RESTRICT out_tile,
+                      AccumOf<Ctx>* RPP_RESTRICT left_panel,
+                      AccumOf<Ctx>* RPP_RESTRICT right_panel,
+                      LhsTensor const& lhs,
+                      RhsTensor const& rhs,
+                      TileConfig<Ctx, TilePower> const& config,
+                      SubtilePosition<Ctx> const& pos) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     constexpr Index tile_size = Index{1} << TilePower;
@@ -724,12 +764,8 @@ void left_small_terms(
          ++lhs_degree, short_size *= width) {
         const auto rhs_degree = degree - lhs_degree;
         const auto remainder_size = config.tile_size / short_size;
-        stride_read_panel<Ctx, TilePower>(ctx,
-                                          left_panel,
-                                          lhs.degree_view(lhs_degree),
-                                          short_size,
-                                          1,
-                                          0);
+        stride_read_panel<Ctx, TilePower>(
+            ctx, left_panel, lhs.degree_view(lhs_degree), short_size, 1, 0);
         const auto right = rhs.degree_view(rhs_degree);
         assert(remainder_size * tile_size <=
                static_cast<Index>(TileConfig<Ctx, TilePower>::panel_extent));
@@ -772,15 +808,14 @@ template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
           typename RhsTensor>
-void right_small_terms(
-    Ctx const& ctx,
-    AccumOf<Ctx>* RPP_RESTRICT out_tile,
-    AccumOf<Ctx>* RPP_RESTRICT left_panel,
-    AccumOf<Ctx>* RPP_RESTRICT right_panel,
-    LhsTensor const& lhs,
-    RhsTensor const& rhs,
-    TileConfig<Ctx, TilePower> const& config,
-    SubtilePosition<Ctx> const& pos) {
+void right_small_terms(Ctx const& ctx,
+                       AccumOf<Ctx>* RPP_RESTRICT out_tile,
+                       AccumOf<Ctx>* RPP_RESTRICT left_panel,
+                       AccumOf<Ctx>* RPP_RESTRICT right_panel,
+                       LhsTensor const& lhs,
+                       RhsTensor const& rhs,
+                       TileConfig<Ctx, TilePower> const& config,
+                       SubtilePosition<Ctx> const& pos) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     constexpr Index tile_size = Index{1} << TilePower;
@@ -806,12 +841,8 @@ void right_small_terms(
          ++rhs_degree, short_size *= width) {
         const auto lhs_degree = degree - rhs_degree;
         const auto remainder_size = config.tile_size / short_size;
-        stride_read_panel<Ctx, TilePower>(ctx,
-                                          right_panel,
-                                          rhs.degree_view(rhs_degree),
-                                          short_size,
-                                          1,
-                                          0);
+        stride_read_panel<Ctx, TilePower>(
+            ctx, right_panel, rhs.degree_view(rhs_degree), short_size, 1, 0);
         const auto left = lhs.degree_view(lhs_degree);
         assert(pos.prefix_subtile_size * remainder_size <=
                static_cast<Index>(TileConfig<Ctx, TilePower>::panel_extent));
@@ -820,8 +851,7 @@ void right_small_terms(
         auto source_offset = pos.middle_word * remainder_size;
         for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
             stride_read_panel<Ctx, TilePower>(ctx,
-                                              left_panel +
-                                                  i * remainder_size,
+                                              left_panel + i * remainder_size,
                                               left,
                                               remainder_size,
                                               1,
@@ -903,13 +933,12 @@ template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
           typename RhsTensor>
-void
-contiguous_level_terms(Ctx const& ctx,
-                       TileConfig<Ctx, TilePower> const& config,
-                       AccumOf<Ctx>* RPP_RESTRICT level,
-                       DegreeOf<Ctx> degree,
-                       LhsTensor const& lhs,
-                       RhsTensor const& rhs) {
+void contiguous_level_terms(Ctx const& ctx,
+                            TileConfig<Ctx, TilePower> const& config,
+                            AccumOf<Ctx>* RPP_RESTRICT level,
+                            DegreeOf<Ctx> degree,
+                            LhsTensor const& lhs,
+                            RhsTensor const& rhs) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     using Accum = AccumOf<Ctx>;
@@ -1165,6 +1194,7 @@ void multiply(Ctx const& ctx,
             continue;
         }
         const auto middle_size = const_power(width, middle_degree);
+        detail::MiddleWordSplits<Ctx> splits(width, middle_degree);
         for (Index middle_word = 0; middle_word < middle_size; ++middle_word) {
             for (Index prefix = 0; prefix < side; prefix += tile_size) {
                 for (Index suffix = 0; suffix < side; suffix += tile_size) {
@@ -1193,19 +1223,20 @@ void multiply(Ctx const& ctx,
                                                       lhs,
                                                       rhs,
                                                       config,
-                                                      pos);
-                    detail::right_small_terms<Ctx, TilePower>(
-                        ctx,
-                        tile,
-                        left_panel,
-                        right_panel,
-                        lhs,
-                        rhs,
-                        config,
-                        pos);
+                                                      pos,
+                                                      splits);
+                    detail::right_small_terms<Ctx, TilePower>(ctx,
+                                                              tile,
+                                                              left_panel,
+                                                              right_panel,
+                                                              lhs,
+                                                              rhs,
+                                                              config,
+                                                              pos);
                     write(ctx, out, tile, config, pos);
                 }
             }
+            splits.advance();
         }
     }
 
@@ -1216,8 +1247,7 @@ void multiply(Ctx const& ctx,
             ctx, config, out, lhs, rhs, tile, write);
     }
     else {
-        detail::low_degree_terms(
-            ctx, config, out, lhs, rhs, tile, write);
+        detail::low_degree_terms(ctx, config, out, lhs, rhs, tile, write);
     }
 }
 
