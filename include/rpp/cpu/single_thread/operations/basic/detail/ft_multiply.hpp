@@ -11,6 +11,7 @@
 
 #include <rpp/config.h>
 
+#include <rpp/basis/tensor_basis.hpp>
 #include <rpp/operations/base_operation.hpp>
 #include <rpp/operations/basic/ft_inplace_fma.hpp>
 #include <rpp/utility.hpp>
@@ -93,8 +94,44 @@ class Operation : public ops::BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
     using Storage = TileStorage<Context, TilePower>;
 
+    using Index = IndexOf<Context>;
+    using Degree = DegreeOf<Context>;
+
+    using Config = TileConfig<Context, TilePower>;
+
+    Config config_;
+
 public:
-    using ops::BaseOperation<Strategy>::BaseOperation;
+
+    template <typename BasisPack>
+    explicit Operation(Context const& ctx, BasisPack const& bases) noexcept
+        : ops::BaseOperation<Strategy>(ctx, bases)
+    {
+        auto const& tbasis = basis::get_basis(basis::TensorBasisTag{}, bases);
+        constexpr auto tile_width = Index{1} << TilePower;
+
+        config_.width = tbasis.width;
+        config_.tile_letters = 1;
+        config_.tile_size = static_cast<Index>(config_.width);
+
+        const auto width = static_cast<Index>(config_.width);
+        config_.first_tiled_degree = 2 + (width <= tile_width ? 1 : 0);
+
+
+        if (width > 1 && width < tile_width) {
+            for (; config_.tile_size * width <= tile_width;
+                 ++config_.tile_letters, config_.tile_size *= width) {
+            }
+
+            // Degree 2k already fits. Extend the contiguous range from degree 2k+1.
+            config_.first_tiled_degree = 2 * config_.tile_letters + 1;
+            size_t level_size =
+                static_cast<size_t>(config_.tile_size) * config_.tile_size * width;
+            for (; level_size <= Config::tile_extent;
+                 ++config_.first_tiled_degree, level_size *= width) {
+            }
+        }
+    }
 
     template <typename Basis>
     static constexpr size_t scratch_space_size(Strategy const&,
