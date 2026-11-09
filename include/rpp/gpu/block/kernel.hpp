@@ -40,7 +40,7 @@ RPP_KERNEL void kernel(const BatchArgs batches,
     }
 
     ops::invoke(
-        Op{},
+        Op{ctx, bases},
         ctx,
         [&](auto const& batch) { return batch.view(bases, work_idx); },
         batches,

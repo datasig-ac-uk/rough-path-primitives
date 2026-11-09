@@ -32,6 +32,8 @@ public:
     using Letter = typename Strategy::Letter;
     using LetterSpan = Span<Letter>;
 
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
 private:

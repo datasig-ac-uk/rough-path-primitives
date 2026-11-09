@@ -21,8 +21,14 @@ public:
     using Index = typename Strategy::Index;
 
     template <typename BasisPack>
+    RPP_HOST_DEVICE constexpr explicit BaseOperation(
+        Context const& ctx RPP_MAYBE_UNUSED,
+        BasisPack const& basis RPP_MAYBE_UNUSED) noexcept {}
+
+    template <typename BasisPack>
     RPP_HOST static constexpr size_t
-    scratch_space_size(Strategy const& strategy, BasisPack const& pack) noexcept {
+    scratch_space_size(Strategy const& strategy,
+                       BasisPack const& pack) noexcept {
         ignore_unused(strategy, pack);
         return 0;
     }

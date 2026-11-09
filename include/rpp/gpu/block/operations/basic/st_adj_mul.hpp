@@ -45,6 +45,11 @@ public:
     SetConstant set_constant;
 
 public:
+    template <typename BasisPack>
+    RPP_DEVICE explicit STAdjMul(Context const& ctx,
+                                 BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), set_constant(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>

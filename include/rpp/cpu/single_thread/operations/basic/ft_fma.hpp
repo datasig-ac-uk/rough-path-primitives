@@ -30,6 +30,8 @@ class FTFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Degree = typename Strategy::Degree;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut,

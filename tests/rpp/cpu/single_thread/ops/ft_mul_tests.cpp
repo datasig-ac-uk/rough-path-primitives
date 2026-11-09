@@ -112,7 +112,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = make_context();
-        rpp::ops::FTMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view, beta);
+        rpp::ops::FTMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view, beta);
 
         EXPECT_EQ(out,
                   expected_mul(basis,
@@ -139,7 +141,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = make_context();
-        rpp::ops::FTMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view);
+        rpp::ops::FTMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view);
         return out;
     }
 
@@ -307,7 +311,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::FTMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view, beta);
+        rpp::ops::FTMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view, beta);
         return out;
     }
 };

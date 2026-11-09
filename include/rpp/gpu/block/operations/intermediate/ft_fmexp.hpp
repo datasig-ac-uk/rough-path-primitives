@@ -43,6 +43,12 @@ private:
     Assign assign;
 
 public:
+    template <typename BasisPack>
+    RPP_DEVICE explicit FTFMExp(Context const& ctx,
+                                BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), inplace_fma123(ctx, pack),
+          assign(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
     template <typename BasisPack>

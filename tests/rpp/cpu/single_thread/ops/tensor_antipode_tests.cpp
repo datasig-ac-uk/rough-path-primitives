@@ -58,7 +58,9 @@ protected:
         ConstTensorView arg_view(arg.data(), basis);
 
         auto const ctx = Base::make_context();
-        rpp::ops::TensorAntipode<Strategy>{}(ctx, out_view, arg_view);
+        rpp::ops::TensorAntipode<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view);
         return out;
     }
 };
@@ -121,7 +123,9 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::TensorAntipode<Strategy>{}(ctx, out_view, arg_view);
+        rpp::ops::TensorAntipode<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view);
         return out;
     }
 
@@ -150,7 +154,9 @@ TEST_F(TensorAntipodeTests, AppliesSignedWordReversal) {
     TensorView<Scalar const*> arg_view(arg.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::TensorAntipode<Strategy>{}(ctx, out_view, arg_view);
+    rpp::ops::TensorAntipode<Strategy>{
+        ctx,
+        rpp::basis::make_basis_pack(out_view.basis())}(ctx, out_view, arg_view);
 
     for_each_index(
         basis, [&expected, &arg, &basis](Degree degree, Index level_index) {
@@ -198,8 +204,12 @@ TEST_F(TensorAntipodeTests, IsInvolution) {
     TensorView<Scalar const*> tmp_const_view(tmp.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::TensorAntipode<Strategy>{}(ctx, tmp_view, arg_view);
-    rpp::ops::TensorAntipode<Strategy>{}(ctx, out_view, tmp_const_view);
+    rpp::ops::TensorAntipode<Strategy>{
+        ctx,
+        rpp::basis::make_basis_pack(tmp_view.basis())}(ctx, tmp_view, arg_view);
+    rpp::ops::TensorAntipode<Strategy>{
+        ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+        ctx, out_view, tmp_const_view);
 
     EXPECT_EQ(out, arg);
 }
@@ -216,7 +226,9 @@ TEST_F(TensorAntipodeTests, AppliesOnlyToOverlappingArgumentDegreeRange) {
     TensorView<Scalar const*> arg_view(arg.data(), basis, 2, 3);
 
     auto const ctx = make_context();
-    rpp::ops::TensorAntipode<Strategy>{}(ctx, out_view, arg_view);
+    rpp::ops::TensorAntipode<Strategy>{
+        ctx,
+        rpp::basis::make_basis_pack(out_view.basis())}(ctx, out_view, arg_view);
 
     for_each_index(
         basis, [&expected, &arg, &basis](Degree degree, Index level_index) {
@@ -323,7 +335,9 @@ TYPED_TEST(NumericTensorAntipodeTests, ZeroExtendsArgumentAndPreservesOutsideOut
             actual.data(), basis, test_case.out.min, test_case.out.max);
         typename TestFixture::ConstTensorView arg_view(
             arg.data(), basis, test_case.arg.min, test_case.arg.max);
-        rpp::ops::TensorAntipode<typename TestFixture::Strategy>{}(
+        rpp::ops::TensorAntipode<typename TestFixture::Strategy>{
+            TestFixture::make_context(),
+            rpp::basis::make_basis_pack(out_view.basis())}(
             TestFixture::make_context(), out_view, arg_view);
         TestFixture::expect_tensor_near(actual, expected);
     }
@@ -364,8 +378,11 @@ TYPED_TEST(NumericTensorAntipodeTests, HandlesEveryInputAndOutputDegreeRange) {
                     actual.data(), basis, out_range.min, out_range.max);
                 typename TestFixture::ConstTensorView arg_view(
                     arg.data(), basis, arg_range.min, arg_range.max);
-                rpp::ops::TensorGeneralisedAntipode<typename TestFixture::Strategy,
-                    rpp::ops::TensorAntipodeSigningPolicy::SignByDegree>{}(
+                rpp::ops::TensorGeneralisedAntipode<
+                    typename TestFixture::Strategy,
+                    rpp::ops::TensorAntipodeSigningPolicy::SignByDegree>{
+                    TestFixture::make_context(),
+                    rpp::basis::make_basis_pack(out_view.basis())}(
                     TestFixture::make_context(), out_view, arg_view);
                 EXPECT_EQ(actual, expected);
             }

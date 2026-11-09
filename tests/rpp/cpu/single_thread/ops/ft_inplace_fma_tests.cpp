@@ -70,9 +70,11 @@ protected:
         auto const c_view = const_tensor_view(c, basis, c_range);
 
         auto const ctx = make_context();
-        rpp::ops::FTInplaceFma231<Strategy>{}(
+        rpp::ops::FTInplaceFma231<Strategy>{
+            ctx, rpp::basis::make_basis_pack(inplace_a_view.basis())}(
             ctx, inplace_a_view, b_view, c_view, alpha, beta);
-        rpp::ops::FTFma<Strategy>{}(
+        rpp::ops::FTFma<Strategy>{
+            ctx, rpp::basis::make_basis_pack(expected_view.basis())}(
             ctx, expected_view, initial_a_view, b_view, c_view, alpha, beta);
 
         EXPECT_EQ(inplace_a, expected);
@@ -182,7 +184,8 @@ protected:
         auto const c_view = const_tensor_view(c, basis, c_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::FTInplaceFma231<Strategy>{}(
+        rpp::ops::FTInplaceFma231<Strategy>{
+            ctx, rpp::basis::make_basis_pack(a_view.basis())}(
             ctx, a_view, b_view, c_view, alpha, beta);
         return a;
     }

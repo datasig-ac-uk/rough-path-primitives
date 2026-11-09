@@ -38,6 +38,8 @@ class SparseMatrixVectorProduct<
         sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename VectorOut,
@@ -114,6 +116,11 @@ class SparseMatrixVectorProduct<
         sparse::GradedMatrixView<sparse::MatrixFormat::CSC, D, I, O>;
 
 public:
+    template <typename BasisPack>
+    explicit SparseMatrixVectorProduct(Context const& ctx,
+                                       BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), set_constant(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
     template <typename BasisPack>

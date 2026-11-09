@@ -18,6 +18,8 @@ class TensorAddIdentity : public BaseOperation<Strategy> {
 
 public:
     using Context = typename Strategy::Context;
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = false;
 
     template <typename Tensor>

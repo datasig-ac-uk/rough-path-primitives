@@ -37,7 +37,10 @@ protected:
         TensorView<Scalar*> out_view(out.data(), basis);
         TensorView<Scalar const*> lhs(integrator.data(), basis);
         TensorView<Scalar const*> rhs(integrand.data(), basis);
-        rpp::ops::LeftHSMul<Strategy>{}(make_context(), out_view, lhs, rhs);
+        auto const ctx = make_context();
+        rpp::ops::LeftHSMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs, rhs);
         return out;
     }
 
@@ -46,8 +49,10 @@ protected:
         TensorView<Scalar*> out_view(out.data(), basis);
         TensorView<Scalar const*> lhs_view(lhs.data(), basis);
         TensorView<Scalar const*> rhs_view(rhs.data(), basis);
-        rpp::ops::STMul<Strategy>{}(
-            make_context(), out_view, lhs_view, rhs_view);
+        auto const ctx = make_context();
+        rpp::ops::STMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view);
         return out;
     }
 
@@ -163,8 +168,10 @@ TEST_F(LeftHalfShuffleTests,
                     f.data(), basis, lhs_range.min, lhs_range.max);
                 TensorView<Scalar const*> rhs(
                     g.data(), basis, rhs_range.min, rhs_range.max);
-                rpp::ops::LeftHSMul<Strategy>{}(
-                    make_context(), out, lhs, rhs, beta);
+                auto const ctx = make_context();
+                rpp::ops::LeftHSMul<Strategy>{
+                    ctx, rpp::basis::make_basis_pack(out.basis())}(
+                    ctx, out, lhs, rhs, beta);
                 EXPECT_EQ(actual, expected);
             }
         }
@@ -178,7 +185,9 @@ TEST_F(LeftHalfShuffleTests,
     auto signature = zero();
     TensorView<Scalar*> out(signature.data(), basis);
     TensorView<Scalar const*> arg(increment.data(), basis);
-    rpp::ops::FTExp<Strategy>{}(make_context(), out, arg);
+    auto const ctx = make_context();
+    rpp::ops::FTExp<Strategy>{ctx, rpp::basis::make_basis_pack(out.basis())}(
+        ctx, out, arg);
     // Along x(s)=t*s, <a^m,S(s)>=(t*s)^m/m!.
     // Integral <a^n,S(s)> d<a^m,S(s)> =
     // t^(m+n) / ((m+n)*(m-1)!*n!). Choose m=2, n=1.
@@ -274,8 +283,10 @@ TEST(LeftHalfShuffleOrderingTests,
     rpp::DenseTensorView<Matrix const*, Helper::Basis> lhs_view(lhs.data(),
                                                                 basis),
         rhs_view(rhs.data(), basis);
-    rpp::ops::LeftHSMul<Strategy>{}(
-        Strategy::make_context(nullptr), out_view, lhs_view, rhs_view, beta);
+    auto const ctx = Strategy::make_context(nullptr);
+    rpp::ops::LeftHSMul<Strategy>{
+        ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+        ctx, out_view, lhs_view, rhs_view, beta);
     std::vector<Matrix> expected(basis.size());
     expected[basis.start_of_degree(3) + 2] = beta * (a * b); // aba
     expected[basis.start_of_degree(3) + 1] = beta * (a * b); // aab

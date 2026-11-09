@@ -26,6 +26,8 @@ class VectorScalarMultiply<
     using Index = typename Strategy::Index;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     using Context = typename Strategy::Context;

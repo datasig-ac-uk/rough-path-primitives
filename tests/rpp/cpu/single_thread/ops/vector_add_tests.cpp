@@ -70,7 +70,9 @@ protected:
         auto const lhs_view = const_vector_view(lhs, basis, lhs_range);
         auto const rhs_view = const_vector_view(rhs, basis, rhs_range);
         auto const ctx = Base::make_context();
-        rpp::ops::VectorAdd<Strategy>{}(ctx, out_view, lhs_view, rhs_view, alpha, beta);
+        rpp::ops::VectorAdd<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view, alpha, beta);
         return actual;
     }
 };

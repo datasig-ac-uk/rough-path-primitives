@@ -28,6 +28,8 @@ class FTInplaceMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Index = typename Strategy::Index;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorLhs, typename TensorRhs>

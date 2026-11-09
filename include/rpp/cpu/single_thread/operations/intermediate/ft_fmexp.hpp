@@ -33,6 +33,11 @@ class ops::FTFMExp<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     FTInplaceMul<Strategy> inplace_mul;
 
 public:
+    template <typename BasisPack>
+    explicit FTFMExp(Context const& ctx, BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), assign(ctx, pack),
+          inplace_add(ctx, pack), inplace_mul(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut,

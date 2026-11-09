@@ -49,7 +49,9 @@ TEST_F(ShuffleTensorFmaTests, AccumulatesShuffleProduct) {
     TensorView<Scalar const*> rhs_view(rhs.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::STFma<Strategy>{}(ctx, out_view, out_view, lhs_view, rhs_view);
+    rpp::ops::STFma<Strategy>{ctx,
+                              rpp::basis::make_basis_pack(out_view.basis())}(
+        ctx, out_view, out_view, lhs_view, rhs_view);
 
     std::vector<Scalar> expected;
     expected.reserve(static_cast<std::size_t>(basis.size()));
@@ -160,7 +162,8 @@ TEST_F(ShuffleTensorFmaTests, MatchesZeroExtendedOperandsForTruncatedViews) {
     TensorView<Scalar const*> rhs_view(rhs.data(), basis, rhs_min, rhs_max);
 
     auto const ctx = make_context();
-    rpp::ops::STFma<Strategy>{}(
+    rpp::ops::STFma<Strategy>{ctx,
+                              rpp::basis::make_basis_pack(out_view.basis())}(
         ctx, out_view, addend_view, lhs_view, rhs_view, alpha, beta);
 
     auto const extended_addend =
@@ -171,13 +174,15 @@ TEST_F(ShuffleTensorFmaTests, MatchesZeroExtendedOperandsForTruncatedViews) {
     TensorView<Scalar const*> expected_addend_view(extended_addend.data(), basis);
     TensorView<Scalar const*> expected_lhs_view(extended_lhs.data(), basis);
     TensorView<Scalar const*> expected_rhs_view(extended_rhs.data(), basis);
-    rpp::ops::STFma<Strategy>{}(ctx,
-                                expected_view,
-                                expected_addend_view,
-                                expected_lhs_view,
-                                expected_rhs_view,
-                                alpha,
-                                beta);
+    rpp::ops::STFma<Strategy>{
+        ctx, rpp::basis::make_basis_pack(expected_view.basis())}(
+        ctx,
+        expected_view,
+        expected_addend_view,
+        expected_lhs_view,
+        expected_rhs_view,
+        alpha,
+        beta);
 
     EXPECT_EQ(out, expected);
 }
@@ -221,7 +226,8 @@ protected:
         auto const c_view = const_tensor_view(c, basis, c_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::STFma<Strategy>{}(
+        rpp::ops::STFma<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
             ctx, out_view, a_view, b_view, c_view, alpha, beta);
         return out;
     }

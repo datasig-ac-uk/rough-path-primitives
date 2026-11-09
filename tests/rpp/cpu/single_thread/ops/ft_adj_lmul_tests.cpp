@@ -115,7 +115,9 @@ protected:
         ConstTensorView rhs_view(rhs.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        rpp::ops::TensorPairing<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, result, lhs_view, rhs_view);
         return result;
     }
 
@@ -168,7 +170,9 @@ protected:
         ConstTensorView arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::FTAdjLMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        rpp::ops::FTAdjLMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         return out;
     }
 
@@ -270,7 +274,8 @@ TYPED_TEST(NumericFreeTensorAdjointLeftMulTests,
     typename TestFixture::ConstTensorView arg_view(arg.data(), basis);
 
     auto const ctx = TestFixture::make_context();
-    rpp::ops::FTAdjLMul<typename TestFixture::Strategy>{}(
+    rpp::ops::FTAdjLMul<typename TestFixture::Strategy>{
+        ctx, rpp::basis::make_basis_pack(out_view.basis())}(
         ctx, out_view, op_view, arg_view);
 
     TestFixture::expect_tensor_near(actual, arg);
@@ -293,7 +298,8 @@ TYPED_TEST(NumericFreeTensorAdjointLeftMulTests,
     typename TestFixture::ConstTensorView arg_view(arg.data(), basis);
 
     auto const ctx = TestFixture::make_context();
-    rpp::ops::FTAdjLMul<typename TestFixture::Strategy>{}(
+    rpp::ops::FTAdjLMul<typename TestFixture::Strategy>{
+        ctx, rpp::basis::make_basis_pack(out_view.basis())}(
         ctx, out_view, op_view, arg_view);
 
     TestFixture::expect_tensor_near(
@@ -321,7 +327,9 @@ protected:
         TensorView<Scalar const*> rhs_view(rhs.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        rpp::ops::TensorPairing<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, result, lhs_view, rhs_view);
         return result;
     }
 
@@ -348,7 +356,9 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::FTMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        rpp::ops::FTMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         return out;
     }
 
@@ -363,7 +373,9 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::FTAdjLMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        rpp::ops::FTAdjLMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         return out;
     }
 
@@ -462,7 +474,9 @@ TEST_F(FreeTensorAdjointLeftMulTests,
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::FTAdjLMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        rpp::ops::FTAdjLMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         return out;
     }();
 
@@ -483,7 +497,9 @@ TEST_F(FreeTensorAdjointLeftMulTests, LetterOperatorShiftsCoefficientsLeft) {
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::FTAdjLMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        rpp::ops::FTAdjLMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         return out;
     }();
 
@@ -609,7 +625,9 @@ TYPED_TEST(NumericFreeTensorAdjointLeftMulTests, ZeroExtendsOperandsAndPreserves
                 op.data(), basis, ranges.op.min, ranges.op.max);
             typename TestFixture::ConstTensorView arg_view(
                 arg.data(), basis, ranges.arg.min, ranges.arg.max);
-            rpp::ops::FTAdjLMul<typename TestFixture::Strategy>{}(
+            rpp::ops::FTAdjLMul<typename TestFixture::Strategy>{
+                TestFixture::make_context(),
+                rpp::basis::make_basis_pack(out_view.basis())}(
                 TestFixture::make_context(), out_view, op_view, arg_view);
             TestFixture::expect_tensor_near(actual, expected);
         }

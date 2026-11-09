@@ -30,6 +30,10 @@ class FTAdjLMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
 
     SetConstant set_constant;
 public:
+    template <typename BasisPack>
+    explicit FTAdjLMul(Context const& ctx, BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), set_constant(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
 

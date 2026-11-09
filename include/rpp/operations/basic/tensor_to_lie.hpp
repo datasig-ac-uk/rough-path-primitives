@@ -38,6 +38,11 @@ class TensorToLie : public BaseOperation<Strategy> {
     Impl impl;
 
 public:
+    template <typename BasisPack>
+    RPP_HOST_DEVICE explicit TensorToLie(Context const& ctx,
+                                         BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), impl(ctx, pack) {}
+
     static constexpr bool is_implemented = Impl::is_implemented;
 
     template <typename BasisPack>

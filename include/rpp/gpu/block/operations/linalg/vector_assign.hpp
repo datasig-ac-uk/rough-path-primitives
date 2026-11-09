@@ -36,6 +36,11 @@ public:
     using Architecture_ = typename Strategy::Architecture;
     using Index = typename Strategy::Index;
 
+    template <typename BasisPack>
+    RPP_DEVICE explicit VectorAssign(Context const& ctx,
+                                     BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), set_constant(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
 private:

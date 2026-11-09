@@ -46,7 +46,9 @@ protected:
         auto actual = vec;
         auto vec_view = mutable_vector_view(actual, basis, range);
         auto const ctx = Base::make_context();
-        rpp::ops::VectorScalarMultiply<Strategy>{}(ctx, vec_view, scalar);
+        rpp::ops::VectorScalarMultiply<Strategy>{
+            ctx, rpp::basis::make_basis_pack(vec_view.basis())}(
+            ctx, vec_view, scalar);
         return actual;
     }
 };

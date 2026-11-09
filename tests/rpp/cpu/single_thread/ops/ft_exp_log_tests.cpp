@@ -51,7 +51,9 @@ protected:
         ConstTensorView arg_view(arg.data(), basis);
 
         auto const ctx = Base::make_context();
-        rpp::ops::FTExp<Strategy>{}(ctx, out_view, arg_view);
+        rpp::ops::FTExp<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view);
         return out;
     }
 
@@ -62,7 +64,9 @@ protected:
         ConstTensorView arg_view(arg.data(), basis);
 
         auto const ctx = Base::make_context();
-        rpp::ops::FTLog<Strategy>{}(ctx, out_view, arg_view);
+        rpp::ops::FTLog<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view);
         return out;
     }
 };
@@ -146,7 +150,9 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::FTExp<Strategy>{}(ctx, out_view, arg_view);
+        rpp::ops::FTExp<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view);
         return out;
     }
 
@@ -158,7 +164,9 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::FTLog<Strategy>{}(ctx, out_view, arg_view);
+        rpp::ops::FTLog<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view);
         return out;
     }
 
@@ -171,13 +179,17 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::TensorSetIdentity<Strategy>{}(ctx, out_view);
+        rpp::ops::TensorSetIdentity<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(ctx, out_view);
 
         Scalar const one{1};
         for (Degree d = basis.depth; d > 0; --d) {
-            rpp::ops::FTInplaceMul<Strategy>{}(
+            rpp::ops::FTInplaceMul<Strategy>{
+                ctx, rpp::basis::make_basis_pack(out_view.basis())}(
                 ctx, out_view, arg_view.truncate(1, basis.depth), one / d);
-            rpp::ops::TensorAddIdentity<Strategy>{}(ctx, out_view);
+            rpp::ops::TensorAddIdentity<Strategy>{
+                ctx, rpp::basis::make_basis_pack(out_view.basis())}(ctx,
+                                                                    out_view);
         }
 
         return out;
@@ -192,13 +204,18 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::VectorSetConstant<Strategy>{}(ctx, out_view, Scalar{0});
+        rpp::ops::VectorSetConstant<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, Scalar{0});
 
         Scalar const one{1};
         for (Degree d = basis.depth; d > 0; --d) {
             auto const coefficient = (d % 2 == 0 ? -one : one) / d;
-            rpp::ops::TensorAddIdentity<Strategy>{}(ctx, out_view, coefficient);
-            rpp::ops::FTInplaceMul<Strategy>{}(
+            rpp::ops::TensorAddIdentity<Strategy>{
+                ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+                ctx, out_view, coefficient);
+            rpp::ops::FTInplaceMul<Strategy>{
+                ctx, rpp::basis::make_basis_pack(out_view.basis())}(
                 ctx, out_view, arg_view.truncate(1, basis.depth));
         }
 

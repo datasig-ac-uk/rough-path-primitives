@@ -33,6 +33,8 @@ public:
     using Context = typename Strategy::Context;
     using Index = typename Strategy::Index;
 
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename BasisPack>

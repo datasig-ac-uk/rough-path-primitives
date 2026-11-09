@@ -30,6 +30,8 @@ public:
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
 
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>

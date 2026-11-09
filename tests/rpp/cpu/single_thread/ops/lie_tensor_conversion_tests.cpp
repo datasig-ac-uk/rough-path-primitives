@@ -95,12 +95,16 @@ protected:
                 if constexpr (LieToTensor) {
                     rpp::DenseTensorView<Scalar*, Basis> out(actual.data() + 1, tensor_basis);
                     rpp::DenseLieView<Scalar const*, decltype(lie_basis)> in(arg.data(), lie_basis);
-                    Op{}(ctx, out, in, matrix);
+                    Op{ctx,
+                       rpp::basis::make_basis_pack(out.basis(), in.basis())}(
+                        ctx, out, in, matrix);
                 }
                 else {
                     rpp::DenseLieView<Scalar*, decltype(lie_basis)> out(actual.data() + 1, lie_basis);
                     rpp::DenseTensorView<Scalar const*, Basis> in(arg.data(), tensor_basis);
-                    Op{}(ctx, out, in, matrix);
+                    Op{ctx,
+                       rpp::basis::make_basis_pack(out.basis(), in.basis())}(
+                        ctx, out, in, matrix);
                 }
                 ASSERT_EQ(actual.size(), expected.size() + 2);
                 EXPECT_EQ(static_cast<double>(actual.front()), 7.0);

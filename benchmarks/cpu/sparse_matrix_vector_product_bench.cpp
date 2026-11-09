@@ -15,7 +15,9 @@ void run_sparse_benchmark(benchmark::State& state,
         rb::Strategy,
         rpp::sparse::matrix_format_v<Matrix>>;
     auto ctx = test_case.tensors.template context<Op>();
-    Op op;
+    Op op{ctx,
+          rpp::basis::make_basis_pack(rpp::basis::out(test_case.tensors.basis),
+                                      rpp::basis::in(test_case.tensors.basis))};
 
     for (auto _ : state) {
         auto out = test_case.tensors.out_vector();

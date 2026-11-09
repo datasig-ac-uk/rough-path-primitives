@@ -32,6 +32,8 @@ class STFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Bitmask = typename Strategy::Bitmask;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut,

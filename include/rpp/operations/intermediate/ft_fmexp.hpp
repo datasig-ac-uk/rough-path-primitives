@@ -32,6 +32,12 @@ class FTFMExp : public BaseOperation<Strategy> {
 
 public:
     using Context = typename Strategy::Context;
+    template <typename BasisPack>
+    RPP_HOST_DEVICE explicit FTFMExp(Context const& ctx,
+                                     BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), inplace_fma123(ctx, pack),
+          assign(ctx, pack) {}
+
     static constexpr bool is_implemented =
         InplaceFMA123::is_implemented && Assign::is_implemented;
 

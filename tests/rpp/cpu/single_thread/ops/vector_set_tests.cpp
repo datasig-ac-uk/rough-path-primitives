@@ -74,7 +74,9 @@ protected:
         auto actual = initial;
         auto vec_view = mutable_vector_view(actual, basis, range);
         auto const ctx = Base::make_context();
-        rpp::ops::VectorSetConstant<Strategy>{}(ctx, vec_view, value);
+        rpp::ops::VectorSetConstant<Strategy>{
+            ctx, rpp::basis::make_basis_pack(vec_view.basis())}(
+            ctx, vec_view, value);
         return actual;
     }
 };

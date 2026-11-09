@@ -30,7 +30,9 @@ TEST_F(VectorAssignTests, CopiesSourceCoefficientwise) {
     VectorView<Scalar const*> arg_view(arg.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::VectorAssign<Strategy>{}(ctx, out_view, arg_view);
+    rpp::ops::VectorAssign<Strategy>{
+        ctx,
+        rpp::basis::make_basis_pack(out_view.basis())}(ctx, out_view, arg_view);
 
     EXPECT_EQ(out, arg);
 }
@@ -60,7 +62,9 @@ TEST_F(VectorAssignTests, CopiesOverlapAndZerosLowerGap) {
     VectorView<Scalar const*> arg_view(arg.data(), basis, 2, 4);
 
     auto const ctx = make_context();
-    rpp::ops::VectorAssign<Strategy>{}(ctx, out_view, arg_view);
+    rpp::ops::VectorAssign<Strategy>{
+        ctx,
+        rpp::basis::make_basis_pack(out_view.basis())}(ctx, out_view, arg_view);
 
     EXPECT_EQ(out, expected);
 }
@@ -139,7 +143,9 @@ protected:
         auto const arg_view = const_vector_view(arg, basis, arg_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::VectorAssign<Strategy>{}(ctx, out_view, arg_view);
+        rpp::ops::VectorAssign<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view);
         return actual;
     }
 };
@@ -265,8 +271,12 @@ TEST(ExplicitScalarConversions, AssignsBetweenScalarAndAccumulatorViews) {
     rpp::DenseTensorView<double*, Basis> output_view(output, basis);
     auto ctx = Strategy::make_context(nullptr);
 
-    rpp::ops::VectorAssign<Strategy>{}(ctx, storage_view, input_view);
-    rpp::ops::VectorAssign<Strategy>{}(ctx, output_view, storage_view);
+    rpp::ops::VectorAssign<Strategy>{
+        ctx, rpp::basis::make_basis_pack(storage_view.basis())}(
+        ctx, storage_view, input_view);
+    rpp::ops::VectorAssign<Strategy>{
+        ctx, rpp::basis::make_basis_pack(output_view.basis())}(
+        ctx, output_view, storage_view);
     EXPECT_DOUBLE_EQ(output[0], 0);
     EXPECT_DOUBLE_EQ(output[1], 2);
     EXPECT_DOUBLE_EQ(output[2], 3);
