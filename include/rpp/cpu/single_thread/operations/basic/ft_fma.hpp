@@ -56,8 +56,7 @@ public:
 
         ftm::multiply(
             ctx,
-            ftm::detail::select_tile_config<ftm::default_tile_power>(
-                ctx, out.basis()),
+            this->config(),
             out,
             b,
             c,

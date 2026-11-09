@@ -50,9 +50,7 @@ public:
                     Accum beta = Accum{1}) const noexcept {
         namespace ftm = cpu::single_thread::ft_multiply;
 
-        const auto config =
-            ftm::detail::select_tile_config<ftm::default_tile_power>(
-                ctx, a.basis());
+        auto const& config = this->config();
         if constexpr (FMAType == FTInplaceFMAType::AEqualsBCPlusA) {
             using Writer = ftm::InplaceFmaTileWriter<Context, FMAType, TensorA>;
             ftm::multiply(ctx, config, a, b, c, Writer{alpha, beta});

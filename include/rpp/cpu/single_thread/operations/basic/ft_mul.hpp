@@ -48,8 +48,7 @@ public:
         namespace ftm = cpu::single_thread::ft_multiply;
 
         ftm::multiply(ctx,
-                      ftm::detail::select_tile_config<ftm::default_tile_power>(
-                          ctx, out.basis()),
+                      this->config(),
                       out,
                       lhs,
                       rhs,
