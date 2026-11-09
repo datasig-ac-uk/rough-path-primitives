@@ -112,7 +112,7 @@ Error<std::string> SingleThreadStrategy<Accum_, Architecture_>::launch(
     Op::init_scratch_space(ctx, bases);
 
 
-    auto result = catch_exceptions([&, op = Op{}] {
+    auto result = catch_exceptions([&, op = Op{ctx, bases}] {
         for (Index idx = 0; idx < batch_size; ++idx) {
             ops::invoke(
                 op,
