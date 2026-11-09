@@ -122,8 +122,8 @@ template <typename Op, typename Fn>
 void run_tensor_benchmark(benchmark::State& state, Fn&& fn) {
     TensorCase test_case(static_cast<Degree>(state.range(0)),
                          static_cast<Degree>(state.range(1)));
-    Op op;
     auto ctx = test_case.template context<Op>();
+    Op op{ctx, rpp::basis::make_basis_pack(test_case.basis)};
 
     for (auto _ : state) {
         fn(op, ctx, test_case);

@@ -66,9 +66,11 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = make_context();
-        rpp::ops::FTInplaceMul<Strategy>{}(
+        rpp::ops::FTInplaceMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(inplace_lhs_view.basis())}(
             ctx, inplace_lhs_view, rhs_view, beta);
-        rpp::ops::FTMul<Strategy>{}(
+        rpp::ops::FTMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(expected_view.basis())}(
             ctx, expected_view, initial_lhs_view, rhs_view, beta);
 
         EXPECT_EQ(inplace_lhs, expected);
@@ -165,7 +167,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::FTInplaceMul<Strategy>{}(ctx, lhs_view, rhs_view, beta);
+        rpp::ops::FTInplaceMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, lhs_view, rhs_view, beta);
         return lhs;
     }
 };

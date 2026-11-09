@@ -7,8 +7,8 @@ void BM_TensorPairing(benchmark::State& state) {
     using Op = rpp::ops::TensorPairing<rb::Strategy>;
     rb::TensorCase test_case(static_cast<rb::Degree>(state.range(0)),
                              static_cast<rb::Degree>(state.range(1)));
-    Op op;
     auto ctx = test_case.template context<Op>();
+    Op op{ctx, rpp::basis::make_basis_pack(test_case.basis)};
     rb::Scalar result{0};
 
     for (auto _ : state) {

@@ -93,8 +93,12 @@ TEST_F(SparseMatrixVectorProductTests, AppliesCsrMatrix) {
     VectorView<Scalar*> out_view(out.data(), out_basis);
     VectorView<Scalar const*> arg_view(arg.data(), arg_basis);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(
-        make_context(), out_view, arg_view, matrix);
+    auto const ctx = make_context();
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{
+        ctx,
+        rpp::basis::make_basis_pack(rpp::basis::out(out_view.basis()),
+                                    rpp::basis::in(arg_view.basis()))}(
+        ctx, out_view, arg_view, matrix);
 
     std::vector<Scalar> const expected{
         matrix_symbol('m', 0, 0) * symbol('x', arg_basis, 0, 0) +
@@ -127,8 +131,12 @@ TEST_F(SparseMatrixVectorProductTests, AppliesCscMatrix) {
     VectorView<Scalar*> out_view(out.data(), out_basis);
     VectorView<Scalar const*> arg_view(arg.data(), arg_basis);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSCMatrix>{}(
-        make_context(), out_view, arg_view, matrix);
+    auto const ctx = make_context();
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSCMatrix>{
+        ctx,
+        rpp::basis::make_basis_pack(rpp::basis::out(out_view.basis()),
+                                    rpp::basis::in(arg_view.basis()))}(
+        ctx, out_view, arg_view, matrix);
 
     std::vector<Scalar> const expected{
         matrix_symbol('m', 0, 0) * symbol('x', arg_basis, 0, 0) +
@@ -161,8 +169,12 @@ TEST_F(SparseMatrixVectorProductTests, ScalesResult) {
     VectorView<Scalar*> out_view(out.data(), out_basis);
     VectorView<Scalar const*> arg_view(arg.data(), arg_basis);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(
-        make_context(), out_view, arg_view, matrix, constant(2));
+    auto const ctx = make_context();
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{
+        ctx,
+        rpp::basis::make_basis_pack(rpp::basis::out(out_view.basis()),
+                                    rpp::basis::in(arg_view.basis()))}(
+        ctx, out_view, arg_view, matrix, constant(2));
 
     std::vector<Scalar> const expected{
         constant(2) *
@@ -198,8 +210,12 @@ TEST_F(SparseMatrixVectorProductTests, AppliesToLogicalViewRanges) {
     VectorView<Scalar*> out_view(out.data(), basis, 1, 1);
     VectorView<Scalar const*> arg_view(arg.data(), basis, 2, 2);
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{}(
-        make_context(), out_view, arg_view, matrix);
+    auto const ctx = make_context();
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix>{
+        ctx,
+        rpp::basis::make_basis_pack(rpp::basis::out(out_view.basis()),
+                                    rpp::basis::in(arg_view.basis()))}(
+        ctx, out_view, arg_view, matrix);
 
     auto expected = out;
     expected[1] = matrix_symbol('m', 0, 0) * symbol('x', basis, 2, 0) +
@@ -253,8 +269,11 @@ TEST_F(SparseMatrixVectorProductTests, KernelWrapperMatchesDirectOperation) {
                                                             constant(2));
     EXPECT_TRUE(static_cast<bool>(err)) << err.message();
 
-    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix> op;
     auto const ctx = make_context();
+    rpp::ops::SparseMatrixVectorProduct<Strategy, rpp::sparse::CSRMatrix> op{
+        ctx,
+        rpp::basis::make_basis_pack(rpp::basis::out(out_basis),
+                                    rpp::basis::in(arg_basis))};
     for (Index tensor_idx = 0; tensor_idx < tensor_count; ++tensor_idx) {
         auto out = rpp::DenseGradedVectorView<Scalar*, Basis>(
             expected.data() +

@@ -164,7 +164,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = make_context();
-        rpp::ops::STMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view, beta);
+        rpp::ops::STMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view, beta);
 
         EXPECT_EQ(
             out,
@@ -197,7 +199,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = make_context();
-        rpp::ops::STMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view);
+        rpp::ops::STMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view);
         return out;
     }
 
@@ -405,7 +409,9 @@ protected:
         ConstTensorView rhs_view(rhs.data(), basis);
 
         auto const ctx = Base::make_context();
-        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        rpp::ops::TensorPairing<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, result, lhs_view, rhs_view);
         return result;
     }
 
@@ -441,7 +447,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::STMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view, beta);
+        rpp::ops::STMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view, beta);
         return out;
     }
 };

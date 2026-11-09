@@ -110,7 +110,9 @@ protected:
         ConstTensorView rhs_view(rhs.data(), basis);
 
         auto const ctx = Strategy::make_context(nullptr);
-        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        rpp::ops::TensorPairing<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, result, lhs_view, rhs_view);
         return result;
     }
 
@@ -168,7 +170,8 @@ protected:
 
         auto const ctx = Strategy::make_context(scratch.data());
         AdjMul::init_scratch_space(ctx, basis);
-        AdjMul{}(ctx, out_view, op_view, arg_view);
+        AdjMul{ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         AdjMul::destroy_scratch_space(ctx, basis);
         return out;
     }
@@ -277,7 +280,8 @@ TYPED_TEST(NumericFreeTensorAdjointRightMulTests,
 
     auto const ctx = TestFixture::Strategy::make_context(scratch.data());
     AdjMul::init_scratch_space(ctx, basis);
-    AdjMul{}(ctx, out_view, op_view, arg_view);
+    AdjMul{ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+        ctx, out_view, op_view, arg_view);
     AdjMul::destroy_scratch_space(ctx, basis);
 
     TestFixture::expect_tensor_near(out, arg);
@@ -306,7 +310,8 @@ TYPED_TEST(NumericFreeTensorAdjointRightMulTests,
 
     auto const ctx = TestFixture::Strategy::make_context(scratch.data());
     AdjMul::init_scratch_space(ctx, basis);
-    AdjMul{}(ctx, out_view, op_view, arg_view);
+    AdjMul{ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+        ctx, out_view, op_view, arg_view);
     AdjMul::destroy_scratch_space(ctx, basis);
 
     TestFixture::expect_tensor_near(
@@ -334,7 +339,9 @@ protected:
         TensorView<Scalar const*> rhs_view(rhs.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        rpp::ops::TensorPairing<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, result, lhs_view, rhs_view);
         return result;
     }
 
@@ -361,7 +368,9 @@ protected:
         TensorView<Scalar const*> op_view(op.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::FTMul<Strategy>{}(ctx, out_view, arg_view, op_view);
+        rpp::ops::FTMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view, op_view);
         return out;
     }
 
@@ -382,7 +391,8 @@ protected:
 
         auto const ctx = Strategy::make_context(scratch.data());
         AdjMul::init_scratch_space(ctx, basis);
-        AdjMul{}(ctx, out_view, op_view, arg_view);
+        AdjMul{ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         AdjMul::destroy_scratch_space(ctx, basis);
         return out;
     }
@@ -487,7 +497,8 @@ TEST_F(FreeTensorAdjointRightMulTests,
 
     auto const ctx = Strategy::make_context(scratch.data());
     AdjMul::init_scratch_space(ctx, basis);
-    AdjMul{}(ctx, out_view, op_view, arg_view);
+    AdjMul{ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+        ctx, out_view, op_view, arg_view);
     AdjMul::destroy_scratch_space(ctx, basis);
 
     EXPECT_EQ(out, arg);
@@ -512,7 +523,8 @@ TEST_F(FreeTensorAdjointRightMulTests, LetterOperatorShiftsCoefficientsRight) {
 
     auto const ctx = Strategy::make_context(scratch.data());
     AdjMul::init_scratch_space(ctx, basis);
-    AdjMul{}(ctx, out_view, op_view, arg_view);
+    AdjMul{ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+        ctx, out_view, op_view, arg_view);
     AdjMul::destroy_scratch_space(ctx, basis);
 
     EXPECT_EQ(out, expected_right_shift(basis, arg, letter_index));
@@ -613,7 +625,8 @@ TYPED_TEST(NumericFreeTensorAdjointRightMulTests, ZeroExtendsOperandsAndPreserve
             std::vector<std::byte> scratch(scratch_bytes);
             auto const ctx = TestFixture::Strategy::make_context(scratch.data());
             AdjMul::init_scratch_space(ctx, basis);
-            AdjMul{}(ctx, out_view, op_view, arg_view);
+            AdjMul{ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+                ctx, out_view, op_view, arg_view);
             AdjMul::destroy_scratch_space(ctx, basis);
             TestFixture::expect_tensor_near(actual, expected);
         }

@@ -126,7 +126,8 @@ protected:
         auto const c_view = const_tensor_view(c, basis, c_range);
 
         auto const ctx = make_context();
-        rpp::ops::FTFma<Strategy>{}(
+        rpp::ops::FTFma<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
             ctx, out_view, a_view, b_view, c_view, alpha, beta);
 
         EXPECT_EQ(out,
@@ -246,11 +247,15 @@ TEST_F(FreeTensorFmaTests, MatchesMultiplyThenAddForTruncatedViews) {
     auto const c_view = const_tensor_view(c, basis, c_range);
 
     auto const ctx = make_context();
-    rpp::ops::FTFma<Strategy>{}(
+    rpp::ops::FTFma<Strategy>{
+        ctx, rpp::basis::make_basis_pack(fma_out_view.basis())}(
         ctx, fma_out_view, a_view, b_view, c_view, alpha, beta);
 
-    rpp::ops::FTMul<Strategy>{}(ctx, product_out_view, b_view, c_view, beta);
-    rpp::ops::VectorInplaceAdd<Strategy>{}(
+    rpp::ops::FTMul<Strategy>{
+        ctx, rpp::basis::make_basis_pack(product_out_view.basis())}(
+        ctx, product_out_view, b_view, c_view, beta);
+    rpp::ops::VectorInplaceAdd<Strategy>{
+        ctx, rpp::basis::make_basis_pack(product_out_view.basis())}(
         ctx, product_out_view, a_view, alpha);
 
     EXPECT_EQ(fma_out, product_then_add);
@@ -337,7 +342,8 @@ protected:
         auto const c_view = const_tensor_view(c, basis, c_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::FTFma<Strategy>{}(
+        rpp::ops::FTFma<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
             ctx, out_view, a_view, b_view, c_view, alpha, beta);
         return out;
     }
@@ -357,7 +363,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::FTMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view, beta);
+        rpp::ops::FTMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view, beta);
         return out;
     }
 
@@ -371,7 +379,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, rhs_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::VectorInplaceAdd<Strategy>{}(ctx, lhs_view, rhs_view, alpha);
+        rpp::ops::VectorInplaceAdd<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, lhs_view, rhs_view, alpha);
     }
 };
 

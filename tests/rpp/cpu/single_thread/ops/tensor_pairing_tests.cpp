@@ -79,7 +79,9 @@ protected:
         ConstTensorView arg_view(arg.data(), basis, arg_range.min, arg_range.max);
 
         auto const ctx = Base::make_context();
-        rpp::ops::TensorPairing<Strategy>{}(ctx, out, functional_view, arg_view);
+        rpp::ops::TensorPairing<Strategy>{
+            ctx, rpp::basis::make_basis_pack(functional_view.basis())}(
+            ctx, out, functional_view, arg_view);
         return out;
     }
 };
@@ -204,7 +206,8 @@ TYPED_TEST(NumericTensorPairingTests, KernelWrapperMatchesDirectOperation) {
     typename TestFixture::ConstTensorView functional_view(functional.data(), basis);
     typename TestFixture::ConstTensorView arg_view(arg.data(), basis);
     auto const ctx = TestFixture::Strategy::make_context(nullptr);
-    rpp::ops::TensorPairing<typename TestFixture::Strategy>{}(
+    rpp::ops::TensorPairing<typename TestFixture::Strategy>{
+        ctx, rpp::basis::make_basis_pack(functional_view.basis())}(
         ctx, expected[0], functional_view, arg_view);
 
     TestFixture::expect_scalar_near(actual[0], expected[0]);
@@ -267,13 +270,17 @@ TEST(ExplicitScalarConversions, PairingSupportsScalarOutputsAndScalarViews) {
     rpp::DenseTensorView<Scalar*, Basis> view(values, basis);
     auto ctx = Strategy::make_context(nullptr);
     Scalar output{0};
-    rpp::ops::TensorPairing<Strategy>{}(ctx, output, view, view);
+    rpp::ops::TensorPairing<Strategy>{
+        ctx,
+        rpp::basis::make_basis_pack(view.basis())}(ctx, output, view, view);
     EXPECT_DOUBLE_EQ(static_cast<double>(output), 14);
 
     rpp::ScalarView<Scalar*> output_view(&output);
     output_view = 5.0;
     EXPECT_DOUBLE_EQ(static_cast<double>(output), 5);
-    rpp::ops::TensorPairing<Strategy>{}(ctx, output_view, view, view);
+    rpp::ops::TensorPairing<Strategy>{
+        ctx, rpp::basis::make_basis_pack(view.basis())}(
+        ctx, output_view, view, view);
     EXPECT_DOUBLE_EQ(static_cast<double>(output), 14);
 }
 } // namespace

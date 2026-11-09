@@ -41,7 +41,9 @@ protected:
         auto tensor = initial;
         TensorView tensor_view(tensor.data() + storage_offset, basis, range.min, range.max);
         auto const ctx = Base::make_context();
-        rpp::ops::TensorAddIdentity<Strategy>{}(ctx, tensor_view, scalar);
+        rpp::ops::TensorAddIdentity<Strategy>{
+            ctx, rpp::basis::make_basis_pack(tensor_view.basis())}(
+            ctx, tensor_view, scalar);
         return tensor;
     }
 
@@ -54,7 +56,9 @@ protected:
         auto tensor = initial;
         TensorView tensor_view(tensor.data() + storage_offset, basis, range.min, range.max);
         auto const ctx = Base::make_context();
-        rpp::ops::TensorSetIdentity<Strategy>{}(ctx, tensor_view, scalar);
+        rpp::ops::TensorSetIdentity<Strategy>{
+            ctx, rpp::basis::make_basis_pack(tensor_view.basis())}(
+            ctx, tensor_view, scalar);
         return tensor;
     }
 };
@@ -150,7 +154,9 @@ TEST_F(TensorIdentityTests, AddIdentityAddsOneToUnitOnly) {
     TensorView<Scalar*> tensor_view(tensor.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::TensorAddIdentity<Strategy>{}(ctx, tensor_view);
+    rpp::ops::TensorAddIdentity<Strategy>{
+        ctx, rpp::basis::make_basis_pack(tensor_view.basis())}(ctx,
+                                                               tensor_view);
 
     EXPECT_EQ(tensor, expected);
 }
@@ -167,7 +173,9 @@ TEST_F(TensorIdentityTests, AddIdentitySupportsScaledIdentity) {
     TensorView<Scalar*> tensor_view(tensor.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::TensorAddIdentity<Strategy>{}(ctx, tensor_view, scalar);
+    rpp::ops::TensorAddIdentity<Strategy>{
+        ctx, rpp::basis::make_basis_pack(tensor_view.basis())}(
+        ctx, tensor_view, scalar);
 
     EXPECT_EQ(tensor, expected);
 }
@@ -183,7 +191,9 @@ TEST_F(TensorIdentityTests, SetIdentitySetsUnitAndZerosPositiveDegrees) {
     TensorView<Scalar*> tensor_view(tensor.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::TensorSetIdentity<Strategy>{}(ctx, tensor_view);
+    rpp::ops::TensorSetIdentity<Strategy>{
+        ctx, rpp::basis::make_basis_pack(tensor_view.basis())}(ctx,
+                                                               tensor_view);
 
     EXPECT_EQ(tensor, expected);
 }
@@ -200,7 +210,9 @@ TEST_F(TensorIdentityTests, SetIdentitySupportsScaledIdentity) {
     TensorView<Scalar*> tensor_view(tensor.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::TensorSetIdentity<Strategy>{}(ctx, tensor_view, scalar);
+    rpp::ops::TensorSetIdentity<Strategy>{
+        ctx, rpp::basis::make_basis_pack(tensor_view.basis())}(
+        ctx, tensor_view, scalar);
 
     EXPECT_EQ(tensor, expected);
 }

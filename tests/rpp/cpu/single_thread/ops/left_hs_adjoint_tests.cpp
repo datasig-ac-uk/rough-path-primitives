@@ -42,12 +42,14 @@ protected:
         ConstTensorView cotangent(
             arg.data(), basis, arg_range.min, arg_range.max);
         if constexpr (FixedLeft) {
-            rpp::ops::LeftHSAdjLMul<Strategy>{}(
+            rpp::ops::LeftHSAdjLMul<Strategy>{
+                Base::make_context(), rpp::basis::make_basis_pack(out.basis())}(
                 Base::make_context(), out, fixed_operand, cotangent);
         }
         else {
             // The right-adjoint interface takes cotangent, fixed integrand.
-            rpp::ops::LeftHSAdjRMul<Strategy>{}(
+            rpp::ops::LeftHSAdjRMul<Strategy>{
+                Base::make_context(), rpp::basis::make_basis_pack(out.basis())}(
                 Base::make_context(), out, cotangent, fixed_operand);
         }
         return actual;
@@ -67,7 +69,9 @@ protected:
         ConstTensorView arg_view(
             arg.data(), basis, arg_range.min, arg_range.max);
         auto const ctx = Base::make_context();
-        rpp::ops::LeftHSMul<Strategy>{}(ctx, out, op_view, arg_view, beta);
+        rpp::ops::LeftHSMul<Strategy>{ctx,
+                                      rpp::basis::make_basis_pack(out.basis())}(
+            ctx, out, op_view, arg_view, beta);
         return actual;
     }
 

@@ -78,13 +78,19 @@ protected:
                                                                   ranges.multiplier.min, ranges.multiplier.max);
                     auto const ctx = Base::make_context();
                     if constexpr (Operation == Kind::Exp) {
-                        rpp::ops::FTExp<Strategy>{}(ctx, out, in);
+                        rpp::ops::FTExp<Strategy>{
+                            ctx, rpp::basis::make_basis_pack(out.basis())}(
+                            ctx, out, in);
                     }
                     else if constexpr (Operation == Kind::Log) {
-                        rpp::ops::FTLog<Strategy>{}(ctx, out, in);
+                        rpp::ops::FTLog<Strategy>{
+                            ctx, rpp::basis::make_basis_pack(out.basis())}(
+                            ctx, out, in);
                     }
                     else {
-                        rpp::ops::FTFMExp<Strategy>{}(ctx, out, mult, in);
+                        rpp::ops::FTFMExp<Strategy>{
+                            ctx, rpp::basis::make_basis_pack(out.basis())}(
+                            ctx, out, mult, in);
                     }
                     ASSERT_EQ(actual.size(), expected.size());
                     for (Index idx = 0; idx < output_end; ++idx) {

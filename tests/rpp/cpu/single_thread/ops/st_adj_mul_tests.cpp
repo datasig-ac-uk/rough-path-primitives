@@ -57,7 +57,9 @@ protected:
         ConstTensorView rhs_view(rhs.data(), basis);
 
         auto const ctx = Base::make_context();
-        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        rpp::ops::TensorPairing<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, result, lhs_view, rhs_view);
         return result;
     }
 
@@ -71,7 +73,9 @@ protected:
         auto const rhs_view = const_tensor_view(rhs, basis, full_range(basis));
 
         auto const ctx = Base::make_context();
-        rpp::ops::STMul<Strategy>{}(ctx, out_view, lhs_view, rhs_view);
+        rpp::ops::STMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, lhs_view, rhs_view);
         return out;
     }
 
@@ -85,7 +89,9 @@ protected:
         auto const arg_view = const_tensor_view(arg, basis, full_range(basis));
 
         auto const ctx = Base::make_context();
-        rpp::ops::STAdjMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        rpp::ops::STAdjMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         return out;
     }
     static auto run_adj_mul_for_views(
@@ -98,7 +104,10 @@ protected:
         auto out_view = mutable_tensor_view(out, basis, out_range);
         auto const op_view = const_tensor_view(op, basis, op_range);
         auto const arg_view = const_tensor_view(arg, basis, arg_range);
-        rpp::ops::STAdjMul<Strategy>{}(Base::make_context(), out_view, op_view, arg_view);
+        rpp::ops::STAdjMul<Strategy>{
+            Base::make_context(),
+            rpp::basis::make_basis_pack(out_view.basis())}(
+            Base::make_context(), out_view, op_view, arg_view);
         return out;
     }
 
@@ -143,7 +152,8 @@ TYPED_TEST(NumericShuffleTensorAdjointMulTests,
     typename TestFixture::ConstTensorView arg_view(arg.data(), basis);
 
     auto const ctx = TestFixture::make_context();
-    rpp::ops::STAdjMul<typename TestFixture::Strategy>{}(
+    rpp::ops::STAdjMul<typename TestFixture::Strategy>{
+        ctx, rpp::basis::make_basis_pack(out_view.basis())}(
         ctx, out_view, op_view, arg_view);
 
     TestFixture::expect_tensor_near(actual, arg);
@@ -169,7 +179,9 @@ protected:
         TensorView<Scalar const*> rhs_view(rhs.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::TensorPairing<Strategy>{}(ctx, result, lhs_view, rhs_view);
+        rpp::ops::TensorPairing<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, result, lhs_view, rhs_view);
         return result;
     }
 
@@ -198,7 +210,8 @@ protected:
         TensorView<Scalar const*> rhs_view(rhs.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::STFma<Strategy>{}(
+        rpp::ops::STFma<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
             ctx, out_view, addend_view, lhs_view, rhs_view);
         return out;
     }
@@ -214,7 +227,9 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::STAdjMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+        rpp::ops::STAdjMul<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, op_view, arg_view);
         return out;
     }
 
@@ -287,7 +302,9 @@ TEST_F(ShuffleTensorAdjointMulTests,
     TensorView<Scalar const*> arg_view(arg.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::STAdjMul<Strategy>{}(ctx, out_view, op_view, arg_view);
+    rpp::ops::STAdjMul<Strategy>{ctx,
+                                 rpp::basis::make_basis_pack(out_view.basis())}(
+        ctx, out_view, op_view, arg_view);
 
     EXPECT_EQ(out, arg);
 }

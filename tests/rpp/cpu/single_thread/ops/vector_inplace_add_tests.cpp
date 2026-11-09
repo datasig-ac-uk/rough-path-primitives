@@ -29,7 +29,9 @@ TEST_F(VectorInplaceAddTests, AddsRhsCoefficientwise) {
     VectorView<Scalar const*> rhs_view(rhs.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::VectorInplaceAdd<Strategy>{}(ctx, lhs_view, rhs_view);
+    rpp::ops::VectorInplaceAdd<Strategy>{
+        ctx,
+        rpp::basis::make_basis_pack(lhs_view.basis())}(ctx, lhs_view, rhs_view);
 
     std::vector<Scalar> expected;
     expected.reserve(static_cast<std::size_t>(basis.size()));
@@ -54,7 +56,9 @@ TEST_F(VectorInplaceAddTests, AddsScaledRhsCoefficientwise) {
     VectorView<Scalar const*> rhs_view(rhs.data(), basis);
 
     auto const ctx = make_context();
-    rpp::ops::VectorInplaceAdd<Strategy>{}(ctx, lhs_view, rhs_view, multiplier);
+    rpp::ops::VectorInplaceAdd<Strategy>{
+        ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+        ctx, lhs_view, rhs_view, multiplier);
 
     std::vector<Scalar> expected;
     expected.reserve(static_cast<std::size_t>(basis.size()));
@@ -152,7 +156,9 @@ protected:
         auto const rhs_view = const_vector_view(rhs, basis, rhs_range);
 
         auto const ctx = Base::make_context();
-        rpp::ops::VectorInplaceAdd<Strategy>{}(ctx, lhs_view, rhs_view, alpha);
+        rpp::ops::VectorInplaceAdd<Strategy>{
+            ctx, rpp::basis::make_basis_pack(lhs_view.basis())}(
+            ctx, lhs_view, rhs_view, alpha);
         return actual;
     }
 };

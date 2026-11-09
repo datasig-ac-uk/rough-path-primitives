@@ -35,7 +35,9 @@ protected:
         TensorView<Scalar const*> arg_view(arg.data(), basis);
 
         auto const ctx = make_context();
-        rpp::ops::TensorReflect<Strategy>{}(ctx, out_view, arg_view);
+        rpp::ops::TensorReflect<Strategy>{
+            ctx, rpp::basis::make_basis_pack(out_view.basis())}(
+            ctx, out_view, arg_view);
         return out;
     }
 
@@ -112,7 +114,9 @@ TEST_F(TensorReflectTests, AppliesOnlyToOverlappingArgumentDegreeRange) {
     TensorView<Scalar const*> arg_view(arg.data(), basis, 2, 3);
 
     auto const ctx = make_context();
-    rpp::ops::TensorReflect<Strategy>{}(ctx, out_view, arg_view);
+    rpp::ops::TensorReflect<Strategy>{
+        ctx,
+        rpp::basis::make_basis_pack(out_view.basis())}(ctx, out_view, arg_view);
 
     for_each_index(
         basis, [&expected, &arg, &basis](Degree degree, Index level_index) {
@@ -218,7 +222,9 @@ TYPED_TEST(NumericTensorReflectTests, ZeroExtendsArgumentAndPreservesOutsideOutp
             actual.data(), basis, test_case.out.min, test_case.out.max);
         typename TestFixture::ConstTensorView arg_view(
             arg.data(), basis, test_case.arg.min, test_case.arg.max);
-        rpp::ops::TensorReflect<typename TestFixture::Strategy>{}(
+        rpp::ops::TensorReflect<typename TestFixture::Strategy>{
+            TestFixture::make_context(),
+            rpp::basis::make_basis_pack(out_view.basis())}(
             TestFixture::make_context(), out_view, arg_view);
         TestFixture::expect_tensor_near(actual, expected);
     }
@@ -259,8 +265,11 @@ TYPED_TEST(NumericTensorReflectTests, HandlesEveryInputAndOutputDegreeRange) {
                     actual.data(), basis, out_range.min, out_range.max);
                 typename TestFixture::ConstTensorView arg_view(
                     arg.data(), basis, arg_range.min, arg_range.max);
-                rpp::ops::TensorGeneralisedAntipode<typename TestFixture::Strategy,
-                    rpp::ops::TensorAntipodeSigningPolicy::NoSigning>{}(
+                rpp::ops::TensorGeneralisedAntipode<
+                    typename TestFixture::Strategy,
+                    rpp::ops::TensorAntipodeSigningPolicy::NoSigning>{
+                    TestFixture::make_context(),
+                    rpp::basis::make_basis_pack(out_view.basis())}(
                     TestFixture::make_context(), out_view, arg_view);
                 EXPECT_EQ(actual, expected);
             }

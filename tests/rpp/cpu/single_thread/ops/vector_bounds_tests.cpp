@@ -61,13 +61,19 @@ protected:
                         typename Base::ConstVectorView arg(rhs.data() + 1, basis, rhs_range.min, rhs_range.max);
                         auto const ctx = Base::make_context();
                         if constexpr (Operation == Kind::Set) {
-                            rpp::ops::VectorSetConstant<Strategy>{}(ctx, out, static_cast<Accum>(scalar));
+                            rpp::ops::VectorSetConstant<Strategy>{
+                                ctx, rpp::basis::make_basis_pack(out.basis())}(
+                                ctx, out, static_cast<Accum>(scalar));
                         }
                         else if constexpr (Operation == Kind::Scale) {
-                            rpp::ops::VectorScalarMultiply<Strategy>{}(ctx, out, static_cast<Accum>(scalar));
+                            rpp::ops::VectorScalarMultiply<Strategy>{
+                                ctx, rpp::basis::make_basis_pack(out.basis())}(
+                                ctx, out, static_cast<Accum>(scalar));
                         }
                         else {
-                            rpp::ops::VectorInplaceAdd<Strategy>{}(ctx, out, arg, static_cast<Accum>(scalar));
+                            rpp::ops::VectorInplaceAdd<Strategy>{
+                                ctx, rpp::basis::make_basis_pack(out.basis())}(
+                                ctx, out, arg, static_cast<Accum>(scalar));
                         }
                         ASSERT_EQ(actual.size(), expected.size());
                         // All values and arithmetic here are exactly representable, including

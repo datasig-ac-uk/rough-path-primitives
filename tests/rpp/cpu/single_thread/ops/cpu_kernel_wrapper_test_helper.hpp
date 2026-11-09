@@ -87,7 +87,7 @@ struct CpuKernelWrapperTestHelper : PolynomialTensorHelper {
         auto const ctx = Strategy::make_context(scratch.data());
 
         Op::init_scratch_space(ctx, basis);
-        Op op;
+        Op op{ctx, rpp::basis::make_basis_pack(basis)};
         for (Index tensor_idx = 0; tensor_idx < tensor_count; ++tensor_idx) {
             fn(op, ctx, tensor_idx);
         }
