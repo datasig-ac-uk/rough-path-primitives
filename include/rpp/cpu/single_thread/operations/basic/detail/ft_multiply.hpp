@@ -51,6 +51,7 @@ struct TileConfig {
     Degree width;
     Degree tile_letters;
     Index tile_size; // W^tile_letters: full logical side length.
+    Degree first_tiled_degree = 0; // Resolved independently of view bounds.
 };
 
 // One live storage object per operation context, reused across multiplications.
@@ -1011,13 +1012,14 @@ template <typename Ctx,
           typename LhsTensor,
           typename RhsTensor,
           typename Writer>
-RPP_NOINLINE void subtiled_low_degree_terms(Ctx const& ctx,
-                               TileConfig<Ctx, TilePower> const& config,
-                               TensorOut& out,
-                               LhsTensor const& lhs,
-                               RhsTensor const& rhs,
-                               AccumOf<Ctx>* RPP_RESTRICT tile,
-                               Writer& write) {
+RPP_NOINLINE void
+subtiled_low_degree_terms(Ctx const& ctx,
+                          TileConfig<Ctx, TilePower> const& config,
+                          TensorOut& out,
+                          LhsTensor const& lhs,
+                          RhsTensor const& rhs,
+                          AccumOf<Ctx>* RPP_RESTRICT tile,
+                          Writer& write) {
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     assert(config.tile_letters == 1);
@@ -1072,12 +1074,12 @@ template <typename Ctx,
           typename RhsTensor,
           typename Writer>
 RPP_NOINLINE void width_one_terms(Ctx const& ctx,
-                     TileConfig<Ctx, TilePower> const& config,
-                     TensorOut& out,
-                     LhsTensor const& lhs,
-                     RhsTensor const& rhs,
-                     AccumOf<Ctx>* RPP_RESTRICT tile,
-                     Writer& write) {
+                                  TileConfig<Ctx, TilePower> const& config,
+                                  TensorOut& out,
+                                  LhsTensor const& lhs,
+                                  RhsTensor const& rhs,
+                                  AccumOf<Ctx>* RPP_RESTRICT tile,
+                                  Writer& write) {
     using Degree = DegreeOf<Ctx>;
     using Accum = AccumOf<Ctx>;
     constexpr auto capacity =
@@ -1121,12 +1123,12 @@ template <typename Ctx,
           typename RhsTensor,
           typename Writer>
 RPP_NOINLINE void tiled_terms(Ctx const& ctx,
-                 TileConfig<Ctx, TilePower> const& config,
-                 TensorOut& out,
-                 LhsTensor const& lhs,
-                 RhsTensor const& rhs,
-                 DegreeOf<Ctx> first_degree,
-                 Writer& write) {
+                              TileConfig<Ctx, TilePower> const& config,
+                              TensorOut& out,
+                              LhsTensor const& lhs,
+                              RhsTensor const& rhs,
+                              DegreeOf<Ctx> first_degree,
+                              Writer& write) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
@@ -1160,12 +1162,31 @@ RPP_NOINLINE void tiled_terms(Ctx const& ctx,
                     clear_tile<Ctx, TilePower>(tile, pos);
                     scalar_terms<Ctx, TilePower>(
                         ctx, tile, lhs, rhs, config, pos);
-                    left_small_terms<Ctx, TilePower>(
-                        ctx, tile, left_panel, right_panel, lhs, rhs, config, pos);
-                    mid_terms<Ctx, TilePower>(ctx, tile, left_panel, right_panel,
-                                              lhs, rhs, config, pos, splits);
-                    right_small_terms<Ctx, TilePower>(
-                        ctx, tile, left_panel, right_panel, lhs, rhs, config, pos);
+                    left_small_terms<Ctx, TilePower>(ctx,
+                                                     tile,
+                                                     left_panel,
+                                                     right_panel,
+                                                     lhs,
+                                                     rhs,
+                                                     config,
+                                                     pos);
+                    mid_terms<Ctx, TilePower>(ctx,
+                                              tile,
+                                              left_panel,
+                                              right_panel,
+                                              lhs,
+                                              rhs,
+                                              config,
+                                              pos,
+                                              splits);
+                    right_small_terms<Ctx, TilePower>(ctx,
+                                                      tile,
+                                                      left_panel,
+                                                      right_panel,
+                                                      lhs,
+                                                      rhs,
+                                                      config,
+                                                      pos);
                     write(ctx, out, tile, config, pos);
                 }
             }
@@ -1219,15 +1240,23 @@ TileConfig<Ctx, TilePower> select_tile_config(Ctx const& ctx RPP_MAYBE_UNUSED,
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     using Config = TileConfig<Ctx, TilePower>;
+    constexpr Index tile_width = Index{1} << TilePower;
 
     Config config{basis.width, Degree{1}, static_cast<Index>(basis.width)};
 
     const auto width = static_cast<Index>(config.width);
-    if (width > 1) {
-        for (; static_cast<size_t>(config.tile_size * config.tile_size * width *
-                                   width) <= Config::tile_extent;
-             ++config.tile_letters) {
-            config.tile_size *= width;
+    config.first_tiled_degree = 2 + (width <= tile_width ? 1 : 0);
+    if (width > 1 && width < tile_width) {
+        for (; config.tile_size * width <= tile_width;
+             ++config.tile_letters, config.tile_size *= width) {
+        }
+
+        // Degree 2k already fits. Extend the contiguous range from degree 2k+1.
+        config.first_tiled_degree = 2 * config.tile_letters + 1;
+        size_t level_size =
+            static_cast<size_t>(config.tile_size) * config.tile_size * width;
+        for (; level_size <= Config::tile_extent;
+             ++config.first_tiled_degree, level_size *= width) {
         }
     }
 
@@ -1261,6 +1290,7 @@ void multiply(Ctx const& ctx,
     assert(width > 0 && config.tile_letters > 0 && config.tile_size > 0);
     assert(config.tile_size <= tile_size || config.tile_letters == 1);
     assert(out.basis().width == config.width);
+    assert(config.first_tiled_degree > 0);
 
     if (width == 1) {
         auto* tile = TileStorage<Ctx, TilePower>::get(ctx).tile.data();
@@ -1269,18 +1299,20 @@ void multiply(Ctx const& ctx,
         return;
     }
 
-    // Tiling starts with the first middle letter, except when a single-letter
-    // prefix/suffix already needs subtiling to fit the physical tile side.
-    const auto first_tiled_degree = std::max<Degree>(
-        out.min_degree(),
-        2 * config.tile_letters + (config.tile_size <= tile_size ? 1 : 0));
+    const auto first_tiled_degree =
+        std::max<Degree>(out.min_degree(), config.first_tiled_degree);
     if (first_tiled_degree <= out.max_degree()) {
         detail::tiled_terms(
             ctx, config, out, lhs, rhs, first_tiled_degree, write);
     }
     detail::contiguous_terms(
-        ctx, config, out, lhs, rhs,
-        std::min<Degree>(out.max_degree(), first_tiled_degree - 1), write);
+        ctx,
+        config,
+        out,
+        lhs,
+        rhs,
+        std::min<Degree>(out.max_degree(), first_tiled_degree - 1),
+        write);
 }
 
 
