@@ -376,7 +376,8 @@ TYPED_TEST(NumericFreeTensorMulTests, TraversalBoundariesPreserveAliasedOperands
             auto const lhs_view = TestFixture::const_tensor_view(lhs, basis, full);
             auto const rhs_view = TestFixture::const_tensor_view(rhs, basis, full);
             auto const ctx = TestFixture::make_context();
-            rpp::ops::FTMul<typename TestFixture::Strategy>{}(
+            rpp::ops::FTMul<typename TestFixture::Strategy>{
+                ctx, rpp::basis::make_basis_pack(out_view.basis())}(
                 ctx, out_view, lhs_view, rhs_view);
             TestFixture::expect_tensor_near(out, expected);
         }

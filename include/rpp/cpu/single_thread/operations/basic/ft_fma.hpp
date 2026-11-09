@@ -32,8 +32,12 @@ class FTFma<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Index = typename Strategy::Index;
     using Degree = typename Strategy::Degree;
 
+    using Base = cpu::single_thread::ft_multiply::Operation<
+        Strategy,
+        cpu::single_thread::ft_multiply::default_tile_power>;
+
 public:
-    using BaseOperation<Strategy>::BaseOperation;
+    using Base::Base;
 
     static constexpr bool is_implemented = true;
 

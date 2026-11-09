@@ -187,13 +187,16 @@ TEST_F(FreeTensorInplaceFmaTests,
             const auto a_view = Wrapper::tensor_view(initial, basis, i);
             const auto b_view = Wrapper::tensor_view(b, basis, i);
             const auto c_view = Wrapper::tensor_view(c, basis, i);
+            const auto ctx = make_context();
             if constexpr (type == Type::AEqualsABPlusC) {
-                rpp::ops::FTFma<Wrapper::Strategy>{}(
-                    make_context(), out, c_view, a_view, b_view, alpha, beta);
+                rpp::ops::FTFma<Wrapper::Strategy>{
+                    ctx, rpp::basis::make_basis_pack(basis)}(
+                    ctx, out, c_view, a_view, b_view, alpha, beta);
             }
             else {
-                rpp::ops::FTFma<Wrapper::Strategy>{}(
-                    make_context(), out, c_view, b_view, a_view, alpha, beta);
+                rpp::ops::FTFma<Wrapper::Strategy>{
+                    ctx, rpp::basis::make_basis_pack(basis)}(
+                    ctx, out, c_view, b_view, a_view, alpha, beta);
             }
         }
         EXPECT_EQ(actual, expected);

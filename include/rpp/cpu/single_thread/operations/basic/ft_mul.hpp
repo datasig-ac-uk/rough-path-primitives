@@ -30,7 +30,13 @@ class FTMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
 
+    using Base = cpu::single_thread::ft_multiply::Operation<
+        Strategy,
+        cpu::single_thread::ft_multiply::default_tile_power>;
+
 public:
+    using Base::Base;
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut, typename TensorLhs, typename TensorRhs>

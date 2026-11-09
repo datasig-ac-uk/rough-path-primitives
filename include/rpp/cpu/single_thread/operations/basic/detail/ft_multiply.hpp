@@ -94,6 +94,8 @@ class Operation : public ops::BaseOperation<Strategy> {
     using Storage = TileStorage<Context, TilePower>;
 
 public:
+    using ops::BaseOperation<Strategy>::BaseOperation;
+
     template <typename Basis>
     static constexpr size_t scratch_space_size(Strategy const&,
                                                Basis const&) noexcept {
