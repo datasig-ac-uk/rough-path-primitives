@@ -103,6 +103,8 @@ class Operation : public ops::BaseOperation<Strategy> {
 
 public:
 
+    Config const& config() const noexcept { return config_; }
+
     template <typename BasisPack>
     explicit Operation(Context const& ctx, BasisPack const& bases) noexcept
         : ops::BaseOperation<Strategy>(ctx, bases)
@@ -1271,35 +1273,6 @@ void contiguous_terms(Ctx const& ctx,
     else {
         low_degree_terms(ctx, config, out, lhs, rhs, tile, write);
     }
-}
-
-template <unsigned TilePower, typename Ctx, typename Basis>
-TileConfig<Ctx, TilePower> select_tile_config(Ctx const& ctx RPP_MAYBE_UNUSED,
-                                              Basis const& basis) {
-    using Index = IndexOf<Ctx>;
-    using Degree = DegreeOf<Ctx>;
-    using Config = TileConfig<Ctx, TilePower>;
-    constexpr Index tile_width = Index{1} << TilePower;
-
-    Config config{basis.width, Degree{1}, static_cast<Index>(basis.width)};
-
-    const auto width = static_cast<Index>(config.width);
-    config.first_tiled_degree = 2 + (width <= tile_width ? 1 : 0);
-    if (width > 1 && width < tile_width) {
-        for (; config.tile_size * width <= tile_width;
-             ++config.tile_letters, config.tile_size *= width) {
-        }
-
-        // Degree 2k already fits. Extend the contiguous range from degree 2k+1.
-        config.first_tiled_degree = 2 * config.tile_letters + 1;
-        size_t level_size =
-            static_cast<size_t>(config.tile_size) * config.tile_size * width;
-        for (; level_size <= Config::tile_extent;
-             ++config.first_tiled_degree, level_size *= width) {
-        }
-    }
-
-    return config;
 }
 
 } // namespace detail
