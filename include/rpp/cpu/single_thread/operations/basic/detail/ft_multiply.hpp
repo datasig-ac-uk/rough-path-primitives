@@ -20,7 +20,7 @@
 
 namespace rpp::cpu::single_thread::ft_multiply {
 
-inline constexpr unsigned default_tile_power = 4;
+inline constexpr unsigned default_tile_power = 5;
 
 template <typename Ctx>
 using AccumOf = typename Ctx::Accum;
@@ -438,6 +438,24 @@ void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
     }
 }
 
+template <typename Ctx, unsigned TilePower, typename TensorData>
+void stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
+                       AccumOf<Ctx>* RPP_RESTRICT panel,
+                       TensorData const& source,
+                       IndexOf<Ctx> count,
+                       IndexOf<Ctx> stride,
+                       IndexOf<Ctx> offset) {
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+
+    constexpr Index tile_size = Index{1} << TilePower;
+    assert(count <= tile_size && "count must not exceed tile_size");
+
+    for (Index i = 0; i < count; ++i) {
+        panel[i] = static_cast<Accum>(source[i * stride + offset]);
+    }
+}
+
 // Exact-count kernels can read tensor storage directly. Overrun variants round
 // up to a lane group and require initialized padding in both input and output.
 template <typename Ctx,
@@ -579,24 +597,6 @@ void right_multiply_range_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
             out[(ii + i) * out_stride] +=
                 static_cast<Accum>(lhs[ii + i]) * rhs_val;
         }
-    }
-}
-
-template <typename Ctx, unsigned TilePower, typename TensorData>
-void stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
-                       AccumOf<Ctx>* RPP_RESTRICT panel,
-                       TensorData const& source,
-                       IndexOf<Ctx> count,
-                       IndexOf<Ctx> stride,
-                       IndexOf<Ctx> offset) {
-    using Index = IndexOf<Ctx>;
-    using Accum = AccumOf<Ctx>;
-
-    constexpr Index tile_size = Index{1} << TilePower;
-    assert(count <= tile_size && "count must not exceed tile_size");
-
-    for (Index i = 0; i < count; ++i) {
-        panel[i] = static_cast<Accum>(source[i * stride + offset]);
     }
 }
 
@@ -1011,7 +1011,7 @@ template <typename Ctx,
           typename LhsTensor,
           typename RhsTensor,
           typename Writer>
-void subtiled_low_degree_terms(Ctx const& ctx,
+RPP_NOINLINE void subtiled_low_degree_terms(Ctx const& ctx,
                                TileConfig<Ctx, TilePower> const& config,
                                TensorOut& out,
                                LhsTensor const& lhs,
@@ -1071,7 +1071,7 @@ template <typename Ctx,
           typename LhsTensor,
           typename RhsTensor,
           typename Writer>
-void width_one_terms(Ctx const& ctx,
+RPP_NOINLINE void width_one_terms(Ctx const& ctx,
                      TileConfig<Ctx, TilePower> const& config,
                      TensorOut& out,
                      LhsTensor const& lhs,
