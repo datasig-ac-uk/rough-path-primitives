@@ -321,6 +321,68 @@ protected:
 TYPED_TEST_SUITE(NumericFreeTensorMulTests,
                  rpp::tests::TypedCpuFreeTensorTestTypes);
 
+TYPED_TEST(NumericFreeTensorMulTests, MatchesReferenceAcrossTraversalBoundaries) {
+    struct Shape {
+        typename TestFixture::Degree width;
+        typename TestFixture::Degree depth;
+    };
+    Shape const shapes[] = {{1, 8}, {2, 7}, {2, 8}, {2, 9}, {3, 4}, {3, 5},
+                            {3, 6}, {4, 3}, {4, 4}, {4, 5}, {5, 2}, {5, 3},
+                            {16, 2}, {16, 3}, {17, 2}, {256, 1}};
+    for (auto const shape : shapes) {
+        SCOPED_TRACE(::testing::Message() << "width=" << shape.width
+                                          << " depth=" << shape.depth);
+        auto const basis_data =
+            typename TestFixture::BasisData(shape.width, shape.depth);
+        auto const& basis = basis_data.basis;
+        auto const initial_out = TestFixture::make_tensor(1, basis);
+        auto const lhs = TestFixture::make_tensor(2, basis);
+        auto const rhs = TestFixture::make_tensor(3, basis);
+        auto const full = TestFixture::full_range(basis);
+        typename TestFixture::DegreeRange const ranges[] = {
+            full, {0, shape.depth - 1}, {shape.depth, shape.depth}, {1, shape.depth}};
+        typename TestFixture::DegreeRange const rhs_range{0, shape.depth - 1};
+        auto const beta = typename TestFixture::Accum{1.5};
+        for (auto const out_range : ranges) {
+            auto const actual = TestFixture::run_mul(
+                basis, initial_out, lhs, rhs, out_range, full, rhs_range, beta);
+            auto const expected = TestFixture::reference_mul(
+                basis, initial_out, lhs, rhs, out_range, full, rhs_range, beta);
+            TestFixture::expect_tensor_near(actual, expected);
+        }
+    }
+}
+
+TYPED_TEST(NumericFreeTensorMulTests, TraversalBoundariesPreserveAliasedOperands) {
+    struct Shape {
+        typename TestFixture::Degree width;
+        typename TestFixture::Degree depth;
+    };
+    Shape const shapes[] = {{1, 8}, {2, 9}, {3, 5}, {4, 5}, {5, 3}, {17, 2}};
+    for (auto const shape : shapes) {
+        auto const basis_data =
+            typename TestFixture::BasisData(shape.width, shape.depth);
+        auto const& basis = basis_data.basis;
+        auto const full = TestFixture::full_range(basis);
+        for (bool alias_left : {true, false}) {
+            SCOPED_TRACE(::testing::Message() << "width=" << shape.width
+                                              << " alias_left=" << alias_left);
+            auto lhs = TestFixture::make_tensor(2, basis);
+            auto rhs = TestFixture::make_tensor(3, basis);
+            auto& out = alias_left ? lhs : rhs;
+            auto const expected = TestFixture::reference_mul(
+                basis, out, lhs, rhs, full, full, full);
+            auto out_view = TestFixture::mutable_tensor_view(out, basis, full);
+            auto const lhs_view = TestFixture::const_tensor_view(lhs, basis, full);
+            auto const rhs_view = TestFixture::const_tensor_view(rhs, basis, full);
+            auto const ctx = TestFixture::make_context();
+            rpp::ops::FTMul<typename TestFixture::Strategy>{}(
+                ctx, out_view, lhs_view, rhs_view);
+            TestFixture::expect_tensor_near(out, expected);
+        }
+    }
+}
+
 TYPED_TEST(NumericFreeTensorMulTests, MatchesReferenceOnFullView) {
     auto const basis_data =
         typename TestFixture::BasisData(TestFixture::width, TestFixture::depth);
