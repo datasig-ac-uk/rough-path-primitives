@@ -102,13 +102,11 @@ class Operation : public ops::BaseOperation<Strategy> {
     Config config_;
 
 public:
-
     Config const& config() const noexcept { return config_; }
 
     template <typename BasisPack>
     explicit Operation(Context const& ctx, BasisPack const& bases) noexcept
-        : ops::BaseOperation<Strategy>(ctx, bases)
-    {
+        : ops::BaseOperation<Strategy>(ctx, bases) {
         auto const& tbasis = basis::get_basis(basis::TensorBasisTag{}, bases);
         constexpr auto tile_width = Index{1} << TilePower;
 
@@ -125,10 +123,11 @@ public:
                  ++config_.tile_letters, config_.tile_size *= width) {
             }
 
-            // Degree 2k already fits. Extend the contiguous range from degree 2k+1.
+            // Degree 2k already fits. Extend the contiguous range from degree
+            // 2k+1.
             config_.first_tiled_degree = 2 * config_.tile_letters + 1;
-            size_t level_size =
-                static_cast<size_t>(config_.tile_size) * config_.tile_size * width;
+            size_t level_size = static_cast<size_t>(config_.tile_size) *
+                config_.tile_size * width;
             for (; level_size <= Config::tile_extent;
                  ++config_.first_tiled_degree, level_size *= width) {
             }
@@ -445,8 +444,6 @@ public:
 };
 
 namespace detail {
-
-
 // Clear only the rectangle touched by the vector-rounded outer product.
 // The remaining physical rows and columns are never read or written back.
 template <typename Ctx, unsigned TilePower>
@@ -1275,6 +1272,271 @@ void contiguous_terms(Ctx const& ctx,
     }
 }
 
+
+template <typename Ctx,
+          unsigned TilePower,
+          typename LhsTensor,
+          typename RhsTensor>
+void right_tiled_normal_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
+                              TileConfig<Ctx, TilePower> const& config,
+                              SubtilePosition<Ctx> const& pos,
+                              AccumOf<Ctx>* RPP_RESTRICT tile,
+                              AccumOf<Ctx>* RPP_RESTRICT left_panel,
+                              LhsTensor const& lhs,
+                              RhsTensor const& rhs,
+                              MiddleWordSplits<Ctx> const& splits) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::tile_extent;
+    constexpr Index max_panels = TileConfig<Ctx, TilePower>::panel_extent;
+
+    for (Degree split_deg = 0; split_deg < pos.middle_degree; ++split_deg) {
+        const auto lhs_stride = splits[pos.middle_degree - split_deg].divisor;
+
+        const auto lhs_split = splits[split_deg].lhs;
+        const auto rhs_split = splits[split_deg].rhs;
+
+        const auto lhs_degree = pos.middle_degree - split_deg;
+        const auto rhs_degree =
+            pos.middle_degree - split_deg + 2 * config.tile_letters;
+
+        if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
+            continue;
+        }
+
+        const auto lhs_idx = lhs_split;
+        const auto rhs_idx = rhs_split * tile_size;
+
+        const auto lhs_val =
+            static_cast<Accum>(lhs.degree_view(lhs_degree)[lhs_idx]);
+        const auto right = rhs.degree_view(rhs_degree);
+
+        left_multiply_range(ctx,
+                            config,
+                            tile,
+                            lhs_val,
+                            raw_pointer_cast(right.begin()) + lhs_idx,
+                            pos.suffix_subtile_size,
+                            Index{1});
+    }
+}
+
+template <typename Ctx,
+          unsigned TilePower,
+          typename LhsTensor,
+          typename RhsTensor>
+void right_tiled_small_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
+                             TileConfig<Ctx, TilePower> const& config,
+                             SubtilePosition<Ctx> const& pos,
+                             AccumOf<Ctx>* RPP_RESTRICT tile,
+                             AccumOf<Ctx>* RPP_RESTRICT left_panel,
+                             LhsTensor const& lhs,
+                             RhsTensor const& rhs,
+                             MiddleWordSplits<Ctx> const& splits) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::tile_extent;
+    constexpr Index max_panels = TileConfig<Ctx, TilePower>::panel_extent;
+    const Degree tile_letters = 2 * config.tile_letters;
+
+    for (Degree split_deg = tile_letters - 1; split_deg >= 1; --split_deg) {
+        const auto lhs_degree = split_deg;
+        const auto rhs_degree = pos.middle_degree + (tile_letters - split_deg);
+
+        if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
+            continue;
+        }
+
+        const auto short_size = splits[split_deg].divisor;
+        const auto remainder_size = splits[tile_letters - split_deg].divisor;
+
+        const auto left = lhs.degree_view(lhs_degree);
+        const auto right = rhs.degree_view(rhs_degree);
+
+        for (Index i = 0; i < remainder_size; ++i) {
+            auto index = pos.middle_word * remainder_size + i;
+            const auto scalar = static_cast<Accum>(left[index]);
+            left_multiply_range(ctx,
+                                config,
+                                tile + i * remainder_size,
+                                scalar,
+                                raw_pointer_cast(right.begin()),
+                                short_size,
+                                Index{1});
+        }
+    }
+}
+
+
+template <typename Ctx,
+          unsigned TilePower,
+          typename OutTensor,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Write>
+void right_tiled_terms(Ctx const& ctx,
+                       TileConfig<Ctx, TilePower> const& config,
+                       OutTensor& out,
+                       LhsTensor const& lhs,
+                       RhsTensor const& rhs,
+                       DegreeOf<Ctx> first_degree,
+                       Write&& write) {
+    using Degree = DegreeOf<Ctx>;
+    using Index = IndexOf<Ctx>;
+    using Accum = AccumOf<Ctx>;
+
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+
+    const Index width = static_cast<Index>(config.width);
+    const auto tile_letters = 2 * config.tile_letters;
+    const auto side = config.tile_size * config.tile_size;
+
+    const auto left_min_degree = first_degree - tile_letters;
+    const auto left_max_degree = out.max_degree() - tile_letters;
+
+    auto& storage = TileStorage<Ctx, TilePower>::get(ctx);
+    auto* tile = assume_aligned<64>(storage.tile.data());
+    auto* left_panel = assume_aligned<64>(storage.left_panel.data());
+    auto* right_panel = assume_aligned<64>(storage.right_panel.data());
+
+    for (Degree left_degree = left_max_degree; left_degree <= left_min_degree;
+         --left_degree) {
+        MiddleWordSplits<Ctx> splits(width, left_degree);
+        const auto left_size = out.basis().size_of_degree(left_degree);
+        const auto degree = left_degree + 2 * tile_letters;
+
+        for (Index left_word = 0; left_word < left_size; ++left_word) {
+            for (Index right_offset = 0; right_offset < side;
+                 right_offset += tile_size) {
+                SubtilePosition<Ctx> pos{
+                    left_word,
+                    left_degree,
+                    0,
+                    right_offset,
+                    0,
+                    std::min(tile_size, side - right_offset)};
+
+                clear_tile<Ctx, TilePower>(tile, pos);
+
+                if (lhs.has_degree(0) && rhs.has_degree(degree) &&
+                    !is_zero(lhs[0])) {
+                    const auto scalar = static_cast<Accum>(lhs[0]);
+                    const auto right = rhs.degree_view(degree);
+                    left_multiply_range(ctx,
+                                        config,
+                                        tile,
+                                        scalar,
+                                        raw_pointer_cast(right.begin()) +
+                                            pos.suffix_subtile_offset,
+                                        pos.suffix_subtile_size,
+                                        Index{1});
+                }
+                if (lhs.has_degree(degree) && rhs.has_degree(0) &&
+                    !is_zero(rhs[0])) {
+                    const auto scalar = static_cast<Accum>(rhs[0]);
+                    const auto left = lhs.degree_view(degree);
+                    right_multiply_range(ctx,
+                                         config,
+                                         tile,
+                                         raw_pointer_cast(left.begin()) +
+                                             pos.suffix_subtile_offset,
+                                         pos.suffix_subtile_size,
+                                         scalar,
+                                         Index{1});
+                }
+
+                right_tiled_normal_terms(
+                    ctx, config, pos, tile, left_panel, lhs, rhs, splits);
+
+                right_tiled_small_terms(
+                    ctx, config, pos, tile, left_panel, rhs, lhs, splits);
+
+                write(ctx, out, tile, config, pos);
+            }
+        }
+    }
+}
+
+
+template <unsigned TilePower,
+          typename Ctx,
+          typename TensorOut,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Writer>
+void multiply_twoside(Ctx const& ctx,
+                      TileConfig<Ctx, TilePower> const& config,
+                      TensorOut& out,
+                      LhsTensor const& lhs,
+                      RhsTensor const& rhs,
+                      Writer&& write) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    const auto width = static_cast<Index>(config.width);
+    assert(width > 0 && config.tile_letters > 0 && config.tile_size > 0);
+    assert(config.tile_size <= tile_size || config.tile_letters == 1);
+    assert(out.basis().width == config.width);
+    assert(config.first_tiled_degree > 0);
+
+    const auto first_tiled_degree =
+        std::max<Degree>(out.min_degree(), config.first_tiled_degree);
+    if (first_tiled_degree <= out.max_degree()) {
+        detail::tiled_terms(
+            ctx, config, out, lhs, rhs, first_tiled_degree, write);
+    }
+    detail::contiguous_terms(
+        ctx,
+        config,
+        out,
+        lhs,
+        rhs,
+        std::min<Degree>(out.max_degree(), first_tiled_degree - 1),
+        write);
+}
+
+template <unsigned TilePower,
+          typename Ctx,
+          typename TensorOut,
+          typename LhsTensor,
+          typename RhsTensor,
+          typename Writer>
+void multiply_oneside(Ctx const& ctx,
+                      TileConfig<Ctx, TilePower> const& config,
+                      TensorOut& out,
+                      LhsTensor const& lhs,
+                      RhsTensor const& rhs,
+                      Writer&& write) {
+    using Index = IndexOf<Ctx>;
+    using Degree = DegreeOf<Ctx>;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    const auto width = static_cast<Index>(config.width);
+    assert(width > 0 && config.tile_letters > 0 && config.tile_size > 0);
+    assert(config.tile_size <= tile_size || config.tile_letters == 1);
+    assert(out.basis().width == config.width);
+    assert(config.first_tiled_degree > 0);
+
+    const auto first_tiled_degree =
+        std::max<Degree>(out.min_degree(), config.first_tiled_degree);
+    if (first_tiled_degree <= out.max_degree()) {
+        detail::right_tiled_terms(
+            ctx, config, out, lhs, rhs, first_tiled_degree, write);
+    }
+    detail::contiguous_terms(
+        ctx,
+        config,
+        out,
+        lhs,
+        rhs,
+        std::min<Degree>(out.max_degree(), first_tiled_degree - 1),
+        write);
+}
+
+
 } // namespace detail
 
 
@@ -1296,35 +1558,26 @@ void multiply(Ctx const& ctx,
               RhsTensor const& rhs,
               Writer&& write) {
     using Index = IndexOf<Ctx>;
-    using Degree = DegreeOf<Ctx>;
-    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+
     const auto width = static_cast<Index>(config.width);
-    assert(width > 0 && config.tile_letters > 0 && config.tile_size > 0);
-    assert(config.tile_size <= tile_size || config.tile_letters == 1);
-    assert(out.basis().width == config.width);
-    assert(config.first_tiled_degree > 0);
+    if (width == 1)
+        RPP_UNLIKELY {
+            auto* tile = TileStorage<Ctx, TilePower>::get(ctx).tile.data();
+            detail::width_one_terms<Ctx, TilePower>(
+                ctx, config, out, lhs, rhs, tile, write);
+            return;
+        }
 
-    if (width == 1) {
-        auto* tile = TileStorage<Ctx, TilePower>::get(ctx).tile.data();
-        detail::width_one_terms<Ctx, TilePower>(
-            ctx, config, out, lhs, rhs, tile, write);
-        return;
-    }
+    constexpr bool twoside = false;
 
-    const auto first_tiled_degree =
-        std::max<Degree>(out.min_degree(), config.first_tiled_degree);
-    if (first_tiled_degree <= out.max_degree()) {
-        detail::tiled_terms(
-            ctx, config, out, lhs, rhs, first_tiled_degree, write);
+    if constexpr (twoside) {
+        detail::multiply_twoside(
+            ctx, config, out, lhs, rhs, std::forward<Writer>(write));
     }
-    detail::contiguous_terms(
-        ctx,
-        config,
-        out,
-        lhs,
-        rhs,
-        std::min<Degree>(out.max_degree(), first_tiled_degree - 1),
-        write);
+    else {
+        detail::multiply_oneside(
+            ctx, config, out, lhs, rhs, std::forward<Writer>(write));
+    }
 }
 
 
