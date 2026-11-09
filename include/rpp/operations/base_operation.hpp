@@ -21,9 +21,9 @@ public:
     using Index = typename Strategy::Index;
 
     template <typename BasisPack>
-    constexpr explicit BaseOperation(Context const& ctx RPP_MAYBE_UNUSED,
-                                     BasisPack const& basis
-                                         RPP_MAYBE_UNUSED) noexcept {}
+    RPP_HOST_DEVICE constexpr explicit BaseOperation(
+        Context const& ctx RPP_MAYBE_UNUSED,
+        BasisPack const& basis RPP_MAYBE_UNUSED) noexcept {}
 
     template <typename BasisPack>
     RPP_HOST static constexpr size_t

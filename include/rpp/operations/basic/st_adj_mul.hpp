@@ -17,6 +17,8 @@ class STAdjMul : public BaseOperation<Strategy> {
     using Context = typename Strategy::Context;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = false;
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>

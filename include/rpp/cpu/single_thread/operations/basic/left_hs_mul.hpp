@@ -36,6 +36,8 @@ class LeftHSMul<cpu::strategies::SingleThreadStrategy<AccumT, ArchiectureT>>
     using Degree = typename Strategy::Degree;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut,

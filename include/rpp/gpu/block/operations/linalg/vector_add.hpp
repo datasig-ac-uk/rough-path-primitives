@@ -33,6 +33,11 @@ public:
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
     using Index = typename Strategy::Index;
+    template <typename BasisPack>
+    RPP_DEVICE explicit VectorAdd(Context const& ctx,
+                                  BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), set_constant(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
 private:

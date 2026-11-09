@@ -48,6 +48,11 @@ class FTAdjRMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
     }
 
 public:
+    template <typename BasisPack>
+    explicit FTAdjRMul(Context const& ctx, BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), antipode(ctx, pack),
+          adj_lmul(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
     template <typename BasisPack>

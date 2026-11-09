@@ -46,6 +46,12 @@ private:
     AddIdentity add_identity;
 
 public:
+    template <typename BasisPack>
+    RPP_DEVICE explicit FTLog(Context const& ctx,
+                              BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), set_zero(ctx, pack),
+          inplace_mul(ctx, pack), add_identity(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
 
     template <typename BasisPack>

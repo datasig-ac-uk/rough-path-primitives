@@ -24,6 +24,8 @@ class SparseMatrixVectorProduct : public BaseOperation<Strategy> {
     using MatrixView = typename sparse::MatrixView<Format, Args...>::type;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = false;
 
     template <typename VectorOut,

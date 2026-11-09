@@ -36,6 +36,8 @@ class STAdjMul<cpu::strategies::SingleThreadStrategy<Accum_, Architecture>>
 
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename TensorOut, typename TensorOp, typename TensorArg>

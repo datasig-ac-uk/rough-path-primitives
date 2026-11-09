@@ -22,6 +22,11 @@ class FTMul : public BaseOperation<Strategy> {
     FMA fma;
 
 public:
+    template <typename BasisPack>
+    RPP_HOST_DEVICE explicit FTMul(Context const& ctx,
+                                   BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), fma(ctx, pack) {}
+
     static constexpr bool is_implemented = FMA::is_implemented;
 
     template <typename BasisPack>

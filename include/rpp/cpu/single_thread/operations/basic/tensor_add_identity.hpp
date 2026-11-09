@@ -26,6 +26,8 @@ class TensorAddIdentity<
     using Accum = typename Strategy::Accum;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename Tensor>

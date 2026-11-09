@@ -28,6 +28,8 @@ class VectorInplaceAdd<
     using Index = typename Strategy::Index;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename VectorLhs, typename VectorRhs>

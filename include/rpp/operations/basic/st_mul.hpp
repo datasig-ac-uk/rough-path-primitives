@@ -22,6 +22,11 @@ class STMul : public BaseOperation<Strategy> {
     InplaceFMA fma;
 
 public:
+    template <typename BasisPack>
+    RPP_HOST_DEVICE explicit STMul(Context const& ctx,
+                                   BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), fma(ctx, pack) {}
+
     static constexpr bool is_implemented = InplaceFMA::is_implemented;
 
     template <typename BasisPack>

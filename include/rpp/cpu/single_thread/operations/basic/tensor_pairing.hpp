@@ -25,6 +25,8 @@ class TensorPairing<cpu::strategies::SingleThreadStrategy<Accum, Architecture>>
     using Context = typename Strategy::Context;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename It, typename TensorFunc, typename TensorArg>

@@ -18,6 +18,8 @@ class VectorSetConstant : public BaseOperation<Strategy> {
     using Accum = typename Strategy::Accum;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = false;
 
     template <typename Vector>

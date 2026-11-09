@@ -26,6 +26,8 @@ class VectorAdd<cpu::strategies::SingleThreadStrategy<Accum_, Architecture_>>
 
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     using Context = typename Strategy::Context;

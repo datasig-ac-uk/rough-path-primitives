@@ -17,6 +17,8 @@ class TensorPairing : public BaseOperation<Strategy> {
 public:
     using Context = typename Strategy::Context;
     using Accum = typename Strategy::Accum;
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = false;
 
 

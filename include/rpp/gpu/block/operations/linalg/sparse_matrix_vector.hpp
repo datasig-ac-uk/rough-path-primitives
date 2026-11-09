@@ -50,6 +50,8 @@ public:
         sparse::GradedMatrixView<sparse::MatrixFormat::CSR, D, I, O>;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename VectorOut,
@@ -122,6 +124,11 @@ private:
     VectorSetConstant<Strategy> set_constant;
 
 public:
+    template <typename BasisPack>
+    RPP_DEVICE explicit SparseMatrixVectorProduct(
+        Context const& ctx, BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), set_constant(ctx, pack) {}
+
     static constexpr bool is_implemented = true;
     template <typename BasisPack>
     static constexpr size_t scratch_space_size(Strategy const& strategy,

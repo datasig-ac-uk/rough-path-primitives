@@ -32,6 +32,12 @@ class FTLog : public BaseOperation<Strategy> {
     AddIdentity add_identity;
 
 public:
+    template <typename BasisPack>
+    RPP_HOST_DEVICE explicit FTLog(Context const& ctx,
+                                   BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), set_constant(ctx, pack),
+          inplace_mul(ctx, pack), add_identity(ctx, pack) {}
+
     static constexpr bool is_implemented = InplaceMul::is_implemented &&
         AddIdentity::is_implemented && SetConstant::is_implemented;
 

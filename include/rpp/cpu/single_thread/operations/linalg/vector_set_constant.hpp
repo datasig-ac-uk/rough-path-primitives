@@ -26,6 +26,8 @@ class VectorSetConstant<
     using Context = typename Strategy::Context;
 
 public:
+    using BaseOperation<Strategy>::BaseOperation;
+
     static constexpr bool is_implemented = true;
 
     template <typename Vector, typename Value>

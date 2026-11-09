@@ -43,6 +43,11 @@ class LieToTensor : public BaseOperation<Strategy> {
 
 
 public:
+    template <typename BasisPack>
+    RPP_HOST_DEVICE explicit LieToTensor(Context const& ctx,
+                                         BasisPack const& pack) noexcept
+        : BaseOperation<Strategy>(ctx, pack), impl(ctx, pack) {}
+
     static constexpr bool is_implemented = Impl::is_implemented;
 
     template <typename BasisPack>
