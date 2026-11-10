@@ -22,6 +22,7 @@
 namespace rpp::cpu::single_thread::ft_multiply {
 
 inline constexpr unsigned default_tile_power = 5;
+inline constexpr unsigned vector_bytes = 16; // 128-bit wide vectors are the default
 
 template <typename Ctx>
 using AccumOf = typename Ctx::Accum;
@@ -44,12 +45,15 @@ struct TileConfig {
     using Degree = DegreeOf<Ctx>;
     static_assert(TilePower > 0, "panels require a positive tile power");
 
-    static constexpr Index vector_size = 4;
+    static constexpr Index vector_size = sizeof(AccumOf<Ctx>) > vector_bytes
+        ? 1
+        : vector_bytes / sizeof(AccumOf<Ctx>);
     static constexpr Index subtile_size = Index{1} << TilePower;
     static constexpr size_t tile_extent = size_t{1} << (2 * TilePower);
     static constexpr size_t panel_extent = size_t{1} << (2 * TilePower - 1);
 
     Degree width;
+    // Zero selects subtiling; each path resolves its shape.
     Degree tile_letters;
     Index tile_size; // W^tile_letters: full logical side length.
     Degree first_tiled_degree = 0; // Resolved independently of view bounds.
@@ -65,7 +69,10 @@ struct TileStorage {
 
     static constexpr size_t alignment = std::max(size_t{64}, alignof(Accum));
     alignas(alignment) std::array<Accum, Config::tile_extent> tile;
-    alignas(alignment) std::array<Accum, Config::panel_extent> left_panel{};
+    // Right tiling caches one coefficient for each nonempty prefix split.
+    static constexpr size_t left_panel_extent =
+        std::max(Config::panel_extent, size_t{Ctx::Architecture::max_depth});
+    alignas(alignment) std::array<Accum, left_panel_extent> left_panel{};
     alignas(alignment) std::array<Accum, Config::panel_extent> right_panel{};
 
     static constexpr size_t scratch_size() noexcept {
@@ -111,10 +118,10 @@ public:
         constexpr auto tile_width = Index{1} << TilePower;
 
         config_.width = tbasis.width;
-        config_.tile_letters = 1;
-        config_.tile_size = static_cast<Index>(config_.width);
-
         const auto width = static_cast<Index>(config_.width);
+        config_.tile_letters = width > tile_width ? 0 : 1;
+        config_.tile_size = config_.tile_letters == 0 ? Index{1} : width;
+
         config_.first_tiled_degree = 2 + (width <= tile_width ? 1 : 0);
 
 
@@ -663,6 +670,23 @@ public:
         }
     }
 
+    // Initialize the cached left coefficients for prefix word zero. The
+    // empty left word is handled separately by the scalar terms.
+    template <typename LhsTensor>
+    MiddleWordSplits(Index width,
+                     Degree degree,
+                     AccumOf<Ctx>* RPP_RESTRICT left_panel,
+                     LhsTensor const& lhs)
+        : MiddleWordSplits(width, degree) {
+        for (Degree split = 0; split < middle_degree; ++split) {
+            const auto lhs_degree = middle_degree - split;
+            if (lhs.has_degree(lhs_degree)) {
+                left_panel[split] =
+                    static_cast<AccumOf<Ctx>>(lhs.degree_view(lhs_degree)[0]);
+            }
+        }
+    }
+
     auto const& operator[](Degree split) const noexcept {
         return splits[split];
     }
@@ -673,6 +697,25 @@ public:
             if (++state.rhs == state.divisor) {
                 state.rhs = 0;
                 ++state.lhs;
+            }
+        }
+    }
+
+    // Call only when another prefix word remains: carrying past the final
+    // word would otherwise read one past the corresponding left-hand level.
+    template <typename LhsTensor>
+    void advance(AccumOf<Ctx>* RPP_RESTRICT left_panel,
+                 LhsTensor const& lhs) noexcept {
+        for (Degree split = 0; split <= middle_degree; ++split) {
+            auto& state = splits[split];
+            if (++state.rhs == state.divisor) {
+                state.rhs = 0;
+                ++state.lhs;
+                const auto lhs_degree = middle_degree - split;
+                if (lhs_degree > 0 && lhs.has_degree(lhs_degree)) {
+                    left_panel[split] = static_cast<AccumOf<Ctx>>(
+                        lhs.degree_view(lhs_degree)[state.lhs]);
+                }
             }
         }
     }
@@ -1273,43 +1316,33 @@ void right_tiled_normal_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
                               TileConfig<Ctx, TilePower> const& config,
                               SubtilePosition<Ctx> const& pos,
                               AccumOf<Ctx>* RPP_RESTRICT tile,
-                              AccumOf<Ctx>* RPP_RESTRICT left_panel,
+                              AccumOf<Ctx> const* RPP_RESTRICT left_panel,
                               LhsTensor const& lhs,
                               RhsTensor const& rhs,
                               MiddleWordSplits<Ctx> const& splits) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
-    using Accum = AccumOf<Ctx>;
-
-    constexpr Index tile_size = TileConfig<Ctx, TilePower>::tile_extent;
-    constexpr Index max_panels = TileConfig<Ctx, TilePower>::panel_extent;
 
     for (Degree split_deg = 0; split_deg < pos.middle_degree; ++split_deg) {
-        const auto lhs_stride = splits[pos.middle_degree - split_deg].divisor;
-
-        const auto lhs_split = splits[split_deg].lhs;
         const auto rhs_split = splits[split_deg].rhs;
 
         const auto lhs_degree = pos.middle_degree - split_deg;
-        const auto rhs_degree =
-            pos.middle_degree - split_deg + 2 * config.tile_letters;
+        const auto rhs_degree = split_deg + config.tile_letters;
 
         if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
             continue;
         }
 
-        const auto lhs_idx = lhs_split;
-        const auto rhs_idx = rhs_split * tile_size;
+        const auto rhs_idx =
+            rhs_split * config.tile_size + pos.suffix_subtile_offset;
 
-        const auto lhs_val =
-            static_cast<Accum>(lhs.degree_view(lhs_degree)[lhs_idx]);
         const auto right = rhs.degree_view(rhs_degree);
 
         left_multiply_range(ctx,
                             config,
                             tile,
-                            lhs_val,
-                            raw_pointer_cast(right.begin()) + lhs_idx,
+                            left_panel[split_deg],
+                            raw_pointer_cast(right.begin()) + rhs_idx,
                             pos.suffix_subtile_size,
                             Index{1});
     }
@@ -1323,38 +1356,40 @@ void right_tiled_small_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
                              TileConfig<Ctx, TilePower> const& config,
                              SubtilePosition<Ctx> const& pos,
                              AccumOf<Ctx>* RPP_RESTRICT tile,
-                             AccumOf<Ctx>* RPP_RESTRICT left_panel,
                              LhsTensor const& lhs,
-                             RhsTensor const& rhs,
-                             MiddleWordSplits<Ctx> const& splits) {
+                             RhsTensor const& rhs) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     using Accum = AccumOf<Ctx>;
+    auto const& basis = lhs.basis();
 
-    constexpr Index tile_size = TileConfig<Ctx, TilePower>::tile_extent;
-    constexpr Index max_panels = TileConfig<Ctx, TilePower>::panel_extent;
-    const Degree tile_letters = 2 * config.tile_letters;
+    const Degree tile_letters = config.tile_letters;
 
     for (Degree split_deg = tile_letters - 1; split_deg >= 1; --split_deg) {
-        const auto lhs_degree = split_deg;
-        const auto rhs_degree = pos.middle_degree + (tile_letters - split_deg);
+        const auto lhs_degree = pos.middle_degree + (tile_letters - split_deg);
+        const auto rhs_degree = split_deg;
 
         if (!lhs.has_degree(lhs_degree) || !rhs.has_degree(rhs_degree)) {
             continue;
         }
 
-        const auto short_size = splits[split_deg].divisor;
-        const auto remainder_size = splits[tile_letters - split_deg].divisor;
+        const auto short_size = basis.size_of_degree(split_deg);
+        const auto remainder_size =
+            basis.size_of_degree(tile_letters - split_deg);
 
         const auto left = lhs.degree_view(lhs_degree);
         const auto right = rhs.degree_view(rhs_degree);
 
+        // Ordinary right tiles fit completely in scratch. Subtiled right
+        // blocks contain one letter and never enter the small-term path.
+        assert(pos.suffix_subtile_offset == 0 &&
+               pos.suffix_subtile_size == config.tile_size);
+        const auto left_offset = pos.middle_word * remainder_size;
         for (Index i = 0; i < remainder_size; ++i) {
-            auto index = pos.middle_word * remainder_size + i;
-            const auto scalar = static_cast<Accum>(left[index]);
+            const auto scalar = static_cast<Accum>(left[left_offset + i]);
             left_multiply_range(ctx,
                                 config,
-                                tile + i * remainder_size,
+                                tile + i * short_size,
                                 scalar,
                                 raw_pointer_cast(right.begin()),
                                 short_size,
@@ -1381,11 +1416,12 @@ void right_tiled_terms(Ctx const& ctx,
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
 
-    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::tile_extent;
 
     const Index width = static_cast<Index>(config.width);
-    const auto tile_letters = 2 * config.tile_letters;
-    const auto side = config.tile_size * config.tile_size;
+    // The caller has resolved the actual trailing block dimensions.
+    const auto tile_letters = config.tile_letters;
+    const auto side = config.tile_size;
 
     const auto left_min_degree = first_degree - tile_letters;
     const auto left_max_degree = out.max_degree() - tile_letters;
@@ -1393,13 +1429,12 @@ void right_tiled_terms(Ctx const& ctx,
     auto& storage = TileStorage<Ctx, TilePower>::get(ctx);
     auto* tile = assume_aligned<64>(storage.tile.data());
     auto* left_panel = assume_aligned<64>(storage.left_panel.data());
-    auto* right_panel = assume_aligned<64>(storage.right_panel.data());
 
-    for (Degree left_degree = left_max_degree; left_degree <= left_min_degree;
+    for (Degree left_degree = left_max_degree; left_degree >= left_min_degree;
          --left_degree) {
-        MiddleWordSplits<Ctx> splits(width, left_degree);
+        MiddleWordSplits<Ctx> splits(width, left_degree, left_panel, lhs);
         const auto left_size = out.basis().size_of_degree(left_degree);
-        const auto degree = left_degree + 2 * tile_letters;
+        const auto degree = left_degree + tile_letters;
 
         for (Index left_word = 0; left_word < left_size; ++left_word) {
             for (Index right_offset = 0; right_offset < side;
@@ -1407,12 +1442,14 @@ void right_tiled_terms(Ctx const& ctx,
                 SubtilePosition<Ctx> pos{
                     left_word,
                     left_degree,
+                    left_size,
                     0,
                     right_offset,
-                    0,
+                    1,
                     std::min(tile_size, side - right_offset)};
 
-                clear_tile<Ctx, TilePower>(tile, pos);
+                std::fill_n(tile, pos.suffix_subtile_size, Accum{0});
+                const Index level_offset = left_word * side + right_offset;
 
                 if (lhs.has_degree(0) && rhs.has_degree(degree) &&
                     !is_zero(lhs[0])) {
@@ -1423,7 +1460,7 @@ void right_tiled_terms(Ctx const& ctx,
                                         tile,
                                         scalar,
                                         raw_pointer_cast(right.begin()) +
-                                            pos.suffix_subtile_offset,
+                                            level_offset,
                                         pos.suffix_subtile_size,
                                         Index{1});
                 }
@@ -1435,7 +1472,7 @@ void right_tiled_terms(Ctx const& ctx,
                                          config,
                                          tile,
                                          raw_pointer_cast(left.begin()) +
-                                             pos.suffix_subtile_offset,
+                                             level_offset,
                                          pos.suffix_subtile_size,
                                          scalar,
                                          Index{1});
@@ -1444,10 +1481,16 @@ void right_tiled_terms(Ctx const& ctx,
                 right_tiled_normal_terms(
                     ctx, config, pos, tile, left_panel, lhs, rhs, splits);
 
-                right_tiled_small_terms(
-                    ctx, config, pos, tile, left_panel, rhs, lhs, splits);
+                if (tile_letters > 1) {
+                    right_tiled_small_terms(ctx, config, pos, tile, lhs, rhs);
+                }
 
-                write(ctx, out, tile, config, pos);
+                const Index global_offset =
+                    out.basis().start_of_degree(degree) + level_offset;
+                write(ctx, out, tile, global_offset, pos.suffix_subtile_size);
+            }
+            if (left_word + 1 < left_size) {
+                splits.advance(left_panel, lhs);
             }
         }
     }
@@ -1470,8 +1513,13 @@ void multiply_twoside(Ctx const& ctx,
     using Degree = DegreeOf<Ctx>;
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     const auto width = static_cast<Index>(config.width);
-    assert(width > 0 && config.tile_letters > 0 && config.tile_size > 0);
-    assert(config.tile_size <= tile_size || config.tile_letters == 1);
+    assert(width > 0 && config.tile_letters >= 0 && config.tile_size > 0);
+    assert(config.tile_size <= tile_size);
+    auto symmetric_config = config;
+    if (config.tile_letters == 0) {
+        symmetric_config.tile_letters = 1;
+        symmetric_config.tile_size = width;
+    }
     assert(out.basis().width == config.width);
     assert(config.first_tiled_degree > 0);
 
@@ -1479,11 +1527,11 @@ void multiply_twoside(Ctx const& ctx,
         std::max<Degree>(out.min_degree(), config.first_tiled_degree);
     if (first_tiled_degree <= out.max_degree()) {
         detail::tiled_terms(
-            ctx, config, out, lhs, rhs, first_tiled_degree, write);
+            ctx, symmetric_config, out, lhs, rhs, first_tiled_degree, write);
     }
     detail::contiguous_terms(
         ctx,
-        config,
+        symmetric_config,
         out,
         lhs,
         rhs,
@@ -1507,8 +1555,20 @@ void multiply_oneside(Ctx const& ctx,
     using Degree = DegreeOf<Ctx>;
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     const auto width = static_cast<Index>(config.width);
-    assert(width > 0 && config.tile_letters > 0 && config.tile_size > 0);
-    assert(config.tile_size <= tile_size || config.tile_letters == 1);
+    assert(width > 0 && config.tile_letters >= 0 && config.tile_size > 0);
+    assert(config.tile_size <= tile_size);
+    auto right_config = config;
+    right_config.tile_letters =
+        config.tile_letters == 0 ? Degree{1} : 2 * config.tile_letters;
+    right_config.tile_size =
+        config.tile_letters == 0 ? width : config.tile_size * config.tile_size;
+
+    // The contiguous prefix still uses the shared symmetric degree bounds.
+    auto low_config = config;
+    if (config.tile_letters == 0) {
+        low_config.tile_letters = 1;
+        low_config.tile_size = width;
+    }
     assert(out.basis().width == config.width);
     assert(config.first_tiled_degree > 0);
 
@@ -1516,11 +1576,11 @@ void multiply_oneside(Ctx const& ctx,
         std::max<Degree>(out.min_degree(), config.first_tiled_degree);
     if (first_tiled_degree <= out.max_degree()) {
         detail::right_tiled_terms(
-            ctx, config, out, lhs, rhs, first_tiled_degree, write);
+            ctx, right_config, out, lhs, rhs, first_tiled_degree, write);
     }
     detail::contiguous_terms(
         ctx,
-        config,
+        low_config,
         out,
         lhs,
         rhs,
