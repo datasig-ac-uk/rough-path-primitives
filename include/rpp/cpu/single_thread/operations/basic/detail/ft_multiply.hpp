@@ -207,42 +207,45 @@ public:
         }
     }
 
-    // Low degrees use a contiguous tile rather than prefix/suffix rows.
+    // Adapt degree-local chunks and tensor views to the global-range writer.
     template <typename TensorOut>
-    RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
+    RPP_FORCEINLINE void operator()(Ctx const& ctx,
                                     TensorOut& out,
                                     Accum const* RPP_RESTRICT tile,
                                     DegreeOf<Ctx> degree,
                                     Index offset,
                                     Index count) {
-        using Scalar = typename TensorOut::value_type;
         assert(out.has_degree(degree));
-        auto out_level = out.degree_view(degree);
-        for (Index i = 0; i < count; ++i) {
-            out_level[offset + i] = static_cast<Scalar>(beta * tile[i]);
-        }
+        (*this)(ctx,
+                out,
+                tile,
+                out.basis().start_of_degree(degree) + offset,
+                count);
     }
 
-    // The low-degree tile is a complete contiguous tensor prefix.
     template <typename TensorOut, typename TensorTile>
     RPP_FORCEINLINE void
-    operator()(Ctx const&, TensorOut& out, TensorTile const& tile) {
-        using Scalar = typename TensorOut::value_type;
-        for (Index i = tile.begin_index(); i < tile.end_index(); ++i) {
-            out[i] = static_cast<Scalar>(beta * tile[i]);
-        }
+    operator()(Ctx const& ctx, TensorOut& out, TensorTile const& tile) {
+        (*this)(ctx,
+                out,
+                raw_pointer_cast(tile.begin()),
+                tile.begin_index(),
+                tile.size());
     }
 
-    // Width one: the tile contains consecutive degrees, one coefficient each.
+    // tile[0..count) maps to out[offset..offset+count), using global indices.
+    // Width one uses this same interface: each degree is its global index.
     template <typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                                     TensorOut& out,
                                     Accum const* RPP_RESTRICT tile,
-                                    DegreeOf<Ctx> first_degree,
-                                    IndexOf<Ctx> count) {
+                                    Index offset,
+                                    Index count) {
         using Scalar = typename TensorOut::value_type;
+        assert(offset >= out.begin_index() && offset <= out.end_index());
+        assert(count >= 0 && count <= out.end_index() - offset);
         for (Index i = 0; i < count; ++i) {
-            out[first_degree + i] = static_cast<Scalar>(beta * tile[i]);
+            out[offset + i] = static_cast<Scalar>(beta * tile[i]);
         }
     }
 };
@@ -312,61 +315,50 @@ public:
 
     template <typename TensorOut, typename TensorTile>
     RPP_FORCEINLINE void
-    operator()(Ctx const&, TensorOut& out, TensorTile const& tile) {
-        using Scalar = typename TensorOut::value_type;
-        const auto first = tile.begin_index();
-        const auto last = tile.end_index();
-        const auto add_first = std::clamp<Index>(a.begin_index(), first, last);
-        const auto add_last = std::clamp<Index>(a.end_index(), add_first, last);
-        for (Index i = first; i < add_first; ++i) {
-            out[i] = static_cast<Scalar>(beta * tile[i]);
-        }
-        for (Index i = add_first; i < add_last; ++i) {
-            out[i] = static_cast<Scalar>(alpha * static_cast<Accum>(a[i]) +
-                                         beta * tile[i]);
-        }
-        for (Index i = add_last; i < last; ++i) {
-            out[i] = static_cast<Scalar>(beta * tile[i]);
-        }
+    operator()(Ctx const& ctx, TensorOut& out, TensorTile const& tile) {
+        (*this)(ctx,
+                out,
+                raw_pointer_cast(tile.begin()),
+                tile.begin_index(),
+                tile.size());
     }
 
     template <typename TensorOut>
-    RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
+    RPP_FORCEINLINE void operator()(Ctx const& ctx,
                                     TensorOut& out,
                                     Accum const* RPP_RESTRICT tile,
                                     DegreeOf<Ctx> degree,
                                     Index offset,
                                     Index count) {
-        using Scalar = typename TensorOut::value_type;
         assert(out.has_degree(degree));
-        auto out_level = out.degree_view(degree);
-        if (a.has_degree(degree)) {
-            const auto a_level = a.degree_view(degree);
-            for (Index i = 0; i < count; ++i) {
-                out_level[offset + i] = static_cast<Scalar>(
-                    alpha * static_cast<Accum>(a_level[offset + i]) +
-                    beta * tile[i]);
-            }
-        }
-        else {
-            ScaledTileWriter<Ctx>{beta}(ctx, out, tile, degree, offset, count);
-        }
+        (*this)(ctx,
+                out,
+                tile,
+                out.basis().start_of_degree(degree) + offset,
+                count);
     }
 
     template <typename TensorOut>
     RPP_FORCEINLINE void operator()(Ctx const& ctx RPP_MAYBE_UNUSED,
                                     TensorOut& out,
                                     Accum const* RPP_RESTRICT tile,
-                                    DegreeOf<Ctx> first_degree,
-                                    IndexOf<Ctx> count) {
+                                    Index offset,
+                                    Index count) {
         using Scalar = typename TensorOut::value_type;
-        for (Index i = 0; i < count; ++i) {
-            const auto degree = first_degree + i;
-            Accum value = beta * tile[i];
-            if (a.has_degree(degree)) {
-                value += alpha * static_cast<Accum>(a[degree]);
-            }
-            out[degree] = static_cast<Scalar>(value);
+        assert(offset >= out.begin_index() && offset <= out.end_index());
+        assert(count >= 0 && count <= out.end_index() - offset);
+        const auto last = offset + count;
+        const auto add_first = std::clamp<Index>(a.begin_index(), offset, last);
+        const auto add_last = std::clamp<Index>(a.end_index(), add_first, last);
+        for (Index i = offset; i < add_first; ++i) {
+            out[i] = static_cast<Scalar>(beta * tile[i - offset]);
+        }
+        for (Index i = add_first; i < add_last; ++i) {
+            out[i] = static_cast<Scalar>(alpha * static_cast<Accum>(a[i]) +
+                                         beta * tile[i - offset]);
+        }
+        for (Index i = add_last; i < last; ++i) {
+            out[i] = static_cast<Scalar>(beta * tile[i - offset]);
         }
     }
 };
@@ -436,10 +428,10 @@ public:
     RPP_FORCEINLINE void operator()(Ctx const& ctx,
                                     TensorOut& out,
                                     Accum const* RPP_RESTRICT tile,
-                                    DegreeOf<Ctx> first_degree,
+                                    IndexOf<Ctx> offset,
                                     IndexOf<Ctx> count) {
         ScaledTileAddWriter<Ctx, TensorOut>{out, alpha, beta}(
-            ctx, out, tile, first_degree, count);
+            ctx, out, tile, offset, count);
     }
 };
 
