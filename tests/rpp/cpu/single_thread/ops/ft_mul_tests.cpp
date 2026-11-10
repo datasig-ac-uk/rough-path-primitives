@@ -326,9 +326,26 @@ TYPED_TEST(NumericFreeTensorMulTests, MatchesReferenceAcrossTraversalBoundaries)
         typename TestFixture::Degree width;
         typename TestFixture::Degree depth;
     };
-    Shape const shapes[] = {{1, 8}, {2, 7}, {2, 8}, {2, 9}, {3, 4}, {3, 5},
-                            {3, 6}, {4, 3}, {4, 4}, {4, 5}, {5, 2}, {5, 3},
-                            {16, 2}, {16, 3}, {17, 2}, {256, 1}};
+    Shape const shapes[] = {{1, 8},
+                            {2, 7},
+                            {2, 8},
+                            {2, 9},
+                            {3, 4},
+                            {3, 5},
+                            {3, 6},
+                            {3, 7},
+                            {4, 3},
+                            {4, 4},
+                            {4, 5},
+                            {5, 2},
+                            {5, 3},
+                            {5, 5},
+                            {6, 4},
+                            {7, 4},
+                            {16, 2},
+                            {16, 3},
+                            {17, 2},
+                            {256, 1}};
     for (auto const shape : shapes) {
         SCOPED_TRACE(::testing::Message() << "width=" << shape.width
                                           << " depth=" << shape.depth);
@@ -358,7 +375,9 @@ TYPED_TEST(NumericFreeTensorMulTests, TraversalBoundariesPreserveAliasedOperands
         typename TestFixture::Degree width;
         typename TestFixture::Degree depth;
     };
-    Shape const shapes[] = {{1, 8}, {2, 9}, {3, 5}, {4, 5}, {5, 3}, {17, 2}};
+    Shape const shapes[] = {
+        {1, 8}, {2, 9}, {3, 5}, {3, 7}, {4, 5}, {5, 3}, {5, 5},
+        {6, 4}, {7, 4}, {17, 2}};
     for (auto const shape : shapes) {
         auto const basis_data =
             typename TestFixture::BasisData(shape.width, shape.depth);
