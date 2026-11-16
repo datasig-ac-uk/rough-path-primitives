@@ -20,15 +20,7 @@
 namespace rpp::cpu::single_thread::ft_multiply {
 
 inline constexpr unsigned default_tile_power = 5;
-
-template <typename Ctx>
-using AccumOf = typename Ctx::Accum;
-
-template <typename Ctx>
-using IndexOf = typename Ctx::Index;
-
-template <typename Ctx>
-using DegreeOf = typename Ctx::Degree;
+inline constexpr unsigned vector_bytes = 16; // 128-bit wide vectors.
 
 template <typename S>
 RPP_FORCEINLINE bool is_zero(S const& scalar) {

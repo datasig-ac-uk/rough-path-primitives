@@ -12,6 +12,15 @@
 #include <rpp/config.h>
 
 namespace rpp {
+template <typename T>
+using IndexOf = typename T::Index;
+
+template <typename T>
+using DegreeOf = typename T::Degree;
+
+template <typename T>
+using AccumOf = typename T::Accum;
+
 template <typename... Args>
 inline constexpr bool static_assert_fail = false;
 
