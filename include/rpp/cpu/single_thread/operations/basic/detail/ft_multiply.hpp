@@ -7,7 +7,7 @@
 #include <cassert>
 #include <cstddef>
 #include <new>
-#include <type_traits>
+#include <utility>
 
 #include <rpp/config.h>
 
@@ -17,13 +17,9 @@
 #include <rpp/utility.hpp>
 #include <rpp/views/dense_tensor_view.hpp>
 
-#define RPP_NOINLINE __attribute__((noinline))
-
 namespace rpp::cpu::single_thread::ft_multiply {
 
 inline constexpr unsigned default_tile_power = 5;
-inline constexpr unsigned vector_bytes =
-    16; // 128-bit wide vectors are the default
 
 template <typename Ctx>
 using AccumOf = typename Ctx::Accum;
@@ -39,7 +35,8 @@ RPP_FORCEINLINE bool is_zero(S const& scalar) {
     return scalar == S{0};
 }
 
-// Chosen by the caller before entering the multiplication implementation.
+// Resolved once when the operation is constructed. The tiling drivers adapt
+// the shared side dimensions to symmetric tiles or right-hand blocks.
 template <typename Ctx, unsigned TilePower>
 struct TileConfig {
     using Index = IndexOf<Ctx>;
@@ -56,7 +53,7 @@ struct TileConfig {
     Degree width;
     // Zero selects subtiling; each path resolves its shape.
     Degree tile_letters;
-    Index tile_size; // W^tile_letters: full logical side length.
+    Index tile_size; // W^tile_letters; one in the unresolved subtiling case.
     Degree first_tiled_degree = 0; // Resolved independently of view bounds.
 };
 
@@ -116,7 +113,7 @@ public:
     explicit Operation(Context const& ctx, BasisPack const& bases) noexcept
         : ops::BaseOperation<Strategy>(ctx, bases) {
         auto const& tbasis = basis::get_basis(basis::TensorBasisTag{}, bases);
-        constexpr auto tile_width = Index{1} << TilePower;
+        constexpr auto tile_width = Config::subtile_size;
 
         config_.width = tbasis.width;
         const auto width = static_cast<Index>(config_.width);
@@ -371,14 +368,6 @@ public:
     }
 };
 
-// The caller accumulates the complete product tile before updating an operand,
-// visiting output degrees from highest to lowest.
-template <typename Ctx>
-class InplaceMulTileWriter : public ScaledTileWriter<Ctx> {
-public:
-    using ScaledTileWriter<Ctx>::ScaledTileWriter;
-};
-
 // For 123 and 213 the tile contains a*b or b*a respectively, and c is
 // the additive source. Operand selection belongs to the multiplication driver.
 template <typename Ctx, ops::FTInplaceFMAType FMAType, typename TensorC = void>
@@ -458,16 +447,6 @@ void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
 
     tile = assume_aligned<16>(tile);
 
-    // for (Index ii=0; ii<pos.prefix_subtile_size; ii += vector_size) {
-    //     for (Index jj=0; jj<pos.suffix_subtile_size; jj += vector_size) {
-    //         for (Index i=0; i<vector_size; ++i) {
-    //             for (Index j=0; j<vector_size; ++j) {
-    //                 tile[(ii + i) * tile_size + (jj +j)] = AccumOf<Ctx>{0};
-    //             }
-    //         }
-    //     }
-    // }
-
     for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
         for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
             for (Index j = 0; j < vector_size; ++j) {
@@ -487,7 +466,7 @@ void stride_read_panel(Ctx const& ctx RPP_MAYBE_UNUSED,
     using Index = IndexOf<Ctx>;
     using Accum = AccumOf<Ctx>;
 
-    constexpr Index tile_size = Index{1} << TilePower;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     assert(count <= tile_size && "count must not exceed tile_size");
 
     for (Index i = 0; i < count; ++i) {
@@ -726,7 +705,7 @@ template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
           typename RhsTensor>
-void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
+void mid_terms(Ctx const& ctx,
                AccumOf<Ctx>* RPP_RESTRICT out_tile,
                AccumOf<Ctx>* RPP_RESTRICT left_panel,
                AccumOf<Ctx>* RPP_RESTRICT right_panel,
@@ -738,10 +717,9 @@ void mid_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
 
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
-    using Accum = AccumOf<Ctx>;
 
     static_assert(TilePower > 0, "panels require a positive tile power");
-    constexpr Index tile_size = Index{1} << TilePower;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     constexpr Degree max_panels = Degree{1} << (TilePower - 1);
 
     const auto prefix_shift = config.tile_size;
@@ -814,7 +792,7 @@ void left_small_terms(Ctx const& ctx,
                       SubtilePosition<Ctx> const& pos) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
-    constexpr Index tile_size = Index{1} << TilePower;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     if (config.tile_letters <= 1) {
         return;
     }
@@ -891,7 +869,7 @@ void right_small_terms(Ctx const& ctx,
                        SubtilePosition<Ctx> const& pos) {
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
-    constexpr Index tile_size = Index{1} << TilePower;
+    constexpr Index tile_size = TileConfig<Ctx, TilePower>::subtile_size;
     if (config.tile_letters <= 1) {
         return;
     }
@@ -1269,8 +1247,8 @@ RPP_NOINLINE void tiled_terms(Ctx const& ctx,
     }
 }
 
-// Finish the level spanning just the prefix/suffix blocks, followed by the
-// low-degree prefix. Keep the same descending write order for aliased operands.
+// Compute each remaining full level that fits scratch, followed by the
+// low-degree prefix. Keep the descending write order for aliased operands.
 template <typename Ctx,
           unsigned TilePower,
           typename TensorOut,
@@ -1309,11 +1287,13 @@ void contiguous_terms(Ctx const& ctx,
 }
 
 
+// Split at or before the trailing block. The left panel caches the prefix
+// coefficient for each split; the matching right-hand run is contiguous.
 template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
           typename RhsTensor>
-void right_tiled_normal_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
+void right_tiled_normal_terms(Ctx const& ctx,
                               TileConfig<Ctx, TilePower> const& config,
                               SubtilePosition<Ctx> const& pos,
                               AccumOf<Ctx>* RPP_RESTRICT tile,
@@ -1349,11 +1329,12 @@ void right_tiled_normal_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
     }
 }
 
+// Split inside the trailing block, producing short right-hand runs.
 template <typename Ctx,
           unsigned TilePower,
           typename LhsTensor,
           typename RhsTensor>
-void right_tiled_small_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
+void right_tiled_small_terms(Ctx const& ctx,
                              TileConfig<Ctx, TilePower> const& config,
                              SubtilePosition<Ctx> const& pos,
                              AccumOf<Ctx>* RPP_RESTRICT tile,
@@ -1362,6 +1343,7 @@ void right_tiled_small_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
     using Index = IndexOf<Ctx>;
     using Degree = DegreeOf<Ctx>;
     using Accum = AccumOf<Ctx>;
+    constexpr Index outer_product_threshold = 16;
     auto const& basis = lhs.basis();
 
     const Degree tile_letters = config.tile_letters;
@@ -1387,12 +1369,9 @@ void right_tiled_small_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
                pos.suffix_subtile_size == config.tile_size);
         const auto left_offset = pos.middle_word * remainder_size;
 
-        // This looks a little strange, since both branches effectively do the
-        // same thing, but this is really a compiler hint to let the optimiser
-        // generate two separate code paths that cover very short runs vs
-        // longer runs. 16 seems to give reasonable timings across hardware.
-        // 8 seems to regress towards the unchecked version.
-        if (short_size >= 16) {
+        // Separate long and short runs so the compiler can optimise their
+        // loops independently. Keep the measured threshold of 16.
+        if (short_size >= outer_product_threshold) {
             outer_product(ctx,
                           config,
                           tile,
@@ -1639,9 +1618,10 @@ void multiply(Ctx const& ctx,
             return;
         }
 
-    constexpr bool twoside = false;
+    // Retain symmetric tiling as an alternative implementation.
+    constexpr bool use_symmetric_tiling = false;
 
-    if constexpr (twoside) {
+    if constexpr (use_symmetric_tiling) {
         detail::multiply_twoside(
             ctx, config, out, lhs, rhs, std::forward<Writer>(write));
     }
