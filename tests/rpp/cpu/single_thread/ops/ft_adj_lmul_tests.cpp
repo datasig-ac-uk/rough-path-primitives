@@ -81,8 +81,8 @@ protected:
         return result;
     }
 
-    [[nodiscard]] static auto make_context() noexcept {
-        return Strategy::make_context(nullptr);
+    [[nodiscard]] static auto make_context() {
+        return rpp::tests::CpuScratchContext<typename Strategy::Context>{};
     }
 
     [[nodiscard]] static Scalar one() { return cast_scalar<Scalar>(1.0f); }

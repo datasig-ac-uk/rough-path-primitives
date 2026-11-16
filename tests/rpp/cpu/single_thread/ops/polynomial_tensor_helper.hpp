@@ -15,6 +15,8 @@
 #include <rpp/cpu/strategies.hpp>
 #include <rpp/views/views.hpp>
 
+#include "cpu_scratch_context_test_helper.hpp"
+
 namespace rpp::tests {
 
 struct PolynomialTensorHelper {
@@ -48,8 +50,8 @@ struct PolynomialTensorHelper {
               basis(width, depth, degree_begin.data()) {}
     };
 
-    [[nodiscard]] static Context make_context() noexcept {
-        return Strategy::make_context(nullptr);
+    [[nodiscard]] static auto make_context() {
+        return CpuScratchContext<Context>{};
     }
 
     [[nodiscard]] static Monomial make_monomial(char letter,

@@ -22,6 +22,7 @@ rpp_add_test(rpp_cpu_single_thread_algebra_tests
         ft_intermediate_initialization_tests.cpp
         ft_inplace_mul_tests.cpp
         ft_mul_tests.cpp
+        ft_tiling_configuration_tests.cpp
         lie_tensor_conversion_tests.cpp
         operation_constructor_tests.cpp
         left_hs_adjoint_tests.cpp

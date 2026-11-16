@@ -59,7 +59,7 @@ using FTInplaceFma123 =
 
 template <typename Strategy>
 using FTInplaceFma213 =
-    FTInplaceFma<Strategy, FTInplaceFMAType::AEqualsABPlusC>;
+    FTInplaceFma<Strategy, FTInplaceFMAType::AEqualsBAPlusC>;
 
 template <FTInplaceFMAType FMAType,
           typename Strategy,

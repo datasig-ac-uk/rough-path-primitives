@@ -86,10 +86,24 @@ struct TensorCase {
     }
 
     template <typename Op>
-    [[nodiscard]] Context context() {
+    class InitializedContext : public Context {
+        Basis const& basis_;
+
+    public:
+        InitializedContext(std::byte* data, Basis const& basis)
+            : Context(Strategy::make_context(data)), basis_(basis) {
+            Op::init_scratch_space(*this, basis_);
+        }
+        InitializedContext(InitializedContext const&) = delete;
+        InitializedContext& operator=(InitializedContext const&) = delete;
+        ~InitializedContext() { Op::destroy_scratch_space(*this, basis_); }
+    };
+
+    template <typename Op>
+    [[nodiscard]] auto context() {
         const auto scratch_size = Op::scratch_space_size(strategy, basis);
         scratch.assign(std::max<std::size_t>(scratch_size, 1), std::byte{});
-        return Strategy::make_context(scratch.data());
+        return InitializedContext<Op>(scratch.data(), basis);
     }
 
     [[nodiscard]] VectorView out_vector() { return {out.data(), basis}; }

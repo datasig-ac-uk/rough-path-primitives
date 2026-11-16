@@ -50,6 +50,18 @@ public:
                      AddIdentity::scratch_space_size(strategy, pack)));
     }
 
+    template <typename Basis>
+    RPP_HOST_DEVICE static void init_scratch_space(Context const& ctx,
+                                                   Basis const& basis) {
+        InplaceMul::init_scratch_space(ctx, basis);
+    }
+
+    template <typename Basis>
+    RPP_HOST_DEVICE static void destroy_scratch_space(Context const& ctx,
+                                                      Basis const& basis) {
+        InplaceMul::destroy_scratch_space(ctx, basis);
+    }
+
     template <typename TensorOut, typename TensorArg>
     RPP_HOST_DEVICE void operator()(Context const& ctx,
                                     TensorOut& out,
