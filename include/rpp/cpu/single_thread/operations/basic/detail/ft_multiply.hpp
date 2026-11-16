@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstddef>
 #include <new>
+#include <numeric>
 #include <utility>
 
 #include <rpp/config.h>
@@ -21,6 +22,7 @@ namespace rpp::cpu::single_thread::ft_multiply {
 
 inline constexpr unsigned default_tile_power = 5;
 inline constexpr unsigned vector_bytes = 16; // 128-bit wide vectors.
+inline constexpr size_t minimum_scratch_alignment = 64;
 
 template <typename S>
 RPP_FORCEINLINE bool is_zero(S const& scalar) {
@@ -41,6 +43,12 @@ struct TileConfig {
     static constexpr Index subtile_size = Index{1} << TilePower;
     static constexpr size_t tile_extent = size_t{1} << (2 * TilePower);
     static constexpr size_t panel_extent = size_t{1} << (2 * TilePower - 1);
+    static constexpr size_t alignment =
+        std::max(minimum_scratch_alignment, alignof(AccumOf<Ctx>));
+    // Symmetric tile rows and packed panel slots have a fixed scalar stride.
+    // Smaller tile powers may provide less alignment than the storage base.
+    static constexpr size_t row_alignment =
+        std::gcd(alignment, size_t{subtile_size} * sizeof(AccumOf<Ctx>));
 
     Degree width;
     // Zero selects subtiling; each path resolves its shape.
@@ -57,7 +65,7 @@ struct TileStorage {
     using Accum = AccumOf<Ctx>;
     using Config = TileConfig<Ctx, TilePower>;
 
-    static constexpr size_t alignment = std::max(size_t{64}, alignof(Accum));
+    static constexpr size_t alignment = Config::alignment;
     alignas(alignment) std::array<Accum, Config::tile_extent> tile;
     // Right tiling caches one coefficient for each nonempty prefix split.
     static constexpr size_t left_panel_extent =
@@ -437,7 +445,7 @@ void clear_tile(AccumOf<Ctx>* RPP_RESTRICT tile,
     static_assert(tile_size >= vector_size,
                   "tile size must be at least the vector size");
 
-    tile = assume_aligned<16>(tile);
+    tile = assume_aligned<Config::alignment>(tile);
 
     for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
         for (Index jj = 0; jj < pos.suffix_subtile_size; jj += vector_size) {
@@ -517,7 +525,7 @@ void outer_product_overrun(Ctx const& ctx RPP_MAYBE_UNUSED,
     }
 }
 
-// Packed panels retain the alignment guarantees of the original tiled kernel.
+// The output starts at the storage base; panel slots advance by one row.
 template <typename Ctx, unsigned TilePower>
 void outer_product(Ctx const& ctx,
                    TileConfig<Ctx, TilePower> const& config,
@@ -525,15 +533,16 @@ void outer_product(Ctx const& ctx,
                    AccumOf<Ctx>* RPP_RESTRICT out_tile,
                    AccumOf<Ctx> const* RPP_RESTRICT lhs_tile,
                    AccumOf<Ctx> const* RPP_RESTRICT rhs_tile) {
-    constexpr auto tile_size = TileConfig<Ctx, TilePower>::subtile_size;
+    using Config = TileConfig<Ctx, TilePower>;
+    constexpr auto tile_size = Config::subtile_size;
     static_assert(tile_size >= TileConfig<Ctx, TilePower>::vector_size,
                   "tile size must be at least the vector size");
     outer_product_overrun(ctx,
                           config,
-                          assume_aligned<32>(out_tile),
-                          assume_aligned<32>(lhs_tile),
+                          assume_aligned<Config::alignment>(out_tile),
+                          assume_aligned<Config::row_alignment>(lhs_tile),
                           pos.prefix_subtile_size,
-                          assume_aligned<32>(rhs_tile),
+                          assume_aligned<Config::row_alignment>(rhs_tile),
                           pos.suffix_subtile_size,
                           tile_size);
 }
@@ -937,13 +946,14 @@ void scalar_terms(Ctx const& ctx,
         (pos.prefix_subtile_offset * middle_size + pos.middle_word) *
             config.tile_size +
         pos.suffix_subtile_offset;
+    out_tile = assume_aligned<TileConfig<Ctx, TilePower>::alignment>(out_tile);
     if (lhs.has_degree(0) && rhs.has_degree(degree) && !is_zero(lhs[0])) {
         const auto scalar = static_cast<Accum>(lhs[0]);
         const auto right = rhs.degree_view(degree);
         for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
             left_multiply_range(ctx,
                                 config,
-                                assume_aligned<16>(out_tile) + i * tile_size,
+                                out_tile + i * tile_size,
                                 scalar,
                                 raw_pointer_cast(right.begin()) +
                                     i * row_stride + offset,
@@ -958,7 +968,7 @@ void scalar_terms(Ctx const& ctx,
         for (Index i = 0; i < pos.prefix_subtile_size; ++i) {
             right_multiply_range(ctx,
                                  config,
-                                 assume_aligned<16>(out_tile) + i * tile_size,
+                                 out_tile + i * tile_size,
                                  raw_pointer_cast(left.begin()) +
                                      i * row_stride + offset,
                                  pos.suffix_subtile_size,
@@ -1197,7 +1207,7 @@ RPP_NOINLINE void tiled_terms(Ctx const& ctx,
                 for (Index suffix = 0; suffix < side; suffix += tile_size) {
                     SubtilePosition<Ctx> pos{
                         middle_word,
-                        static_cast<Degree>(middle_degree),
+                        middle_degree,
                         middle_size,
                         prefix,
                         suffix,
@@ -1416,9 +1426,11 @@ void right_tiled_terms(Ctx const& ctx,
     const auto left_min_degree = first_degree - tile_letters;
     const auto left_max_degree = out.max_degree() - tile_letters;
 
-    auto& storage = TileStorage<Ctx, TilePower>::get(ctx);
-    auto* tile = assume_aligned<64>(storage.tile.data());
-    auto* left_panel = assume_aligned<64>(storage.left_panel.data());
+    using Storage = TileStorage<Ctx, TilePower>;
+    auto& storage = Storage::get(ctx);
+    auto* tile = assume_aligned<Storage::alignment>(storage.tile.data());
+    auto* left_panel =
+        assume_aligned<Storage::alignment>(storage.left_panel.data());
 
     for (Degree left_degree = left_max_degree; left_degree >= left_min_degree;
          --left_degree) {
