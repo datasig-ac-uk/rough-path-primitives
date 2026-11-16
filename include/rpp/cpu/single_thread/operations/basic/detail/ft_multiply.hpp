@@ -22,7 +22,8 @@
 namespace rpp::cpu::single_thread::ft_multiply {
 
 inline constexpr unsigned default_tile_power = 5;
-inline constexpr unsigned vector_bytes = 16; // 128-bit wide vectors are the default
+inline constexpr unsigned vector_bytes =
+    16; // 128-bit wide vectors are the default
 
 template <typename Ctx>
 using AccumOf = typename Ctx::Accum;
@@ -1385,15 +1386,33 @@ void right_tiled_small_terms(Ctx const& ctx RPP_MAYBE_UNUSED,
         assert(pos.suffix_subtile_offset == 0 &&
                pos.suffix_subtile_size == config.tile_size);
         const auto left_offset = pos.middle_word * remainder_size;
-        for (Index i = 0; i < remainder_size; ++i) {
-            const auto scalar = static_cast<Accum>(left[left_offset + i]);
-            left_multiply_range(ctx,
-                                config,
-                                tile + i * short_size,
-                                scalar,
-                                raw_pointer_cast(right.begin()),
-                                short_size,
-                                Index{1});
+
+        // This looks a little strange, since both branches effectively do the
+        // same thing, but this is really a compiler hint to let the optimiser
+        // generate two separate code paths that cover very short runs vs
+        // longer runs. 16 seems to give reasonable timings across hardware.
+        // 8 seems to regress towards the unchecked version.
+        if (short_size >= 16) {
+            outer_product(ctx,
+                          config,
+                          tile,
+                          raw_pointer_cast(left.begin()),
+                          remainder_size,
+                          raw_pointer_cast(right.begin()),
+                          short_size,
+                          short_size);
+        }
+        else {
+            for (Index i = 0; i < remainder_size; ++i) {
+                const auto scalar = static_cast<Accum>(left[left_offset + i]);
+                left_multiply_range(ctx,
+                                    config,
+                                    tile + i * short_size,
+                                    scalar,
+                                    raw_pointer_cast(right.begin()),
+                                    short_size,
+                                    Index{1});
+            }
         }
     }
 }
