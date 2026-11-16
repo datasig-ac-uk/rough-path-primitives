@@ -10,6 +10,7 @@
 #include <numeric>
 #include <utility>
 
+// ReSharper disable once CppUnusedIncludeDirective
 #include <rpp/config.h>
 
 #include <rpp/basis/tensor_basis.hpp>
@@ -18,6 +19,7 @@
 #include <rpp/utility.hpp>
 #include <rpp/views/dense_tensor_view.hpp>
 
+// NOLINTBEGIN(*-easily-swappable-parameters)
 namespace rpp::cpu::single_thread::ft_multiply {
 
 inline constexpr unsigned default_tile_power = 5;
@@ -140,18 +142,18 @@ public:
     }
 
     template <typename Basis>
-    static constexpr size_t scratch_space_size(Strategy const&,
-                                               Basis const&) noexcept {
+    static constexpr size_t scratch_space_size(Strategy const& strategy RPP_MAYBE_UNUSED,
+                                               Basis const& basis RPP_MAYBE_UNUSED) noexcept {
         return Storage::scratch_size();
     }
 
     template <typename Basis>
-    static void init_scratch_space(Context const& ctx, Basis const&) {
+    static void init_scratch_space(Context const& ctx, Basis const& basis RPP_MAYBE_UNUSED) {
         Storage::construct(ctx);
     }
 
     template <typename Basis>
-    static void destroy_scratch_space(Context const& ctx, Basis const&) {
+    static void destroy_scratch_space(Context const& ctx, Basis const& basis RPP_MAYBE_UNUSED) {
         Storage::destroy(ctx);
     }
 };
@@ -265,7 +267,7 @@ class ScaledTileAddWriter {
     Accum beta{1};
 
 public:
-    explicit ScaledTileAddWriter(TensorA const& a_,
+    explicit ScaledTileAddWriter(TensorA const& a_, // NOLINT(*-identifier-length)
                                  Accum alpha_ = Accum{1},
                                  Accum beta_ = Accum{1})
         : a(a_), alpha(alpha_), beta(beta_) {}
@@ -1212,7 +1214,8 @@ RPP_NOINLINE void tiled_terms(Ctx const& ctx,
                         prefix,
                         suffix,
                         std::min(tile_size, side - prefix),
-                        std::min(tile_size, side - suffix)};
+                        std::min(tile_size, side - suffix),
+                    };
                     clear_tile<Ctx, TilePower>(tile, pos);
                     scalar_terms<Ctx, TilePower>(
                         ctx, tile, lhs, rhs, config, pos);
@@ -1418,7 +1421,7 @@ void right_tiled_terms(Ctx const& ctx,
 
     constexpr Index tile_size = TileConfig<Ctx, TilePower>::tile_extent;
 
-    const Index width = static_cast<Index>(config.width);
+    const auto width = static_cast<Index>(config.width);
     // The caller has resolved the actual trailing block dimensions.
     const auto tile_letters = config.tile_letters;
     const auto side = config.tile_size;
@@ -1448,7 +1451,8 @@ void right_tiled_terms(Ctx const& ctx,
                     0,
                     right_offset,
                     1,
-                    std::min(tile_size, side - right_offset)};
+                    std::min(tile_size, side - right_offset),
+                };
 
                 std::fill_n(tile, pos.suffix_subtile_size, Accum{0});
                 const Index level_offset = left_word * side + right_offset;
@@ -1637,5 +1641,6 @@ void multiply(Ctx const& ctx,
 
 
 } // namespace rpp::cpu::single_thread::ft_multiply
+// NOLINTEND(*-easily-swappable-parameters)
 
 #endif // RPP_CPU_SINGLE_THREAD_OPERATIONS_BASIC_DETAIL_FT_MULTIPLY_HPP
